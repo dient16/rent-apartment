@@ -50,6 +50,7 @@ const SearchInfoBar: React.FC<SearchInfoBarProps> = ({
                               field.onChange(dates);
                               handleDateChange(dates);
                            }}
+                           popoverPlacement="bottomLeft"
                            isShowRightIcon={false}
                            isShowNight={false}
                            isBorder={false}

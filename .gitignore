@@ -33,3 +33,6 @@ out/
 
 # env
 .env*.local
+
+# crawled data & scraper (local only)
+server/scripts/crawl/

@@ -64,11 +64,11 @@ export const navigateHosts: {
 }[] = [
    {
       title: 'Dashboard',
-      path: path.HOST_DASHBOARD,
+      path: `${path.HOST_ROOT}${path.HOST_DASHBOARD}`,
       icon: <FaHome />,
    },
-   { title: 'Bookings', path: path.HOST_BOOKINGS, icon: <FaRegCalendarCheck /> },
-   { title: 'Calendar', path: path.HOST_CALENDAR, icon: <FaCalendarAlt /> },
-   { title: 'Rental Listings', path: path.HOST_LISTINGS, icon: <FaListUl /> },
-   { title: 'Messages', path: path.HOST_MESSAGES, icon: <FaComments /> },
+   { title: 'Bookings', path: `${path.HOST_ROOT}${path.HOST_BOOKINGS}`, icon: <FaRegCalendarCheck /> },
+   { title: 'Calendar', path: `${path.HOST_ROOT}${path.HOST_CALENDAR}`, icon: <FaCalendarAlt /> },
+   { title: 'Rental Listings', path: `${path.HOST_ROOT}${path.HOST_LISTINGS}`, icon: <FaListUl /> },
+   { title: 'Messages', path: `${path.HOST_ROOT}${path.HOST_MESSAGES}`, icon: <FaComments /> },
 ];

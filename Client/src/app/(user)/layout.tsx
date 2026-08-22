@@ -18,7 +18,7 @@ export default function UserLayout({
    return (
       <div className="flex z-50 flex-col justify-center items-center w-full font-main">
          <Header />
-         <div className="w-full">{children}</div>
+         <div className="w-full min-h-[calc(100vh-60px)] lg:min-h-[calc(100vh-80px)]">{children}</div>
          <Footer />
       </div>
    );

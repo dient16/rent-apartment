@@ -20,6 +20,8 @@ interface CustomDatePickerProps {
    isBorder?: boolean;
    variant?: 'label' | 'button' | 'compact';
    format?: string;
+   /** Where the desktop popover anchors relative to the trigger */
+   popoverPlacement?: 'bottom' | 'bottomLeft' | 'bottomRight';
 }
 
 const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
@@ -34,6 +36,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
    isBorder = true,
    format = 'DD MMM',
    variant = 'button',
+   popoverPlacement = 'bottom',
 }) => {
    const [drawerVisible, setDrawerVisible] = useState(false);
    const [popoverVisible, setPopoverVisible] = useState(false);
@@ -239,7 +242,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
             <Popover
                content={content}
                trigger="click"
-               placement="bottomLeft"
+               placement={popoverPlacement}
                align={{ offset: [0, 24] }}
                open={popoverVisible}
                onOpenChange={setPopoverVisible}

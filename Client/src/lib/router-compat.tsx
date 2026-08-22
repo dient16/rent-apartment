@@ -14,6 +14,11 @@ import {
    useSearchParams as useNextSearchParams,
 } from 'next/navigation';
 
+/** The old react-router routes resolved bare paths ("listing") from the root —
+ * keep that behavior: every non-external path is treated as absolute. */
+const absolutize = (to: string) =>
+   to.startsWith('/') || /^[a-z]+:/i.test(to) ? to : `/${to}`;
+
 /* ===================== useNavigate ===================== */
 export const useNavigate = () => {
    const router = useRouter();
@@ -24,7 +29,7 @@ export const useNavigate = () => {
             else router.forward();
             return;
          }
-         router.push(to);
+         router.push(absolutize(to));
       },
       [router],
    );
@@ -82,7 +87,7 @@ interface LinkProps
 }
 
 export const Link: React.FC<LinkProps> = ({ to, children, ...rest }) => (
-   <NextLink href={to} {...rest}>
+   <NextLink href={absolutize(to)} {...rest}>
       {children}
    </NextLink>
 );
@@ -121,7 +126,7 @@ export const NavLink: React.FC<NavLinkProps> = ({
 
    return (
       <NextLink
-         href={to}
+         href={absolutize(to)}
          className={
             typeof className === 'function' ? className({ isActive }) : className
          }
@@ -138,7 +143,7 @@ export const Navigate: React.FC<{ to: string; replace?: boolean }> = ({
 }) => {
    const router = useRouter();
    useEffect(() => {
-      router.replace(to);
+      router.replace(absolutize(to));
    }, [router, to]);
    return null;
 };
