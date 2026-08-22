@@ -63,6 +63,7 @@ router.get('/:bookingId', verifyAccessToken, controller.getBooking);
 router.get('/', verifyAccessToken, controller.getBookings);
 router.post('/', controller.createBooking);
 router.post('/:bookingId/confirm', verifyAccessToken, controller.confirmBooking);
+router.post('/:bookingId/cancel', verifyAccessToken, controller.cancelBooking);
 router.get('/user/bookings', verifyAccessToken, controller.getUserBookings);
 
 export const bookingRouter = router;

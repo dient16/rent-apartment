@@ -147,8 +147,12 @@ export const roomService = {
       ResponseStatus.Success,
       'Rooms retrieved successfully',
       {
+        title: (apartment as any).title,
         address: apartment.location,
         description: apartment.description,
+        houserules: (apartment as any).houserules || [],
+        checkInTime: (apartment as any).checkInTime,
+        checkOutTime: (apartment as any).checkOutTime,
         rooms: updatedRooms,
       },
       StatusCodes.OK

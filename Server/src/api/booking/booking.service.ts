@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 import Apartment from '@/api/apartment/apartment.model';
 import User, { User as IUser } from '@/api/user/user.model';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
+import { notificationService } from '@/api/notification/notification.service';
 import { sendMail } from '@/services/mail.service';
 
 import Booking, { IBooking } from './booking.model';
@@ -30,9 +31,35 @@ const getUserBookings = async (userId: string) => {
     // Step 3: Find all bookings related to those rooms
     const bookings = await BookingModel.find({
       'rooms.roomId': { $in: rooms.map((room) => room._id) },
-    }).exec();
+    })
+      .populate({
+        path: 'rooms.roomId',
+        select: 'roomType apartmentId',
+        model: RoomModel,
+        populate: { path: 'apartmentId', select: 'title', model: ApartmentModel },
+      })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
 
-    return new ServiceResponse(ResponseStatus.Success, 'Bookings retrieved successfully', bookings, StatusCodes.OK);
+    const hostBookings = bookings.map((booking: any) => ({
+      _id: booking._id,
+      guestName: [booking.firstname, booking.lastname].filter(Boolean).join(' '),
+      email: booking.email,
+      phone: booking.phone,
+      apartmentName: booking.rooms[0]?.roomId?.apartmentId?.title || 'Apartment',
+      rooms: booking.rooms.map((room: any) => ({
+        roomType: room.roomId?.roomType,
+        roomNumber: room.roomNumber,
+      })),
+      checkInTime: booking.checkInTime,
+      checkOutTime: booking.checkOutTime,
+      totalPrice: booking.totalPrice,
+      status: booking.status,
+      createdAt: booking.createdAt,
+    }));
+
+    return new ServiceResponse(ResponseStatus.Success, 'Bookings retrieved successfully', hostBookings, StatusCodes.OK);
   } catch (error) {
     console.error('Error retrieving user bookings:', error);
     return new ServiceResponse(
@@ -72,12 +99,13 @@ const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceRes
       );
     }
 
-    room.unavailableDateRanges.push({
-      startDay: checkInTime,
-      endDay: checkOutTime,
-    });
-
-    const [updateError] = await to(room.save());
+    // $push atomic: khong re-validate cac field cu cua document (data cu co the
+    // thieu field moi required nhu bedType) va tranh race khi 2 booking cung luc
+    const [updateError] = await to(
+      RoomModel.findByIdAndUpdate(roomId, {
+        $push: { unavailableDateRanges: { startDay: checkInTime, endDay: checkOutTime } },
+      }).exec()
+    );
     if (updateError) {
       return new ServiceResponse(
         ResponseStatus.Failed,
@@ -132,6 +160,28 @@ const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceRes
     return new ServiceResponse(ResponseStatus.Failed, 'Error sending email', null, StatusCodes.INTERNAL_SERVER_ERROR);
   }
 
+  // Bao cho host(s) so huu apartment co booking moi (khong chan flow neu loi)
+  (async () => {
+    const roomIds = (newBooking as any).rooms.map((room: any) => room.roomId);
+    const bookedRooms = await RoomModel.find({ _id: { $in: roomIds } })
+      .select('apartmentId')
+      .lean();
+    const apartmentIds = [...new Set(bookedRooms.map((room) => String(room.apartmentId)))];
+    const apartments = await ApartmentModel.find({ _id: { $in: apartmentIds } })
+      .select('owner title')
+      .lean();
+    const guestName = [firstname, lastname].filter(Boolean).join(' ');
+    for (const apartment of apartments) {
+      await notificationService.notify({
+        userId: (apartment as any).owner,
+        type: 'booking_created',
+        title: 'New booking request',
+        message: `${guestName} requested a booking at ${(apartment as any).title} (${new Date(checkInTime as any).toLocaleDateString('en-GB')} - ${new Date(checkOutTime as any).toLocaleDateString('en-GB')}, ${totalPrice.toLocaleString()} VND). Please confirm or decline.`,
+        link: '/host/bookings',
+      });
+    }
+  })().catch(() => {});
+
   return new ServiceResponse(ResponseStatus.Success, 'Booking successfully created', savedBooking, StatusCodes.CREATED);
 };
 const getBookings = async (userId: string): Promise<ServiceResponse> => {
@@ -144,9 +194,11 @@ const getBookings = async (userId: string): Promise<ServiceResponse> => {
     BookingModel.find({ email: user.email })
       .populate({
         path: 'rooms.roomId',
-        select: 'roomType price amenities size images',
+        select: 'roomType price amenities size images apartmentId',
         model: RoomModel,
+        populate: { path: 'apartmentId', select: 'title location.province location.district', model: ApartmentModel },
       })
+      .sort({ createdAt: -1 })
       .lean()
       .exec()
   );
@@ -162,6 +214,13 @@ const getBookings = async (userId: string): Promise<ServiceResponse> => {
 
   const filteredBookingDetails = bookings.map((booking) => ({
     _id: booking._id,
+    apartmentName: ((booking as any).rooms[0]?.roomId as any)?.apartmentId?.title || 'Apartment',
+    apartmentLocation: [
+      ((booking as any).rooms[0]?.roomId as any)?.apartmentId?.location?.district,
+      ((booking as any).rooms[0]?.roomId as any)?.apartmentId?.location?.province,
+    ]
+      .filter((part, index, parts) => Boolean(part) && parts.indexOf(part) === index)
+      .join(', '),
     email: booking.email,
     firstname: booking.firstname,
     lastname: booking.lastname,
@@ -220,6 +279,14 @@ const getBooking = async (bookingId: string): Promise<ServiceResponse<any>> => {
   const apartment = apartments.find((ap) => ap._id.toString() === booking.rooms[0].roomId.apartmentId.toString());
   const bookingDetails = {
     _id: booking._id,
+    status: booking.status,
+    arrivalTime: booking.arrivalTime,
+    guest: {
+      firstname: booking.firstname,
+      lastname: booking.lastname,
+      email: booking.email,
+      phone: booking.phone,
+    },
     checkIn: booking.checkInTime,
     checkOut: booking.checkOutTime,
     totalPrice: booking.totalPrice,
@@ -292,7 +359,122 @@ const confirmBooking = async (bookingId: string): Promise<ServiceResponse<IBooki
     return new ServiceResponse(ResponseStatus.Failed, 'Error sending email', null, StatusCodes.INTERNAL_SERVER_ERROR);
   }
 
+  // Bao cho khach (neu email dat phong co tai khoan)
+  (async () => {
+    const guest = await User.findOne({ email: booking.email }).select('_id').lean();
+    if (guest) {
+      await notificationService.notify({
+        userId: (guest as any)._id,
+        type: 'booking_confirmed',
+        title: 'Booking confirmed',
+        message: `Your booking (${new Date(booking.checkInTime).toLocaleDateString('en-GB')} - ${new Date(booking.checkOutTime).toLocaleDateString('en-GB')}) has been confirmed by the host. Have a great stay!`,
+        link: `/my-booking/${booking._id}`,
+      });
+    }
+  })().catch(() => {});
+
   return new ServiceResponse(ResponseStatus.Success, 'Booking successfully confirmed', updatedBooking, StatusCodes.OK);
+};
+
+const cancelBooking = async (bookingId: string, userId: string): Promise<ServiceResponse<IBooking | null>> => {
+  const [findUserError, user] = await to(User.findById(userId).lean().exec());
+  if (findUserError || !user) {
+    return new ServiceResponse(ResponseStatus.Failed, 'User not found', null, StatusCodes.NOT_FOUND);
+  }
+
+  const [findError, booking] = await to(BookingModel.findById(bookingId).exec());
+  if (findError || !booking) {
+    return new ServiceResponse(ResponseStatus.Failed, 'Booking not found', null, StatusCodes.NOT_FOUND);
+  }
+
+  // Chu booking (dat bang email nay) hoac host so huu apartment chua phong nay duoc huy
+  if (booking.email !== user.email) {
+    const roomIds = (booking as any).rooms.map((room: any) => room.roomId);
+    const [findRoomsError, bookedRooms] = await to(
+      RoomModel.find({ _id: { $in: roomIds } })
+        .select('apartmentId')
+        .lean()
+        .exec()
+    );
+    if (findRoomsError) {
+      return new ServiceResponse(ResponseStatus.Failed, 'Error checking rooms', null, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+    const apartmentIds = [...new Set(bookedRooms.map((room) => String(room.apartmentId)))];
+    const [findAptError, ownedCount] = await to(
+      ApartmentModel.countDocuments({ _id: { $in: apartmentIds }, owner: userId }).exec()
+    );
+    if (findAptError || ownedCount === 0) {
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'You do not have permission to cancel this booking',
+        null,
+        StatusCodes.FORBIDDEN
+      );
+    }
+  }
+
+  if (booking.status === 'canceled') {
+    return new ServiceResponse(ResponseStatus.Failed, 'Booking is already canceled', null, StatusCodes.BAD_REQUEST);
+  }
+  if (booking.status === 'completed') {
+    return new ServiceResponse(
+      ResponseStatus.Failed,
+      'A completed booking cannot be canceled',
+      null,
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  const canceledByGuest = booking.email === user.email;
+
+  booking.status = 'canceled';
+  const [updateError, updatedBooking] = await to(booking.save());
+  if (updateError) {
+    return new ServiceResponse(
+      ResponseStatus.Failed,
+      'Error canceling booking',
+      null,
+      StatusCodes.INTERNAL_SERVER_ERROR
+    );
+  }
+
+  // Khach huy -> bao host; host tu choi -> bao khach (neu co tai khoan)
+  (async () => {
+    const dates = `${new Date(booking.checkInTime).toLocaleDateString('en-GB')} - ${new Date(booking.checkOutTime).toLocaleDateString('en-GB')}`;
+    if (canceledByGuest) {
+      const roomIds = (booking as any).rooms.map((room: any) => room.roomId);
+      const bookedRooms = await RoomModel.find({ _id: { $in: roomIds } })
+        .select('apartmentId')
+        .lean();
+      const apartmentIds = [...new Set(bookedRooms.map((room) => String(room.apartmentId)))];
+      const apartments = await ApartmentModel.find({ _id: { $in: apartmentIds } })
+        .select('owner title')
+        .lean();
+      const guestName = [booking.firstname, booking.lastname].filter(Boolean).join(' ');
+      for (const apartment of apartments) {
+        await notificationService.notify({
+          userId: (apartment as any).owner,
+          type: 'booking_canceled',
+          title: 'Booking canceled by guest',
+          message: `${guestName} canceled their booking at ${(apartment as any).title} (${dates}).`,
+          link: '/host/bookings',
+        });
+      }
+    } else {
+      const guest = await User.findOne({ email: booking.email }).select('_id').lean();
+      if (guest) {
+        await notificationService.notify({
+          userId: (guest as any)._id,
+          type: 'booking_canceled',
+          title: 'Booking declined',
+          message: `Unfortunately your booking (${dates}) was declined by the host. You have not been charged.`,
+          link: `/my-booking/${booking._id}`,
+        });
+      }
+    }
+  })().catch(() => {});
+
+  return new ServiceResponse(ResponseStatus.Success, 'Booking canceled successfully', updatedBooking, StatusCodes.OK);
 };
 
 export const bookingService = {
@@ -301,4 +483,5 @@ export const bookingService = {
   getBooking,
   getUserBookings,
   confirmBooking,
+  cancelBooking,
 };

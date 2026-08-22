@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import logo from '@/assets/logo.png';
 import { navigateHosts, navigates, path } from '@/utils/constant';
-import { MenuAccount, SignIn, SignUp } from '@/components';
+import { MenuAccount, NotificationBell, SignIn, SignUp, UserAvatar } from '@/components';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
    Flex,
@@ -28,6 +28,7 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
       icons;
    const navigate = useNavigate();
    const [openNavigate, setOpenNavigate] = useState(false);
+   const [menuOpen, setMenuOpen] = useState(false);
    const {
       isAuthenticated,
       user: currentUser,
@@ -87,7 +88,14 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                   src={logo}
                   className="cursor-pointer w-[110px] md:w-[150px]"
                   preview={false}
-                  onClick={() => navigate(`/${path.HOME}`)}
+                  // Logo ton trong mode hien tai: dang o host thi ve host dashboard
+                  onClick={() =>
+                     navigate(
+                        isHost
+                           ? `${path.HOST_ROOT}${path.HOST_DASHBOARD}`
+                           : `/${path.HOME}`,
+                     )
+                  }
                />
             </Flex>
 
@@ -128,6 +136,8 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                   </Button>
                )}
 
+               {isAuthenticated && <NotificationBell />}
+
                {isAuthenticated && !isHost && (
                   <Tooltip title="My favorites">
                      <button
@@ -163,20 +173,24 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                ) : (
                   <Popover
                      placement="bottomRight"
-                     content={<MenuAccount />}
-                     arrow={true}
-                     mouseLeaveDelay={0.3}
-                     trigger={['hover']}
+                     content={
+                        <MenuAccount
+                           isHost={isHost}
+                           onClose={() => setMenuOpen(false)}
+                        />
+                     }
+                     arrow={false}
+                     trigger="click"
+                     open={menuOpen}
+                     onOpenChange={setMenuOpen}
                   >
                      <span className="flex gap-2 justify-center items-center py-1.5 pr-1.5 pl-3 rounded-full border border-gray-300 transition-shadow cursor-pointer hover:shadow-card-lg">
                         <HiMenu size={16} className="text-gray-600" />
-                        <Avatar
+                        <UserAvatar
                            size={30}
                            src={currentUser?.avatar}
-                           className="border border-blue-400"
-                        >
-                           {currentUser?.firstname?.[0]?.toUpperCase()}
-                        </Avatar>
+                           name={currentUser?.firstname}
+                        />
                      </span>
                   </Popover>
                )}

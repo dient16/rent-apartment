@@ -22,6 +22,7 @@ const userMongooseSchema = new mongoose.Schema(
     createApartments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Apartment' }],
     confirmationToken: { type: String },
     emailConfirmed: { type: Boolean, default: false },
+    hasSeenHostWelcome: { type: Boolean, default: false },
     refreshToken: { type: String },
     provider: { type: String, enum: ['Email', 'Google', 'Facebook'], default: 'Email' },
   },

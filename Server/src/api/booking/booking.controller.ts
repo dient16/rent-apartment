@@ -49,3 +49,14 @@ export const confirmBooking = async (req: Request, res: Response, next: NextFunc
     next(error);
   }
 };
+
+export const cancelBooking = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { bookingId } = req.params;
+    const { _id: userId } = req.user as UserDecode;
+    const serviceResponse = await bookingService.cancelBooking(bookingId, userId);
+    handleServiceResponse(serviceResponse, res);
+  } catch (error) {
+    next(error);
+  }
+};

@@ -46,7 +46,6 @@ const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
             <div className="mx-2 text-lg">Search</div>
             <Controller
                name="searchText"
-               rules={{ required: 'Please enter a destination' }}
                control={control}
                defaultValue={searchParams.get('province')}
                render={({ field, fieldState: { error } }) => (
@@ -59,7 +58,7 @@ const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
                   >
                      <Input
                         size="large"
-                        placeholder="Search"
+                        placeholder="Anywhere — city, district..."
                         className="py-3 pl-10 pr-5 w-full rounded-xl border"
                         status={error ? 'error' : ''}
                         prefix={

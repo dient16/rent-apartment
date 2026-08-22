@@ -5,4 +5,6 @@ export * from './apartment.api';
 export * from './booking.api';
 export * from './location.api';
 export * from './image.api';
+export * from './notification.api';
+export * from './message.api';
 export { default as api } from './axiosConfig';

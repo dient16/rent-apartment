@@ -31,3 +31,6 @@ export { default as Step3FormApartment } from './CreateApartmentForm/Step3';
 export { default as RoomAmenitySelector } from './AmenitiesCheckbox/RoomAmenitiesSelector';
 export { default as RoomInfo } from './RoomInfo/RoomInfo';
 export { default as FavoriteButton } from './FavoriteButton/FavoriteButton';
+export { default as NotificationBell } from './NotificationBell/NotificationBell';
+export { default as Messenger } from './Messenger/Messenger';
+export { default as UserAvatar } from './UserAvatar/UserAvatar';

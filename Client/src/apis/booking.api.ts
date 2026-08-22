@@ -26,3 +26,8 @@ export const apiConfirmBooking = (bookingId: string): Promise<Res> =>
       url: `/booking/${bookingId}/confirm`,
       method: 'post',
    });
+export const apiCancelBooking = (bookingId: string): Promise<Res> =>
+   axios({
+      url: `/booking/${bookingId}/cancel`,
+      method: 'post',
+   });

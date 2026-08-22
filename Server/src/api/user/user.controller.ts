@@ -49,3 +49,14 @@ export const toggleFavorite = async (req: Request, res: Response, next: NextFunc
     next(error);
   }
 };
+
+export const markHostWelcomeSeen = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { _id: uid } = req.user as UserDecode;
+
+    const serviceResponse = await userService.markHostWelcomeSeen(uid);
+    handleServiceResponse(serviceResponse, res);
+  } catch (error) {
+    next(error);
+  }
+};

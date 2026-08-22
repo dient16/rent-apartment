@@ -1,9 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Image, Tag } from 'antd';
-import icons from '@/utils/icons';
-import { useMediaQuery } from 'react-responsive';
-const { IoHeartSharp, GoLocation } = icons;
+import { Tooltip } from 'antd';
+import {
+   EnvironmentOutlined,
+   RightOutlined,
+   TeamOutlined,
+   MoonOutlined,
+} from '@ant-design/icons';
+import moment from 'moment';
+import { FavoriteButton } from '@/components';
 
 interface SearchItemProps {
    room: any;
@@ -12,102 +17,152 @@ interface SearchItemProps {
    searchParams: URLSearchParams;
 }
 
-const SearchItem: React.FC<SearchItemProps> = ({
+const MAX_AMENITIES = 4;
+
+const ResultItem: React.FC<SearchItemProps> = ({
    room,
    roomNumber,
    numberOfGuest,
    searchParams,
 }) => {
    const navigate = useNavigate();
-   const isTablet = useMediaQuery({
-      query: '(min-width: 640px) and (max-width: 1023px)',
-   });
+
    const handleClick = () => {
-      const queryParams = new URLSearchParams({
-         province: searchParams.get('province'),
-         startDate: searchParams.get('startDate'),
-         endDate: searchParams.get('endDate'),
-         numberOfGuest: numberOfGuest.toString(),
-         roomNumber: roomNumber.toString(),
-         roomId: room.roomId,
+      const queryParams = new URLSearchParams();
+      // Chi giu cac param thuc su co — tranh "province=null" khi vao khong param
+      ['province', 'startDate', 'endDate'].forEach((key) => {
+         const value = searchParams.get(key);
+         if (value) queryParams.set(key, value);
       });
+      // Trang detail can khoang ngay de tinh gia/phong trong — mac dinh hom nay -> mai
+      if (!queryParams.get('startDate') || !queryParams.get('endDate')) {
+         queryParams.set('startDate', moment().format('YYYY-MM-DD'));
+         queryParams.set('endDate', moment().add(1, 'day').format('YYYY-MM-DD'));
+      }
+      queryParams.set('numberOfGuest', numberOfGuest.toString());
+      queryParams.set('roomNumber', roomNumber.toString());
+      if (room.roomId) queryParams.set('roomId', room.roomId);
       navigate(`/apartment/${room._id}?${queryParams.toString()}`);
    };
 
+   const ratingAvg: number = room.rating?.ratingAvg || 0;
+   const totalRating: number = room.rating?.totalRating || 0;
+   const amenities: { name: string }[] = room.amenities || [];
+   const address = [
+      room.address?.street,
+      room.address?.district,
+      room.address?.province,
+   ]
+      .filter(Boolean)
+      .join(', ');
+   const taxes = Math.round((room.totalPrice || 0) * 0.11);
+
    return (
       <div
-         key={room._id}
-         className="flex flex-col lg:flex-row gap-5 items-start p-2 bg-white rounded-lg shadow-sm cursor-pointer font-main"
          onClick={handleClick}
+         className="flex overflow-hidden flex-col bg-white rounded-2xl border border-gray-100 transition-all duration-300 cursor-pointer group md:flex-row shadow-card-sm hover:shadow-card-md hover:border-blue-200 font-main"
       >
-         <div className="w-full lg:w-4/12">
-            <div className="relative">
-               <Image
-                  src={room.image}
-                  className="rounded-lg"
-                  preview={false}
-                  height={isTablet ? 300 : 200}
-                  width="100%"
-               />
-               <span className="flex overflow-hidden absolute top-2 right-2 justify-center items-center p-1.5 text-white bg-white bg-opacity-50 rounded-full opacity-100 cursor-pointer cursor-inherit">
-                  <IoHeartSharp size={20} />
+         {/* Anh */}
+         <div className="overflow-hidden relative flex-shrink-0 md:w-72 md:h-auto md:max-h-64">
+            <img
+               src={room.image}
+               alt={room.name}
+               className="object-cover w-full h-52 transition-transform duration-500 md:h-64 group-hover:scale-105"
+            />
+            <FavoriteButton
+               apartmentId={room._id}
+               size={16}
+               className="absolute top-3 right-3"
+            />
+            {ratingAvg === 0 && (
+               <span className="absolute top-3 left-3 px-2.5 py-1 text-[11px] font-bold tracking-wider text-white uppercase bg-gray-900/70 rounded-full backdrop-blur-sm">
+                  New
                </span>
-            </div>
+            )}
          </div>
-         <div className="flex sm:flex-row flex-col w-full lg:w-8/12 h-full py-3">
-            <div className="flex items-start w-full sm:w-7/12">
-               <div className="flex flex-col gap-3 w-10/12">
-                  <div className="overflow-hidden text-lg font-medium line-clamp-2">
-                     {room.name}
-                  </div>
-                  <div className="flex gap-1 items-start text-xs font-normal">
-                     <i className="mt-1">
-                        <GoLocation size={15} />
-                     </i>
-                     <p className="text-blue-500 hover:underline line-clamp-2">
-                        {`${room.address.street}, ${room.address.ward}, ${room.address.district}, ${room.address.province}`}
-                     </p>
-                  </div>
-                  <div className="flex lg:flex-wrap gap-1 items-center ml-3 text-sm font-light whitespace-nowrap overflow-hidden text-ellipsis ">
-                     {(room?.amenities || []).map(
-                        (
-                           amenity: { name: string; icon: string },
-                           index: number,
-                        ) => (
-                           <Tag key={index} color="geekblue">
-                              {amenity.name}
-                           </Tag>
-                        ),
-                     )}
-                  </div>
+
+         {/* Noi dung */}
+         <div className="flex flex-col flex-1 p-5 min-w-0">
+            <div className="flex gap-4 justify-between items-start">
+               <div className="min-w-0">
+                  <Tooltip title={room.name}>
+                     <h3 className="text-lg font-semibold text-gray-900 transition-colors line-clamp-1 group-hover:text-blue-600">
+                        {room.name}
+                     </h3>
+                  </Tooltip>
+                  <p className="flex gap-1.5 items-center mt-1 text-sm text-gray-500">
+                     <EnvironmentOutlined className="flex-shrink-0" />
+                     <span className="truncate">{address}</span>
+                  </p>
                </div>
-               <div className="flex gap-2 justify-end sm:hidden w-2/12">
-                  <div className="relative bg-blue-700 rounded-score w-[40px] h-[40px]">
-                     <span className="absolute top-2 right-4 text-white">
-                        {room.rating.ratingAvg}
+
+               {ratingAvg > 0 && (
+                  <div className="flex flex-shrink-0 gap-2 items-center">
+                     <div className="text-right">
+                        <p className="text-sm font-semibold text-gray-900 leading-tight">
+                           {ratingAvg >= 4.5
+                              ? 'Excellent'
+                              : ratingAvg >= 4
+                                ? 'Very good'
+                                : ratingAvg >= 3
+                                  ? 'Good'
+                                  : 'Fair'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                           {totalRating} review{totalRating > 1 ? 's' : ''}
+                        </p>
+                     </div>
+                     <span className="flex justify-center items-center w-10 h-10 text-sm font-bold text-white bg-blue-600 rounded-xl rounded-br-sm">
+                        {Number(ratingAvg).toFixed(1)}
                      </span>
                   </div>
-               </div>
+               )}
             </div>
 
-            <div className="flex flex-col justify-between items-end w-full h-full lg:w-5/12 border-t-2 mt-4 sm:border-none sm:mt-0">
-               <div className="sm:flex gap-2 min-w-[150px] justify-end hidden">
-                  <div className="flex flex-col items-end">
-                     <span className="font-medium">Review score</span>
-                     <span className="font-light">{`${room.rating.totalRating} reviews`}</span>
-                  </div>
-                  <div className="relative bg-blue-700 rounded-score w-[40px] h-[40px]">
-                     <span className="absolute top-2 right-4 text-white">
-                        {room.rating.ratingAvg}
+            {/* Tien nghi */}
+            {amenities.length > 0 && (
+               <div className="flex flex-wrap gap-1.5 mt-3">
+                  {amenities.slice(0, MAX_AMENITIES).map((amenity, index) => (
+                     <span
+                        key={index}
+                        className="px-2.5 py-1 text-xs text-gray-600 bg-gray-50 rounded-full border border-gray-100"
+                     >
+                        {amenity.name}
                      </span>
-                  </div>
+                  ))}
+                  {amenities.length > MAX_AMENITIES && (
+                     <span className="px-2.5 py-1 text-xs text-gray-400 bg-gray-50 rounded-full border border-gray-100">
+                        +{amenities.length - MAX_AMENITIES} more
+                     </span>
+                  )}
                </div>
-               <div className="flex flex-col justify-end items-end pr-5 mt-2 w-full lg:w-auto">
-                  <div className="text-xs font-light">{`${room.nights} night, ${numberOfGuest} people`}</div>
-                  <div className="text-lg">{`${room.totalPrice?.toLocaleString()} VND`}</div>
-                  <div className="text-xs font-light">{`+VND ${(
-                     room.totalPrice * 0.11
-                  )?.toLocaleString()} taxes and fees`}</div>
+            )}
+
+            {/* Gia + CTA */}
+            <div className="flex flex-wrap gap-3 justify-between items-end pt-4 mt-auto border-t border-gray-100">
+               <div className="flex gap-4 text-xs text-gray-500">
+                  <span className="flex gap-1.5 items-center">
+                     <MoonOutlined />
+                     {room.nights} night{room.nights > 1 ? 's' : ''}
+                  </span>
+                  <span className="flex gap-1.5 items-center">
+                     <TeamOutlined />
+                     {numberOfGuest} guest{numberOfGuest > 1 ? 's' : ''}
+                  </span>
+               </div>
+               <div className="text-right">
+                  <p className="text-xl font-bold text-gray-900">
+                     {room.totalPrice?.toLocaleString()}{' '}
+                     <span className="text-sm font-medium text-gray-500">
+                        VND
+                     </span>
+                  </p>
+                  <p className="text-xs text-gray-400">
+                     +{taxes.toLocaleString()} VND taxes and fees
+                  </p>
+                  <span className="inline-flex gap-1 items-center mt-1.5 text-sm font-medium text-blue-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                     See availability <RightOutlined className="text-xs" />
+                  </span>
                </div>
             </div>
          </div>
@@ -115,4 +170,4 @@ const SearchItem: React.FC<SearchItemProps> = ({
    );
 };
 
-export default SearchItem;
+export default ResultItem;

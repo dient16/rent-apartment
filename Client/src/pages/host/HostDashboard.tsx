@@ -1,237 +1,278 @@
-import React from 'react';
-import {
-   Tabs,
-   Typography,
-   List,
-   Avatar,
-   Button,
-   Tag,
-   Statistic,
-   Card,
-   Row,
-   Col,
-   Spin,
-   message,
-} from 'antd';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Avatar, Button, message, Skeleton } from 'antd';
 import {
-   apiGetUserBookings,
-   apiGetApartmentByUser,
+   ArrowRightOutlined,
+   CalendarOutlined,
+   CheckOutlined,
+   ClockCircleOutlined,
+   DollarOutlined,
+   EnvironmentOutlined,
+   HomeOutlined,
+   PlusOutlined,
+   ScheduleOutlined,
+} from '@ant-design/icons';
+import moment from 'moment';
+import {
    apiConfirmBooking,
+   apiGetApartmentByUser,
+   apiGetUserBookings,
 } from '@/apis';
-import { FaBed, FaCalendarDay } from 'react-icons/fa';
-import { MdLocationOn } from 'react-icons/md';
+import StatusBadge from '@/components/StatusBadge/StatusBadge';
+import { path } from '@/utils/constant';
 
-const { Title } = Typography;
-const getTagColor = (status) => {
-   switch (status) {
-      case 'pending':
-         return 'yellow';
-      case 'confirmed':
-         return 'green';
-      case 'canceled':
-         return 'red';
-      case 'completed':
-         return 'blue';
-      default:
-         return 'gray';
-   }
-};
 const HostDashboard: React.FC = () => {
    const queryClient = useQueryClient();
+
    const { data: bookingsData, isLoading: bookingsLoading } = useQuery({
       queryKey: ['bookings-host'],
       queryFn: apiGetUserBookings,
    });
-
    const { data: apartmentsData, isLoading: apartmentsLoading } = useQuery({
       queryKey: ['apartments-host'],
       queryFn: apiGetApartmentByUser,
    });
 
-   const mutation = useMutation({
+   const confirmMutation = useMutation({
       mutationFn: apiConfirmBooking,
       onSuccess: (response) => {
          if (response.success) {
-            queryClient.invalidateQueries({
-               queryKey: ['bookings-host'],
-            });
-            message.success('Booking confirmed successfully.');
-         } else message.error('Error confirming the booking.');
-      },
-      onError: () => {
-         message.error('Error confirming the booking.');
+            message.success('Booking confirmed');
+            queryClient.invalidateQueries({ queryKey: ['bookings-host'] });
+         } else {
+            message.error(response.message);
+         }
       },
    });
 
-   const bookings = bookingsData?.data || [];
+   const bookings = useMemo(() => bookingsData?.data || [], [bookingsData]);
    const apartments = apartmentsData?.data || [];
 
-   const financialOverview = {
-      totalRevenue: 0,
-      totalBookings: bookings.length,
-      pendingPayouts: 0,
-   };
+   // Stats tinh tu du lieu that (truoc day hardcode 0)
+   const stats = useMemo(() => {
+      const revenue = bookings
+         .filter((b) => b.status === 'confirmed' || b.status === 'completed')
+         .reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+      const pending = bookings.filter((b) => b.status === 'pending').length;
+      const upcoming = bookings.filter(
+         (b) =>
+            b.status === 'confirmed' &&
+            moment(b.checkInTime).isAfter(moment()),
+      ).length;
+      return { revenue, pending, upcoming, total: bookings.length };
+   }, [bookings]);
 
-   const handleConfirmBooking = (bookingId: string) => {
-      mutation.mutate(bookingId);
-   };
+   const statCards = [
+      {
+         icon: <DollarOutlined />,
+         label: 'Total revenue',
+         value: `${stats.revenue.toLocaleString()} VND`,
+         tone: 'text-green-600 bg-green-50',
+      },
+      {
+         icon: <ScheduleOutlined />,
+         label: 'Total bookings',
+         value: stats.total,
+         tone: 'text-blue-600 bg-blue-50',
+      },
+      {
+         icon: <ClockCircleOutlined />,
+         label: 'Pending requests',
+         value: stats.pending,
+         tone: 'text-amber-600 bg-amber-50',
+      },
+      {
+         icon: <HomeOutlined />,
+         label: 'Active listings',
+         value: apartments.length,
+         tone: 'text-purple-600 bg-purple-50',
+      },
+   ];
 
-   const renderBookingList = (status: string) => (
-      <List
-         itemLayout="horizontal"
-         dataSource={bookings?.filter((booking) => booking.status === status)}
-         renderItem={(booking: any) => (
-            <List.Item
-               actions={
-                  status === 'pending'
-                     ? [
-                          <Button
-                             type="primary"
-                             className="bg-blue-500"
-                             onClick={() => handleConfirmBooking(booking?._id)}
-                             loading={mutation.isPending}
-                          >
-                             Confirm
-                          </Button>,
-                       ]
-                     : []
-               }
-            >
-               <List.Item.Meta
-                  avatar={<Avatar style={{ backgroundColor: '#87d068' }} />}
-                  title={
-                     <Link to={`/reservation/${booking?._id}`}>
-                        {booking?.firstname} {booking?.lastname}
-                     </Link>
-                  }
-                  description={
-                     <div className="space-y-1">
-                        <p className="flex items-center text-sm text-gray-700">
-                           <FaBed className="mr-2 text-blue-600" /> Room
-                           Numbers:{' '}
-                           {booking?.rooms
-                              .map((room) => room?.roomNumber)
-                              .join(', ')}
-                        </p>
-                        <p className="flex items-center text-sm text-gray-700">
-                           <MdLocationOn className="mr-2 text-green-600" />{' '}
-                           Check-In:{' '}
-                           {new Date(booking?.checkInTime).toLocaleDateString()}
-                        </p>
-                        <p className="flex items-center text-sm text-gray-700">
-                           <FaCalendarDay className="mr-2 text-red-600" />{' '}
-                           Check-Out:{' '}
-                           {new Date(
-                              booking?.checkOutTime,
-                           ).toLocaleDateString()}
-                        </p>
-                        <p className="flex items-center text-lg font-medium text-gray-700">
-                           Total Price:{' '}
-                           {booking?.totalPrice?.toLocaleString('vi-VN', {
-                              style: 'currency',
-                              currency: 'VND',
-                           })}
-                        </p>
-                     </div>
-                  }
-               />
-               <Tag color={getTagColor(booking?.status)}>{booking?.status}</Tag>
-            </List.Item>
-         )}
-      />
-   );
+   const recentBookings = bookings.slice(0, 5);
+   const isLoading = bookingsLoading || apartmentsLoading;
 
    return (
-      <div className="container mx-auto p-6">
-         <Title level={2} className="mb-6 text-center">
-            Host Dashboard
-         </Title>
+      <div className="min-h-screen bg-gray-50 font-main">
+         <div className="px-5 py-8 mx-auto w-full max-w-main lg:px-7">
+            <div className="flex flex-wrap gap-4 justify-between items-center mb-7">
+               <div>
+                  <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+                     Dashboard
+                  </h1>
+               </div>
+               <Link to={`${path.HOST_ROOT}${path.CREATE_APARTMENT}`}>
+                  <Button
+                     type="primary"
+                     size="large"
+                     icon={<PlusOutlined />}
+                     className="h-11 bg-blue-500 rounded-full"
+                  >
+                     New listing
+                  </Button>
+               </Link>
+            </div>
 
-         <Spin spinning={bookingsLoading || apartmentsLoading} tip="Loading...">
-            <Row gutter={16} className="mb-6">
-               <Col span={8}>
-                  <Card>
-                     <Statistic
-                        title="Total Revenue"
-                        value={financialOverview.totalRevenue.toLocaleString(
-                           'vi-VN',
-                           { style: 'currency', currency: 'VND' },
-                        )}
-                     />
-                  </Card>
-               </Col>
-               <Col span={8}>
-                  <Card>
-                     <Statistic
-                        title="Total Bookings"
-                        value={financialOverview?.totalBookings}
-                     />
-                  </Card>
-               </Col>
-               <Col span={8}>
-                  <Card>
-                     <Statistic
-                        title="Pending Payouts"
-                        value={financialOverview.pendingPayouts.toLocaleString(
-                           'vi-VN',
-                           { style: 'currency', currency: 'VND' },
-                        )}
-                     />
-                  </Card>
-               </Col>
-            </Row>
-
-            <Tabs
-               defaultActiveKey="1"
-               className="mb-6"
-               items={[
-                  {
-                     label: 'Pending',
-                     key: '1',
-                     children: renderBookingList('pending'),
-                  },
-                  {
-                     label: 'Confirmed',
-                     key: '2',
-                     children: renderBookingList('confirmed'),
-                  },
-                  {
-                     label: 'Canceled',
-                     key: '3',
-                     children: renderBookingList('canceled'),
-                  },
-                  {
-                     label: 'Completed',
-                     key: '4',
-                     children: renderBookingList('completed'),
-                  },
-               ]}
-            />
-
-            <Title level={3} className="mt-6 mb-4 text-center">
-               Apartment Management
-            </Title>
-            <Row gutter={16}>
-               {apartments.map((apartment) => (
-                  <Col span={8} key={apartment._id}>
-                     <Card title={apartment.title}>
-                        <p className="flex items-center">
-                           <MdLocationOn className="mr-2" /> Location:{' '}
-                           {apartment.location.province}, Vietnam
-                        </p>
-                        <p>Rooms: {apartment.rooms.length}</p>
-                        <Button type="link">
-                           <Link to={`/host/apartment-rooms/${apartment._id}`}>
-                              View Details
-                           </Link>
-                        </Button>
-                     </Card>
-                  </Col>
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-4 mb-7 lg:grid-cols-4">
+               {statCards.map((card) => (
+                  <div
+                     key={card.label}
+                     className="p-5 bg-white rounded-2xl border border-gray-100 shadow-card-sm"
+                  >
+                     <span
+                        className={`flex justify-center items-center mb-4 w-11 h-11 text-lg rounded-xl ${card.tone}`}
+                     >
+                        {card.icon}
+                     </span>
+                     <p className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                        {card.label}
+                     </p>
+                     <p className="mt-1 text-xl font-bold text-gray-900 truncate">
+                        {isLoading ? '—' : card.value}
+                     </p>
+                  </div>
                ))}
-            </Row>
-         </Spin>
+            </div>
+
+            <div className="grid gap-6 items-start lg:grid-cols-3">
+               {/* Recent bookings */}
+               <div className="bg-white rounded-2xl border border-gray-100 lg:col-span-2 shadow-card-sm">
+                  <div className="flex justify-between items-center p-5 border-b border-gray-100">
+                     <h2 className="text-base font-bold text-gray-900">
+                        Recent bookings
+                     </h2>
+                     <Link
+                        to={`${path.HOST_ROOT}${path.HOST_BOOKINGS}`}
+                        className="flex gap-1 items-center text-sm font-medium text-blue-600 hover:underline"
+                     >
+                        View all <ArrowRightOutlined />
+                     </Link>
+                  </div>
+
+                  {isLoading ? (
+                     <div className="p-5">
+                        <Skeleton active paragraph={{ rows: 5 }} />
+                     </div>
+                  ) : recentBookings.length === 0 ? (
+                     <div className="py-16 text-center text-gray-400">
+                        No bookings yet — they will appear here.
+                     </div>
+                  ) : (
+                     <ul className="divide-y divide-gray-100">
+                        {recentBookings.map((booking) => (
+                           <li
+                              key={booking._id}
+                              className="flex flex-wrap gap-3 justify-between items-center p-5"
+                           >
+                              <div className="flex gap-3 items-center min-w-0">
+                                 <Avatar className="flex-shrink-0 text-blue-600 bg-blue-100 font-semibold">
+                                    {booking.guestName?.[0]?.toUpperCase() || '?'}
+                                 </Avatar>
+                                 <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-gray-900 truncate">
+                                       {booking.guestName || 'Guest'}
+                                       <span className="ml-2 font-normal text-gray-400">
+                                          · {booking.apartmentName}
+                                       </span>
+                                    </p>
+                                    <p className="flex gap-1.5 items-center text-xs text-gray-500">
+                                       <CalendarOutlined />
+                                       {moment(booking.checkInTime).format('DD MMM')} –{' '}
+                                       {moment(booking.checkOutTime).format('DD MMM YYYY')}
+                                       <span className="font-semibold text-gray-700">
+                                          {booking.totalPrice?.toLocaleString()} VND
+                                       </span>
+                                    </p>
+                                 </div>
+                              </div>
+                              <div className="flex gap-2 items-center">
+                                 <StatusBadge status={booking.status} />
+                                 {booking.status === 'pending' && (
+                                    <Button
+                                       type="primary"
+                                       size="small"
+                                       icon={<CheckOutlined />}
+                                       loading={confirmMutation.isPending}
+                                       className="bg-blue-500 rounded-lg"
+                                       onClick={() =>
+                                          confirmMutation.mutate(booking._id)
+                                       }
+                                    >
+                                       Confirm
+                                    </Button>
+                                 )}
+                              </div>
+                           </li>
+                        ))}
+                     </ul>
+                  )}
+               </div>
+
+               {/* Listings */}
+               <div className="bg-white rounded-2xl border border-gray-100 shadow-card-sm">
+                  <div className="flex justify-between items-center p-5 border-b border-gray-100">
+                     <h2 className="text-base font-bold text-gray-900">
+                        Your listings
+                     </h2>
+                     <Link
+                        to={`${path.HOST_ROOT}${path.HOST_LISTINGS}`}
+                        className="flex gap-1 items-center text-sm font-medium text-blue-600 hover:underline"
+                     >
+                        Manage <ArrowRightOutlined />
+                     </Link>
+                  </div>
+                  {isLoading ? (
+                     <div className="p-5">
+                        <Skeleton active paragraph={{ rows: 4 }} />
+                     </div>
+                  ) : apartments.length === 0 ? (
+                     <div className="px-5 py-16 text-center">
+                        <p className="mb-4 text-gray-400">
+                           You have no listings yet.
+                        </p>
+                        <Link to={`${path.HOST_ROOT}${path.CREATE_APARTMENT}`}>
+                           <Button
+                              type="primary"
+                              className="bg-blue-500 rounded-full"
+                           >
+                              Create your first listing
+                           </Button>
+                        </Link>
+                     </div>
+                  ) : (
+                     <ul className="divide-y divide-gray-100">
+                        {apartments.map((apartment) => (
+                           <li key={apartment._id}>
+                              <Link
+                                 to={`${path.HOST_ROOT}apartment-rooms/${apartment._id}`}
+                                 className="flex gap-3 items-center p-5 transition-colors hover:bg-gray-50 group"
+                              >
+                                 <span className="flex flex-shrink-0 justify-center items-center w-10 h-10 text-blue-600 bg-blue-50 rounded-xl">
+                                    <HomeOutlined />
+                                 </span>
+                                 <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-600">
+                                       {apartment.title}
+                                    </p>
+                                    <p className="flex gap-1 items-center text-xs text-gray-500 truncate">
+                                       <EnvironmentOutlined />
+                                       {apartment.location?.district},{' '}
+                                       {apartment.location?.province}
+                                       <span className="text-gray-300">·</span>
+                                       {apartment.rooms?.length} room type
+                                       {apartment.rooms?.length > 1 ? 's' : ''}
+                                    </p>
+                                 </div>
+                              </Link>
+                           </li>
+                        ))}
+                     </ul>
+                  )}
+               </div>
+            </div>
+         </div>
       </div>
    );
 };

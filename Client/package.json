@@ -16,6 +16,7 @@
     "antd": "^5.21.0",
     "axios": "^1.7.2",
     "clsx": "^2.0.0",
+    "emoji-picker-react": "^4.19.1",
     "framer-motion": "^10.17.4",
     "leaflet": "^1.9.4",
     "moment": "^2.29.4",

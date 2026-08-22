@@ -1,6 +1,7 @@
 import React from 'react';
-import { Button, message } from 'antd';
-import icons from '@/utils/icons';
+import { message } from 'antd';
+import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
+import clsx from 'clsx';
 
 interface DropDownItemProps {
    value: {
@@ -10,17 +11,64 @@ interface DropDownItemProps {
    onChange: (newValue: { guests: number; rooms: number }) => void;
 }
 
-const DropDownItem: React.FC<DropDownItemProps> = ({ value, onChange }) => {
-   const { BiMinus, AiOutlinePlus } = icons;
+interface StepperRowProps {
+   label: string;
+   sublabel: string;
+   value: number;
+   onDecrease: () => void;
+   onIncrease: () => void;
+   min?: number;
+}
 
+const StepperRow: React.FC<StepperRowProps> = ({
+   label,
+   sublabel,
+   value,
+   onDecrease,
+   onIncrease,
+   min = 1,
+}) => (
+   <div className="flex justify-between items-center py-4">
+      <div>
+         <p className="text-sm font-semibold text-gray-900">{label}</p>
+         <p className="text-xs text-gray-400">{sublabel}</p>
+      </div>
+      <div className="flex gap-3 items-center">
+         <button
+            type="button"
+            onClick={onDecrease}
+            disabled={value <= min}
+            className={clsx(
+               'flex justify-center items-center w-8 h-8 rounded-full border bg-white transition-colors',
+               value <= min
+                  ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                  : 'border-gray-400 text-gray-700 cursor-pointer hover:border-gray-900 hover:text-gray-900',
+            )}
+         >
+            <MinusOutlined className="text-xs" />
+         </button>
+         <span className="w-6 text-base font-semibold text-center text-gray-900">
+            {value}
+         </span>
+         <button
+            type="button"
+            onClick={onIncrease}
+            className="flex justify-center items-center w-8 h-8 text-gray-700 bg-white rounded-full border border-gray-400 transition-colors cursor-pointer hover:border-gray-900 hover:text-gray-900"
+         >
+            <PlusOutlined className="text-xs" />
+         </button>
+      </div>
+   </div>
+);
+
+const DropDownItem: React.FC<DropDownItemProps> = ({ value, onChange }) => {
    const handleGuestChange = (amount: number) => {
-      if (value.guests + amount < value.rooms) {
-         message.error(
-            'The number of rooms cannot be less than the number of people',
-         );
+      const nextGuests = Math.max(1, value.guests + amount);
+      if (nextGuests < value.rooms) {
+         message.error('Rooms cannot exceed the number of guests');
          return;
       }
-      onChange({ ...value, guests: Math.max(1, value.guests + amount) });
+      onChange({ ...value, guests: nextGuests });
    };
 
    const handleRoomChange = (amount: number) => {
@@ -31,43 +79,21 @@ const DropDownItem: React.FC<DropDownItemProps> = ({ value, onChange }) => {
    };
 
    return (
-      <div className="flex flex-col bg-white p-5 rounded-2xl shadow-card-md">
-         <div className="flex items-center justify-between min-w-[220px] mt-3 px-3 border-b pb-3">
-            <div className="flex font-main text-sm">Guest</div>
-            <div className="flex items-center gap-3">
-               <Button
-                  className="w-[30px] h-[30px] rounded-full border border-gray-900 flex items-center justify-center"
-                  icon={<BiMinus />}
-                  onClick={() => handleGuestChange(-1)}
-               />
-               <div className="font-main font-medium text-base w-[15px] flex items-center justify-center">
-                  {value.guests || 1}
-               </div>
-               <Button
-                  className="w-[30px] h-[30px] rounded-full border border-gray-900 flex items-center justify-center"
-                  icon={<AiOutlinePlus />}
-                  onClick={() => handleGuestChange(1)}
-               />
-            </div>
-         </div>
-         <div className="flex items-center justify-between min-w-[220px] mt-3 px-3 pt-2">
-            <div className="flex font-main text-sm">Rooms</div>
-            <div className="flex items-center gap-3">
-               <Button
-                  className="w-[30px] h-[30px] rounded-full border border-gray-900 flex items-center justify-center"
-                  icon={<BiMinus />}
-                  onClick={() => handleRoomChange(-1)}
-               />
-               <div className="font-main font-medium text-base w-[15px] flex items-center justify-center">
-                  {value.rooms || 1}
-               </div>
-               <Button
-                  className="w-[30px] h-[30px] rounded-full border border-gray-900 flex items-center justify-center"
-                  icon={<AiOutlinePlus />}
-                  onClick={() => handleRoomChange(1)}
-               />
-            </div>
-         </div>
+      <div className="py-2 px-5 bg-white rounded-2xl border border-gray-100 shadow-card-md min-w-[280px] font-main divide-y divide-gray-100">
+         <StepperRow
+            label="Guests"
+            sublabel="How many people are staying?"
+            value={value.guests || 1}
+            onDecrease={() => handleGuestChange(-1)}
+            onIncrease={() => handleGuestChange(1)}
+         />
+         <StepperRow
+            label="Rooms"
+            sublabel="Cannot exceed number of guests"
+            value={value.rooms || 1}
+            onDecrease={() => handleRoomChange(-1)}
+            onIncrease={() => handleRoomChange(1)}
+         />
       </div>
    );
 };

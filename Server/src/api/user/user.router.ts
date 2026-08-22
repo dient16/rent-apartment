@@ -53,6 +53,8 @@ export const userRouter: Router = (() => {
     responses: createApiResponse(z.array(z.any()), 'Success'),
   });
 
+  router.post('/host-welcome-seen', verifyAccessToken, controller.markHostWelcomeSeen);
+
   router.get('/favorites', verifyAccessToken, controller.getFavorites);
 
   userRegistry.registerPath({

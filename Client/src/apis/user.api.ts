@@ -22,3 +22,8 @@ export const apiToggleFavorite = (apartmentId: string): Promise<Res> =>
       url: `/user/favorites/${apartmentId}`,
       method: 'post',
    });
+export const apiMarkHostWelcomeSeen = (): Promise<Res> =>
+   axios({
+      url: '/user/host-welcome-seen',
+      method: 'post',
+   });

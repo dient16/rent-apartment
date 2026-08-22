@@ -9,6 +9,14 @@ import hoian from '@/assets/hoian.webp';
 import nhatrang from '@/assets/nhatrang.jpg';
 import quynhon from '@/assets/quynhon.jpg';
 import { useNavigate } from 'react-router-dom';
+import {
+   SafetyCertificateOutlined,
+   DollarOutlined,
+   CustomerServiceOutlined,
+   ThunderboltOutlined,
+   ArrowRightOutlined,
+} from '@ant-design/icons';
+import { Button } from 'antd';
 import moment from 'moment';
 
 const Home: React.FC = () => {
@@ -139,6 +147,83 @@ const Home: React.FC = () => {
             </div>
 
             <ApartmentPopular />
+
+            {/* ===== Vi sao chon Find House ===== */}
+            <div className="my-14">
+               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                  {[
+                     {
+                        icon: <DollarOutlined />,
+                        title: 'Best price guarantee',
+                        description: 'Daily rates set by hosts — no hidden markup.',
+                        tone: 'text-green-600 bg-green-50',
+                     },
+                     {
+                        icon: <ThunderboltOutlined />,
+                        title: 'Instant booking',
+                        description: 'Real-time availability, confirmed in minutes.',
+                        tone: 'text-blue-600 bg-blue-50',
+                     },
+                     {
+                        icon: <SafetyCertificateOutlined />,
+                        title: 'Secure payment',
+                        description: 'Pay safely with Stripe, refunds protected.',
+                        tone: 'text-purple-600 bg-purple-50',
+                     },
+                     {
+                        icon: <CustomerServiceOutlined />,
+                        title: '24/7 support',
+                        description: 'We are here before, during and after your stay.',
+                        tone: 'text-amber-600 bg-amber-50',
+                     },
+                  ].map((perk) => (
+                     <div
+                        key={perk.title}
+                        className="p-5 bg-white rounded-2xl border border-gray-100 transition-shadow duration-300 shadow-card-sm hover:shadow-card-md"
+                     >
+                        <span
+                           className={`flex justify-center items-center mb-3 w-11 h-11 text-lg rounded-xl ${perk.tone}`}
+                        >
+                           {perk.icon}
+                        </span>
+                        <h3 className="text-sm font-semibold text-gray-900 md:text-base">
+                           {perk.title}
+                        </h3>
+                        <p className="mt-1 text-xs leading-relaxed text-gray-500 md:text-sm">
+                           {perk.description}
+                        </p>
+                     </div>
+                  ))}
+               </div>
+            </div>
+
+            {/* ===== CTA tro thanh host ===== */}
+            <div className="overflow-hidden relative mb-14 rounded-3xl bg-midnight-blue">
+               <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-blue-500/20" />
+               <div className="absolute right-24 -bottom-10 w-32 h-32 rounded-full bg-blue-400/20" />
+               <div className="flex relative flex-col gap-6 justify-between items-start p-8 md:flex-row md:items-center md:p-12">
+                  <div className="max-w-xl">
+                     <p className="mb-2 text-sm font-semibold tracking-widest text-blue-300 uppercase">
+                        Become a host
+                     </p>
+                     <h2 className="text-2xl font-bold text-white md:text-3xl">
+                        Turn your place into your next paycheck
+                     </h2>
+                     <p className="mt-2 text-sm text-gray-300 md:text-base">
+                        List your apartment for free, manage bookings and daily
+                        pricing in one dashboard, and start earning from your
+                        empty rooms.
+                     </p>
+                  </div>
+                  <Button
+                     size="large"
+                     className="flex-shrink-0 px-8 h-12 text-base font-semibold text-blue-600 bg-white rounded-full border-none hover:text-blue-700"
+                     onClick={() => navigate('/host/dashboard')}
+                  >
+                     Start hosting <ArrowRightOutlined />
+                  </Button>
+               </div>
+            </div>
          </div>
       </div>
    );

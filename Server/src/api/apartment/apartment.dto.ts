@@ -28,8 +28,8 @@ export const apartmentSchema = z.object({
 export const getApartmentQuerySchema = z.object({
   params: z.object({ apartmentId: z.string() }),
   query: z.object({
-    startDate: stringToDate(z.date()),
-    endDate: stringToDate(z.date()),
+    startDate: stringToDate(z.date()).optional(),
+    endDate: stringToDate(z.date()).optional(),
     numberOfGuest: stringToNumber(z.number()).default(1),
     roomNumber: stringToNumber(z.number()).default(1),
     minPrice: stringToFloat(z.number()).default(0),
@@ -41,17 +41,21 @@ export const searchRoomSchema = z.object({
   query: z.object({
     numberOfGuest: stringToNumber(z.number()).optional().default(1),
     roomNumber: stringToNumber(z.number()).optional().default(1),
-    province: z.string(),
+    province: z.string().optional(),
     limit: stringToNumber(z.number()).optional().default(10),
     page: stringToNumber(z.number()).optional().default(1),
     district: z.string().optional(),
     ward: z.string().optional(),
     street: z.string().optional(),
-    startDate: stringToDate(z.date()),
-    endDate: stringToDate(z.date()),
+    startDate: stringToDate(z.date()).optional(),
+    endDate: stringToDate(z.date()).optional(),
     name: z.string().optional(),
     minPrice: stringToFloat(z.number()).optional().default(0),
     maxPrice: stringToFloat(z.number()).optional().default(Number.MAX_VALUE),
+    bedType: z.string().optional(),
+    amenities: z.string().optional(),
+    minRating: stringToFloat(z.number()).optional(),
+    sortBy: z.enum(['price_asc', 'price_desc', 'rating']).optional().default('price_asc'),
   }),
 });
 

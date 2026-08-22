@@ -70,6 +70,17 @@ export const userService = {
     }
   },
 
+  markHostWelcomeSeen: async (userId: string): Promise<ServiceResponse<null>> => {
+    try {
+      await UserModel.findByIdAndUpdate(userId, { hasSeenHostWelcome: true }).exec();
+      return new ServiceResponse(ResponseStatus.Success, 'Host welcome marked as seen', null, StatusCodes.OK);
+    } catch (ex) {
+      const errorMessage = `Error marking host welcome for user ${userId}: ${(ex as Error).message}`;
+      logger.error(errorMessage);
+      return new ServiceResponse(ResponseStatus.Failed, errorMessage, null, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+  },
+
   getFavorites: async (userId: string): Promise<ServiceResponse<any[] | null>> => {
     try {
       const user = await UserModel.findById(userId)

@@ -18,7 +18,7 @@ interface CustomDatePickerProps {
    isShowRightIcon?: boolean;
    isShowNight?: boolean;
    isBorder?: boolean;
-   variant?: 'label' | 'button';
+   variant?: 'label' | 'button' | 'compact';
    format?: string;
 }
 
@@ -88,6 +88,8 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
             className="custom-datepicker"
             staticRanges={[]}
             inputRanges={[]}
+            showDateDisplay={false}
+            rangeColors={['#3b82f6']}
             disabledDates={disabledDates}
             minDate={minDate}
          />
@@ -135,6 +137,30 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                   : ''}
                {isShowRightIcon && <DownOutlined className="ml-2" />}
             </Btn>
+         )}
+         {variant === 'compact' && (
+            <div
+               className={`flex gap-2 items-center text-sm text-gray-800 cursor-pointer whitespace-nowrap ${className}`}
+               onClick={() => {
+                  isMobileOrTablet
+                     ? setDrawerVisible(true)
+                     : setPopoverVisible(true);
+               }}
+            >
+               {!value[0] || !value[1] ? (
+                  <span className="text-gray-400">Add dates</span>
+               ) : (
+                  <>
+                     {moment(value[0]).format(format)}
+                     <HiOutlineArrowLongRight className="text-gray-400" />
+                     {moment(value[1]).format(format)}
+                     <span className="text-gray-400">
+                        · {getNightCount(value[0], value[1])} night
+                        {getNightCount(value[0], value[1]) > 1 ? 's' : ''}
+                     </span>
+                  </>
+               )}
+            </div>
          )}
          {variant === 'label' && (
             <div className="flex items-end text-base font-medium md:gap-3 sm:gap-5 gap-2 max-w-[280px] w-full justify-around">
@@ -202,7 +228,8 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
             <Popover
                content={content}
                trigger="click"
-               placement="bottomLeft"
+               placement="bottom"
+               align={{ offset: [0, 24] }}
                open={popoverVisible}
                onOpenChange={setPopoverVisible}
             >

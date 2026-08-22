@@ -10,7 +10,9 @@ const App: React.FC = () => {
    const queryClient = new QueryClient({
       defaultOptions: {
          queries: {
-            staleTime: Infinity,
+            // 30s: quay lai trang la du lieu tu lam moi (Infinity truoc day
+            // khien moi trang hien cache cu vinh vien, khong bao gio refetch)
+            staleTime: 30_000,
             retry: (failureCount, error: AxiosError) => {
                if (
                   error?.response?.status === 400 ||

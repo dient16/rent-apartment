@@ -21,38 +21,66 @@ const Listing: React.FC = () => {
 
    const methods = useForm();
 
+   // 15 ket qua moi trang (BE mac dinh 10)
+   const queryString = React.useMemo(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (!params.get('limit')) params.set('limit', '15');
+      return params.toString();
+   }, [searchParams]);
+
    const { data, isFetching } = useQuery({
-      queryKey: ['listing', searchParams.toString()],
-      queryFn: () => apiSearchRoom(searchParams.toString()),
+      queryKey: ['listing', queryString],
+      queryFn: () => apiSearchRoom(queryString),
       staleTime: 0,
    });
 
-   const roomNumber: number =
-      +searchParams.get('room') !== 0
-         ? +searchParams.get('roomNumber') ?? 1
-         : 1;
+   const roomNumber: number = +(searchParams.get('roomNumber') || 1) || 1;
    const numberOfGuest: number =
-      +searchParams.get('numberOfGuest') !== 0
-         ? +searchParams.get('numberOfGuest') ?? 1
-         : 1;
+      +(searchParams.get('numberOfGuest') || 1) || 1;
 
-   const handleSearch = (data: any) => {
-      console.log(data);
-      const queryParams = new URLSearchParams({
-         province: data.searchText,
-         startDate: moment(data.searchDate[0]).format('YYYY-MM-DD'),
-         endDate: moment(data.searchDate[1]).format('YYYY-MM-DD'),
-         numberOfGuest: data.searchGuest.guests.toString(),
-         roomNumber: data.searchGuest.rooms.toString(),
-      });
-      if (
-         data.searchPrice &&
-         data.searchPrice[0] !== undefined &&
-         data.searchPrice[1] !== undefined
-      ) {
-         queryParams.set('minPrice', data.searchPrice[0].toString());
-         queryParams.set('maxPrice', data.searchPrice[1].toString());
+   const handleSearch = (formData: Record<string, any>) => {
+      const queryParams = new URLSearchParams();
+
+      if (formData.searchText?.trim()) {
+         queryParams.set('province', formData.searchText.trim());
       }
+      if (formData.searchDate?.[0] && formData.searchDate?.[1]) {
+         queryParams.set(
+            'startDate',
+            moment(formData.searchDate[0]).format('YYYY-MM-DD'),
+         );
+         queryParams.set(
+            'endDate',
+            moment(formData.searchDate[1]).format('YYYY-MM-DD'),
+         );
+      }
+      if (formData.searchGuest) {
+         queryParams.set(
+            'numberOfGuest',
+            String(formData.searchGuest.guests || 1),
+         );
+         queryParams.set('roomNumber', String(formData.searchGuest.rooms || 1));
+      }
+      if (
+         formData.searchPrice?.[0] !== undefined &&
+         formData.searchPrice?.[1] !== undefined
+      ) {
+         queryParams.set('minPrice', String(formData.searchPrice[0]));
+         queryParams.set('maxPrice', String(formData.searchPrice[1]));
+      }
+      if (formData.bedType) {
+         queryParams.set('bedType', formData.bedType);
+      }
+      if (formData.minRating) {
+         queryParams.set('minRating', String(formData.minRating));
+      }
+      if (formData.amenities?.length) {
+         queryParams.set('amenities', formData.amenities.join(','));
+      }
+      // Giu sort hien tai khi search lai
+      const sortBy = searchParams.get('sortBy');
+      if (sortBy) queryParams.set('sortBy', sortBy);
+
       setSearchParams(queryParams);
       setDrawerVisible(false);
       setFilterDrawerVisible(false);
@@ -64,17 +92,40 @@ const Listing: React.FC = () => {
       setSearchParams(newSearchParams);
    };
 
+   const handleSortChange = (sortBy: string) => {
+      const newSearchParams = new URLSearchParams(searchParams.toString());
+      newSearchParams.set('sortBy', sortBy);
+      newSearchParams.delete('page');
+      setSearchParams(newSearchParams);
+   };
+
+   const searchAndFilterForm = (
+      <form onSubmit={methods.handleSubmit(handleSearch)}>
+         <SearchSection searchParams={searchParams} />
+         <Button
+            className="mt-3 px-5 w-full bg-blue-500 rounded-full font-main h-[48px]"
+            type="primary"
+            icon={<SearchOutlined />}
+            htmlType="submit"
+         >
+            Search
+         </Button>
+         <FilterSection />
+      </form>
+   );
+
    return (
-      <div className="flex flex-col justify-center items-center w-full font-main bg-gray-100">
-         <div className="flex flex-col lg:flex-row gap-5 lg:mt-10 mt-2 mb-5 w-full min-h-screen max-w-main px-5 sm:px-5">
-            <div className="lg:hidden w-full flex justify-center items-center">
+      <div className="flex flex-col justify-center items-center w-full bg-gray-50 font-main">
+         <div className="flex flex-col gap-6 px-5 mt-2 mb-5 w-full min-h-screen lg:flex-row lg:mt-8 max-w-main sm:px-5">
+            {/* Mobile: summary + nut filter */}
+            <div className="flex justify-center items-center w-full lg:hidden">
                <SummaryCard
                   searchParams={searchParams}
                   onClick={() => setDrawerVisible(true)}
                />
                <span
                   onClick={() => setFilterDrawerVisible(true)}
-                  className="filter-icon cursor-pointer ml-2 text-2xl"
+                  className="ml-2 text-2xl cursor-pointer filter-icon"
                >
                   <FiFilter size={30} />
                </span>
@@ -89,21 +140,7 @@ const Listing: React.FC = () => {
                height="100%"
                zIndex={800}
             >
-               <FormProvider {...methods}>
-                  <div className="flex flex-col gap-5">
-                     <form onSubmit={methods.handleSubmit(handleSearch)}>
-                        <SearchSection searchParams={searchParams} />
-                        <Button
-                           className="px-5 w-full bg-blue-500 rounded-xl font-main h-[50px]"
-                           type="primary"
-                           icon={<SearchOutlined />}
-                           htmlType="submit"
-                        >
-                           Search
-                        </Button>
-                     </form>
-                  </div>
-               </FormProvider>
+               <FormProvider {...methods}>{searchAndFilterForm}</FormProvider>
             </Drawer>
 
             <Drawer
@@ -113,41 +150,19 @@ const Listing: React.FC = () => {
                open={filterDrawerVisible}
                height="100%"
             >
-               <FormProvider {...methods}>
-                  <div className="flex flex-col gap-5">
-                     <form onSubmit={methods.handleSubmit(handleSearch)}>
-                        <FilterSection />
-                        <Button
-                           className="px-5 w-full bg-blue-500 rounded-xl font-main h-[50px]"
-                           type="primary"
-                           icon={<SearchOutlined />}
-                           htmlType="submit"
-                        >
-                           Apply Filters
-                        </Button>
-                     </form>
-                  </div>
-               </FormProvider>
+               <FormProvider {...methods}>{searchAndFilterForm}</FormProvider>
             </Drawer>
 
-            <div className="hidden lg:block min-w-[320px] bg-white px-5 rounded-lg">
-               <FormProvider {...methods}>
-                  <form onSubmit={methods.handleSubmit(handleSearch)}>
-                     <SearchSection searchParams={searchParams} />
-                     <Button
-                        className="px-5 w-full bg-blue-500 rounded-xl font-main h-[50px]"
-                        type="primary"
-                        icon={<SearchOutlined />}
-                        htmlType="submit"
-                     >
-                        Search
-                     </Button>
-                     <FilterSection />
-                  </form>
-               </FormProvider>
+            {/* Desktop sidebar */}
+            <div className="hidden lg:block flex-shrink-0 w-[330px]">
+               <div className="sticky top-24 p-5 bg-white rounded-2xl border border-gray-100 shadow-card-sm">
+                  <FormProvider {...methods}>
+                     {searchAndFilterForm}
+                  </FormProvider>
+               </div>
             </div>
 
-            <div className="w-full">
+            <div className="w-full min-w-0">
                <Results
                   data={data}
                   isFetching={isFetching}
@@ -155,6 +170,7 @@ const Listing: React.FC = () => {
                   roomNumber={roomNumber}
                   searchParams={searchParams}
                   handleChangePage={handleChangePage}
+                  handleSortChange={handleSortChange}
                />
             </div>
          </div>

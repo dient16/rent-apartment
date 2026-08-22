@@ -8,7 +8,7 @@ export const apiCreateApartment = (data: Apartment): Promise<Res> =>
    });
 export const apiSearchRoom = (params: string): Promise<Res> =>
    axios({
-      url: `/apartment/search?limit=4&${params}`,
+      url: `/apartment/search?${params}`,
       method: 'get',
    });
 export const apiApartmentDetail = (

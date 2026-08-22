@@ -35,6 +35,7 @@ interface UserType {
    address: string;
    personalId: string;
    favorites?: string[];
+   hasSeenHostWelcome?: boolean;
 }
 
 interface CustomerBooking {

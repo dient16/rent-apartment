@@ -10,14 +10,16 @@ import {
    SearchInfoBar,
    FavoriteButton,
 } from '@/components';
-import { Button, Result, Spin } from 'antd';
+import { Button, Result, Spin, message } from 'antd';
 import { Controller, useForm, FormProvider } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { apiApartmentDetail } from '@/apis';
+import { apiApartmentDetail, apiStartConversation } from '@/apis';
 import moment from 'moment';
 import { path } from '@/utils/constant';
 import icons from '@/utils/icons';
+import { IoChatbubbleEllipsesOutline } from 'react-icons/io5';
+import { useAuth } from '@/hooks';
 
 type RoomValue = {
    roomId: string;
@@ -30,6 +32,23 @@ const ApartmentDetail: React.FC = () => {
    const [searchParams, setSearchParams] = useSearchParams();
    const navigate = useNavigate();
    const methods = useForm();
+   const { isAuthenticated, setAuthModal } = useAuth();
+
+   const handleMessageHost = async () => {
+      if (!isAuthenticated) {
+         message.info('Please sign in to message the host');
+         setAuthModal({ isOpen: true, activeTab: 'signin' });
+         return;
+      }
+      const ownerId = apartment?.owner?._id;
+      if (!ownerId) return;
+      const response = await apiStartConversation(ownerId);
+      if (response.success && response.data?._id) {
+         navigate(`/messages?c=${response.data._id}`);
+      } else {
+         message.error(response.message || 'Cannot start conversation');
+      }
+   };
 
    const { data: { data: apartment } = {}, isFetching } = useQuery({
       queryKey: ['apartment', apartmentId, searchParams.toString()],
@@ -128,7 +147,17 @@ const ApartmentDetail: React.FC = () => {
                      <div className="flex flex-col gap-2 justify-center lg:mt-5 mt-3 font-main">
                         <div className="flex gap-3 justify-between items-center">
                            <div className="text-3xl">{apartment?.title}</div>
-                           <FavoriteButton apartmentId={apartmentId as string} />
+                           <div className="flex gap-2 items-center">
+                              <button
+                                 type="button"
+                                 onClick={handleMessageHost}
+                                 className="flex gap-2 items-center px-4 h-10 text-sm font-medium text-gray-700 bg-white rounded-full border border-gray-300 transition-colors cursor-pointer hover:border-blue-500 hover:text-blue-600"
+                              >
+                                 <IoChatbubbleEllipsesOutline size={17} />
+                                 Message host
+                              </button>
+                              <FavoriteButton apartmentId={apartmentId as string} />
+                           </div>
                         </div>
                         <div className="flex gap-1 items-center text-sm font-light font-main">
                            <FaLocationDot color="#1640D6" size={15} />

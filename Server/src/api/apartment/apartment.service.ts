@@ -171,7 +171,13 @@ export const apartmentService = {
     return new ServiceResponse(ResponseStatus.Success, 'Popular rooms retrieved successfully', rooms, StatusCodes.OK);
   },
   async getApartmentDetail(apartmentId: string, query: GetApartmentQuery['query']) {
-    const { startDate, endDate, numberOfGuest, roomNumber, minPrice, maxPrice } = query;
+    const { numberOfGuest, roomNumber, minPrice, maxPrice } = query;
+    // Khong truyen ngay => mac dinh hom nay -> ngay mai
+    const startDate = query.startDate ? moment(query.startDate).toDate() : moment().startOf('day').toDate();
+    const endDate =
+      query.endDate && moment(query.endDate).isAfter(startDate)
+        ? moment(query.endDate).toDate()
+        : moment(startDate).add(1, 'day').toDate();
 
     const [err, apartment] = await to<Apartment | null>(
       ApartmentModel.findById(apartmentId)
@@ -375,27 +381,55 @@ export const apartmentService = {
     }
   },
   async searchApartments(query: any) {
-    const { numberOfGuest, roomNumber, province, district, startDate, endDate, name, minPrice, maxPrice, limit, page } =
-      query;
+    const {
+      numberOfGuest,
+      roomNumber,
+      province,
+      district,
+      startDate,
+      endDate,
+      name,
+      minPrice,
+      maxPrice,
+      limit,
+      page,
+      bedType,
+      minRating,
+      sortBy,
+      amenities,
+    } = query;
 
-    const nights = moment(endDate).diff(moment(startDate), 'days');
+    const amenityList: string[] = String(amenities || '')
+      .split(',')
+      .map((amenity: string) => amenity.trim())
+      .filter(Boolean);
+
+    // Khong truyen ngay => mac dinh hom nay -> ngay mai (duyet tat ca cho con trong)
+    const start = startDate ? moment(startDate).toDate() : moment().startOf('day').toDate();
+    const end =
+      endDate && moment(endDate).isAfter(start) ? moment(endDate).toDate() : moment(start).add(1, 'day').toDate();
+
+    const nights = moment(end).diff(moment(start), 'days');
     const totalNights = nights > 0 ? nights : 1;
 
     // Loc phong ngay tu dau (dung index {price, numberOfGuest, quantity}):
     // chi nhung phong du cho, con trong trong khoang ngay, va nam trong khoang gia
-    const roomMatch = {
+    const roomMatch: Record<string, unknown> = {
       numberOfGuest: { $gte: numberOfGuest },
       quantity: { $gte: roomNumber },
       price: { $gte: minPrice, $lte: maxPrice },
       unavailableDateRanges: {
         $not: {
           $elemMatch: {
-            startDay: { $lte: endDate },
-            endDay: { $gte: startDate },
+            startDay: { $lte: end },
+            endDay: { $gte: start },
           },
         },
       },
     };
+    if (bedType) {
+      roomMatch.bedType = new RegExp(String(bedType).trim(), 'i');
+    }
 
     // Full-text qua Elasticsearch: chiu duoc go khong dau ("da nang" -> "Đà Nẵng")
     // va sai chinh ta nhe (fuzziness AUTO). Tra ve null khi ES khong chay
@@ -480,6 +514,10 @@ export const apartmentService = {
           as: 'amenities',
         },
       },
+      // Loc theo tien nghi (phong dai dien phai co du cac tien nghi da chon)
+      ...(amenityList.length
+        ? [{ $match: { 'amenities.name': { $all: amenityList.map((amenity) => new RegExp(`^${amenity}$`, 'i')) } } }]
+        : []),
       {
         $project: {
           _id: 1,
@@ -527,8 +565,17 @@ export const apartmentService = {
           totalPrice: { $multiply: ['$price', totalNights] },
         },
       },
+      // Loc theo diem danh gia toi thieu (tinh sau khi project rating)
+      ...(minRating ? [{ $match: { 'rating.ratingAvg': { $gte: minRating } } }] : []),
       // Thu tu on dinh de phan trang khong trung/lap giua cac trang
-      { $sort: { price: 1, _id: 1 } },
+      {
+        $sort:
+          sortBy === 'price_desc'
+            ? { price: -1 as const, _id: 1 as const }
+            : sortBy === 'rating'
+              ? { 'rating.ratingAvg': -1 as const, _id: 1 as const }
+              : { price: 1 as const, _id: 1 as const },
+      },
     ];
 
     const options = {
@@ -803,22 +850,33 @@ export const apartmentService = {
   },
   async getApartmentsByUserId(userId: string) {
     const [err, apartments] = await to(
-      ApartmentModel.find({ owner: userId }).select('title location rooms').lean().exec()
+      ApartmentModel.find({ owner: userId })
+        .select('title location rooms images')
+        .populate({ path: 'rooms', select: 'images price' })
+        .lean()
+        .exec()
     );
 
     if (err) {
       return new ServiceResponse(ResponseStatus.Failed, err.message, null, StatusCodes.INTERNAL_SERVER_ERROR);
     }
 
-    if (!apartments || apartments.length === 0) {
-      return new ServiceResponse(
-        ResponseStatus.Failed,
-        'No apartments found for this user.',
-        null,
-        StatusCodes.NOT_FOUND
-      );
-    }
+    // Chua co can nao van la thanh cong voi danh sach rong (404 lam FE toast loi)
+    const withImageUrls = (apartments || []).map((apartment: any) => {
+      const rooms = apartment.rooms || [];
+      // Apartment khong co anh rieng -> muon anh phong dau tien lam thumbnail
+      const rawImages: string[] = apartment.images?.length ? apartment.images : rooms[0]?.images || [];
+      const prices = rooms.map((room: any) => room.price).filter((price: number) => typeof price === 'number');
+      return {
+        ...apartment,
+        rooms,
+        images: rawImages.map((image: string) =>
+          image.startsWith('http') ? image : `${SERVER_URL}/api/image/${image}`
+        ),
+        minPrice: prices.length ? Math.min(...prices) : null,
+      };
+    });
 
-    return new ServiceResponse(ResponseStatus.Success, 'Apartments retrieved successfully', apartments, StatusCodes.OK);
+    return new ServiceResponse(ResponseStatus.Success, 'Apartments retrieved successfully', withImageUrls, StatusCodes.OK);
   },
 };

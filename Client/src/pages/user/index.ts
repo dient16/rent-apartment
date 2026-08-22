@@ -3,3 +3,8 @@ export { default as ManageAccount } from './ManageAccount';
 export { default as PersonalInformation } from './PersonalInformation';
 export { default as MyBooking } from './MyBooking';
 export { default as BookingDetail } from './BookingDetail';
+export { default as Notifications } from './Notifications';
+export { default as Messages } from './Messages';
+export { default as PaymentInformation } from './PaymentInformation';
+export { default as NotificationSettings } from './NotificationSettings';
+export { default as AccountSettings } from './AccountSettings';

@@ -15,3 +15,18 @@ export const apiGetAddress = (
          'accept-language': 'vi',
       },
    });
+
+import api from './axiosConfig';
+
+export interface AddressSuggestion {
+   label: string;
+   description: string;
+   value: string;
+}
+
+export const apiSuggestAddress = (q: string): Promise<Res> =>
+   api({
+      url: '/location/suggest',
+      method: 'get',
+      params: { q },
+   });

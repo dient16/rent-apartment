@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import type { RouteObject } from 'react-router-dom';
 import {
    // AdminDashboard,
@@ -12,6 +12,7 @@ import {
    CreateApartment,
    HostMessage,
    HostRoomDetail,
+   HostWelcome,
 } from '@/pages/host';
 import {
    ApartmentDetail,
@@ -32,6 +33,11 @@ import {
    PersonalInformation,
    MyBooking,
    BookingDetail,
+   Notifications,
+   Messages,
+   PaymentInformation,
+   NotificationSettings,
+   AccountSettings,
 } from '@/pages/user';
 import UserLayout from '@/layouts/UserLayout';
 import HostLayout from '@/layouts/HostLayout';
@@ -57,6 +63,14 @@ const Router = () => {
       {
          path: path.FAVORITES,
          element: <MyFavorites />,
+      },
+      {
+         path: path.NOTIFICATIONS,
+         element: <Notifications />,
+      },
+      {
+         path: path.MESSAGES,
+         element: <Messages />,
       },
       {
          path: path.APARTMENT_DETAIL,
@@ -92,8 +106,24 @@ const Router = () => {
          element: <ManageAccount />,
          children: [
             {
+               index: true,
+               element: <Navigate to={path.PERSONAL_INFORMATION} replace />,
+            },
+            {
                path: path.PERSONAL_INFORMATION,
                element: <PersonalInformation />,
+            },
+            {
+               path: path.PAYMENT_INFORMATION,
+               element: <PaymentInformation />,
+            },
+            {
+               path: path.NOTIFICATION_SETTINGS,
+               element: <NotificationSettings />,
+            },
+            {
+               path: path.SETTINGS,
+               element: <AccountSettings />,
             },
          ],
       },
@@ -104,6 +134,14 @@ const Router = () => {
    ];
 
    const hostRoutes: RouteObject[] = [
+      {
+         index: true,
+         element: <Navigate to={path.HOST_DASHBOARD} replace />,
+      },
+      {
+         path: path.HOST_WELCOME,
+         element: <HostWelcome />,
+      },
       {
          path: path.HOST_DASHBOARD,
          element: <HostDashboard />,
@@ -135,6 +173,10 @@ const Router = () => {
       {
          path: path.APARTMENT_ROOMS,
          element: <HostRoomDetail />,
+      },
+      {
+         path: '*',
+         element: <NotFound />,
       },
    ];
 
