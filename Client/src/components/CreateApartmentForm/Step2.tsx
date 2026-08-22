@@ -68,7 +68,7 @@ const Step2: React.FC<Step2Props> = ({
          animate={{ opacity: 1, y: 0 }}
          transition={{ duration: 0.35 }}
       >
-         {/* Danh sach phong dang pill */}
+         {/* Room pills */}
          <div className="flex flex-wrap gap-2 items-center pb-5 mb-6 border-b border-gray-100">
             {fields.map((field, index) => {
                const label =
@@ -128,7 +128,7 @@ const Step2: React.FC<Step2Props> = ({
             </button>
          </div>
 
-         {/* Form phong dang chon */}
+         {/* Selected room form */}
          {fields.map((field, index) => (
             <div
                key={field.id}

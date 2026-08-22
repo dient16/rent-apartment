@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Button, Dropdown } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { Button, Drawer, Dropdown } from 'antd';
+import { ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
+import { useNavigate } from '@/lib/router-compat';
 import moment from 'moment';
 import {
    AutoCompleteAddress,
@@ -11,12 +11,17 @@ import {
 } from '@/components';
 
 /**
- * Thanh search kieu Airbnb: cac section Where / When / Who tach biet,
- * hover noi bat tung section, nut search tron ben phai.
+ * Airbnb-style search bar: separate Where / When / Who sections,
+ * hover highlights one section, round search button on the right.
  */
 const Search: React.FC = () => {
    const { handleSubmit, control, setValue } = useForm();
    const navigate = useNavigate();
+   // Mobile/tablet: the Where field opens a full-screen sheet instead of an inline popup
+   const [whereOpen, setWhereOpen] = useState(false);
+   const [whoOpen, setWhoOpen] = useState(false);
+   const isCompactScreen = () =>
+      typeof window !== 'undefined' && window.innerWidth < 1024;
 
    const handleSearch = (data: Record<string, any>) => {
       const queryParams = new URLSearchParams();
@@ -54,20 +59,87 @@ const Search: React.FC = () => {
             name="searchText"
             defaultValue=""
             render={({ field }) => (
-               <label className={`${segmentClass} relative flex-[1.2] min-w-0`}>
-                  <span className={labelClass}>Where</span>
-                  <input
-                     placeholder="Search destinations"
-                     className="w-full text-sm text-gray-800 placeholder-gray-400 bg-transparent border-none outline-none"
-                     value={field.value}
-                     onChange={(event) => field.onChange(event.target.value)}
-                  />
-                  <AutoCompleteAddress
-                     value={field.value}
-                     onChange={field.onChange}
-                     setValue={setValue}
-                  />
-               </label>
+               <>
+                  <label className={`${segmentClass} relative flex-[1.2] min-w-0`}>
+                     <span className={labelClass}>Where</span>
+                     <input
+                        placeholder="Search destinations"
+                        className="w-full text-sm text-gray-800 placeholder-gray-400 bg-transparent border-none outline-none"
+                        value={field.value}
+                        onChange={(event) => field.onChange(event.target.value)}
+                        onFocus={(event) => {
+                           if (isCompactScreen()) {
+                              event.target.blur();
+                              setWhereOpen(true);
+                           }
+                        }}
+                     />
+                     <span className="hidden lg:block">
+                        <AutoCompleteAddress
+                           value={field.value}
+                           onChange={field.onChange}
+                           setValue={setValue}
+                        />
+                     </span>
+                  </label>
+
+                  {/* Mobile/tablet full-screen destination sheet */}
+                  <Drawer
+                     open={whereOpen}
+                     onClose={() => setWhereOpen(false)}
+                     placement="bottom"
+                     height="100%"
+                     closable={false}
+                     zIndex={1000}
+                     styles={{ body: { padding: 0 } }}
+                  >
+                     <div className="flex flex-col h-full font-main">
+                        <div className="flex gap-3 items-center px-4 py-3 border-b border-gray-100">
+                           <button
+                              type="button"
+                              onClick={() => setWhereOpen(false)}
+                              className="flex justify-center items-center w-9 h-9 text-gray-700 bg-gray-100 rounded-full border-none cursor-pointer"
+                           >
+                              <ArrowLeftOutlined />
+                           </button>
+                           <span className="text-base font-semibold text-gray-900">
+                              Where to?
+                           </span>
+                        </div>
+                        <div className="p-4">
+                           <div className="flex gap-2 items-center px-4 h-12 bg-gray-100 rounded-2xl">
+                              <SearchOutlined className="text-gray-400" />
+                              <input
+                                 autoFocus
+                                 placeholder="Search destinations"
+                                 className="flex-1 text-[15px] text-gray-800 placeholder-gray-400 bg-transparent border-none outline-none"
+                                 value={field.value}
+                                 onChange={(event) => field.onChange(event.target.value)}
+                              />
+                           </div>
+                        </div>
+                        <div className="overflow-y-auto flex-1 px-2">
+                           <AutoCompleteAddress
+                              inline
+                              value={field.value}
+                              onChange={field.onChange}
+                              setValue={setValue}
+                              onSelect={() => setWhereOpen(false)}
+                           />
+                        </div>
+                        <div className="p-4 border-t border-gray-100">
+                           <Button
+                              type="primary"
+                              size="large"
+                              className="w-full h-12 font-semibold bg-blue-500 rounded-2xl"
+                              onClick={() => setWhereOpen(false)}
+                           >
+                              Done
+                           </Button>
+                        </div>
+                     </div>
+                  </Drawer>
+               </>
             )}
          />
 
@@ -101,18 +173,9 @@ const Search: React.FC = () => {
             name="searchGuest"
             control={control}
             defaultValue={{ guests: 1, rooms: 1 }}
-            render={({ field }) => (
-               <Dropdown
-                  dropdownRender={() => (
-                     <DropDownItem
-                        value={field.value}
-                        onChange={(value) => field.onChange(value)}
-                     />
-                  )}
-                  placement="bottomLeft"
-                  trigger={['click']}
-               >
-                  <div className={`${segmentClass} flex-1`}>
+            render={({ field }) => {
+               const summary = (
+                  <>
                      <span className={labelClass}>Who</span>
                      <span className="text-sm text-gray-800 whitespace-nowrap">
                         {field.value?.guests || 1} guest
@@ -120,12 +183,79 @@ const Search: React.FC = () => {
                         {field.value?.rooms || 1} room
                         {(field.value?.rooms || 1) > 1 ? 's' : ''}
                      </span>
-                  </div>
-               </Dropdown>
-            )}
+                  </>
+               );
+               return (
+                  <>
+                     {/* Desktop: inline dropdown */}
+                     <div className="hidden lg:block flex-1">
+                        <Dropdown
+                           dropdownRender={() => (
+                              <DropDownItem
+                                 value={field.value}
+                                 onChange={(value) => field.onChange(value)}
+                              />
+                           )}
+                           placement="bottomLeft"
+                           trigger={['click']}
+                        >
+                           <div className={segmentClass}>{summary}</div>
+                        </Dropdown>
+                     </div>
+
+                     {/* Mobile/tablet: full-screen sheet */}
+                     <div
+                        className={`${segmentClass} flex-1 lg:hidden`}
+                        onClick={() => setWhoOpen(true)}
+                     >
+                        {summary}
+                     </div>
+                     <Drawer
+                        open={whoOpen}
+                        onClose={() => setWhoOpen(false)}
+                        placement="bottom"
+                        height="100%"
+                        closable={false}
+                        zIndex={1000}
+                        styles={{ body: { padding: 0 } }}
+                     >
+                        <div className="flex flex-col h-full font-main">
+                           <div className="flex gap-3 items-center px-4 py-3 border-b border-gray-100">
+                              <button
+                                 type="button"
+                                 onClick={() => setWhoOpen(false)}
+                                 className="flex justify-center items-center w-9 h-9 text-gray-700 bg-gray-100 rounded-full border-none cursor-pointer"
+                              >
+                                 <ArrowLeftOutlined />
+                              </button>
+                              <span className="text-base font-semibold text-gray-900">
+                                 Who's coming?
+                              </span>
+                           </div>
+                           <div className="flex-1 px-5 py-2">
+                              <DropDownItem
+                                 value={field.value}
+                                 onChange={(value) => field.onChange(value)}
+                              />
+                           </div>
+                           <div className="p-4 border-t border-gray-100">
+                              <Button
+                                 type="primary"
+                                 size="large"
+                                 className="w-full h-12 font-semibold bg-blue-500 rounded-2xl"
+                                 onClick={() => setWhoOpen(false)}
+                              >
+                                 Done
+                              </Button>
+                           </div>
+                        </div>
+                     </Drawer>
+                  </>
+               );
+            }}
          />
 
-         {/* ===== Nut search ===== */}
+         {/* ===== Search button ===== */}
          <div className="flex justify-center items-center pr-1 pl-2">
             <Button
                type="primary"

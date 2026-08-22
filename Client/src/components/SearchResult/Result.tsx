@@ -95,14 +95,35 @@ const Results: React.FC<ResultsProps> = ({
          </div>
 
          {totalResults > 0 && (
-            <Pagination
-               className="self-center py-4"
-               current={+(searchParams.get('page') || 1)}
-               total={totalResults}
-               pageSize={+(searchParams.get('limit') || 15)}
-               showSizeChanger={false}
-               onChange={handleChangePage}
-            />
+            (() => {
+               const page = +(searchParams.get('page') || 1);
+               const limit = +(searchParams.get('limit') || 15);
+               const from = (page - 1) * limit + 1;
+               const to = Math.min(page * limit, totalResults);
+               return (
+                  <div className="flex flex-col gap-3 items-center px-1 py-5 mt-2 border-t border-gray-100 sm:flex-row sm:justify-between">
+                     <span className="text-sm text-gray-500">
+                        Showing{' '}
+                        <span className="font-semibold text-gray-900">
+                           {from}–{to}
+                        </span>{' '}
+                        of{' '}
+                        <span className="font-semibold text-gray-900">{totalResults}</span>{' '}
+                        stay{totalResults > 1 ? 's' : ''}
+                     </span>
+                     {totalResults > limit && (
+                        <Pagination
+                           className="listing-pagination"
+                           current={page}
+                           total={totalResults}
+                           pageSize={limit}
+                           showSizeChanger={false}
+                           onChange={handleChangePage}
+                        />
+                     )}
+                  </div>
+               );
+            })()
          )}
       </div>
    );

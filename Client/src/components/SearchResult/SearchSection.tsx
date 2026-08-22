@@ -15,14 +15,9 @@ interface SearchSectionProps {
 const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
    const { control, getValues } = useFormContext();
 
-   const numberOfGuests: number =
-      +searchParams.get('numberOfGuests') !== 0
-         ? +searchParams.get('numberOfGuests') ?? 1
-         : 1;
-   const numberOfRooms: number =
-      +searchParams.get('numberOfRooms') !== 0
-         ? +searchParams.get('numberOfRooms') ?? 1
-         : 1;
+   // "|| 1" also covers NaN/0 from a missing or malformed query param
+   const numberOfGuests: number = Number(searchParams.get('numberOfGuests')) || 1;
+   const numberOfRooms: number = Number(searchParams.get('numberOfRooms')) || 1;
    const startDate: string | null = searchParams.get('startDate');
    const endDate: string | null = searchParams.get('endDate');
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import { Tooltip } from 'antd';
 import {
    EnvironmentOutlined,
@@ -29,12 +29,12 @@ const ResultItem: React.FC<SearchItemProps> = ({
 
    const handleClick = () => {
       const queryParams = new URLSearchParams();
-      // Chi giu cac param thuc su co — tranh "province=null" khi vao khong param
+      // Keep only params that exist — avoids "province=null" on paramless visits
       ['province', 'startDate', 'endDate'].forEach((key) => {
          const value = searchParams.get(key);
          if (value) queryParams.set(key, value);
       });
-      // Trang detail can khoang ngay de tinh gia/phong trong — mac dinh hom nay -> mai
+      // Detail page needs a date range for price/availability — default today -> tomorrow
       if (!queryParams.get('startDate') || !queryParams.get('endDate')) {
          queryParams.set('startDate', moment().format('YYYY-MM-DD'));
          queryParams.set('endDate', moment().add(1, 'day').format('YYYY-MM-DD'));
@@ -62,7 +62,7 @@ const ResultItem: React.FC<SearchItemProps> = ({
          onClick={handleClick}
          className="flex overflow-hidden flex-col bg-white rounded-2xl border border-gray-100 transition-all duration-300 cursor-pointer group md:flex-row shadow-card-sm hover:shadow-card-md hover:border-blue-200 font-main"
       >
-         {/* Anh */}
+         {/* Image */}
          <div className="overflow-hidden relative flex-shrink-0 md:w-72 md:h-auto md:max-h-64">
             <img
                src={room.image}
@@ -138,7 +138,7 @@ const ResultItem: React.FC<SearchItemProps> = ({
                </div>
             )}
 
-            {/* Gia + CTA */}
+            {/* Price + CTA */}
             <div className="flex flex-wrap gap-3 justify-between items-end pt-4 mt-auto border-t border-gray-100">
                <div className="flex gap-4 text-xs text-gray-500">
                   <span className="flex gap-1.5 items-center">

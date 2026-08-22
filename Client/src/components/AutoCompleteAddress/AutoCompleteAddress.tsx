@@ -10,13 +10,18 @@ interface AutoCompleteAddressProps {
    value: string;
    onChange: (value: string) => void;
    setValue: (name: string, value: string) => void;
+   /** Render the list in flow (for the mobile full-screen sheet) instead of an absolute popup */
+   inline?: boolean;
+   onSelect?: () => void;
 }
 
-/** Goi y dia diem — du lieu lay tu BE (/api/location/suggest, co cache) */
+/** Address suggestions — served by the BE (/api/location/suggest, cached) */
 const AutoCompleteAddress: React.FC<AutoCompleteAddressProps> = ({
    value,
    onChange,
    setValue,
+   inline = false,
+   onSelect,
 }) => {
    const [selected, setSelected] = React.useState<string | null>(null);
    const debouncedSearchValue = useDebounce(value, 400);
@@ -38,6 +43,7 @@ const AutoCompleteAddress: React.FC<AutoCompleteAddressProps> = ({
       setSelected(suggestion.value);
       setValue('searchText', suggestion.value);
       onChange(suggestion.value);
+      onSelect?.();
    };
 
    const isOpen = (options.length > 0 || isFetching) && !!value;
@@ -51,7 +57,11 @@ const AutoCompleteAddress: React.FC<AutoCompleteAddressProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.15 }}
-                  className="overflow-hidden absolute left-0 top-3 z-20 py-2 w-full bg-white rounded-2xl border border-gray-100 shadow-card-md min-w-[320px]"
+                  className={
+                     inline
+                        ? 'overflow-y-auto py-2 w-full'
+                        : 'overflow-hidden absolute left-0 top-3 z-20 py-2 w-full bg-white rounded-2xl border border-gray-100 shadow-card-md min-w-[320px]'
+                  }
                >
                   {isFetching ? (
                      <div className="flex gap-2 justify-center items-center py-5 text-sm text-gray-400">

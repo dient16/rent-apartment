@@ -16,7 +16,7 @@ interface CreateNotificationInput {
 }
 
 export const notificationService = {
-  /** Helper noi bo: cac service khac goi de phat thong bao. Khong bao gio throw. */
+  /** Internal helper other services call to emit a notification. Never throws. */
   async notify({ userId, type, title, message, link }: CreateNotificationInput): Promise<void> {
     const [err] = await to(NotificationModel.create({ user: userId, type, title, message, link }));
     if (err) {
@@ -25,8 +25,8 @@ export const notificationService = {
   },
 
   /**
-   * Thong bao tin nhan moi — dedupe: moi hoi thoai chi giu 1 notification CHUA DOC,
-   * tin moi den thi cap nhat noi dung + day len dau thay vi spam nhieu dong.
+   * New-message notification — dedupe: keep only 1 UNREAD notification per conversation;
+   * new messages update it and bump it to the top instead of spamming rows.
    */
   async notifyNewMessage(input: {
     recipientId: string | mongoose.Types.ObjectId;
@@ -49,7 +49,7 @@ export const notificationService = {
     }
   },
 
-  /** Doc hoi thoai -> notification tin nhan cua hoi thoai do coi nhu da doc */
+  /** Reading a conversation marks that conversation's message notification as read */
   async markMessageNotificationsRead(userId: string, conversationId: string): Promise<void> {
     await to(
       NotificationModel.updateMany(

@@ -8,7 +8,7 @@ import {
 } from '@ant-design/icons';
 import EmojiPicker, { type EmojiClickData } from 'emoji-picker-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from '@/lib/router-compat';
 import moment from 'moment';
 import clsx from 'clsx';
 import {
@@ -53,7 +53,7 @@ const QUICK_REACTIONS = ['❤️', '👍', '😆', '😮', '😢', '🙏'];
 const partnerName = (partner?: Partner | null) =>
    [partner?.firstname, partner?.lastname].filter(Boolean).join(' ') || 'User';
 
-/** Khung chat 2 cot dung chung cho user (/messages) va host (/host/messages) */
+/** Two-pane chat shared by user (/messages) and host (/host/messages) */
 const Messenger: React.FC = () => {
    const queryClient = useQueryClient();
    const [searchParams, setSearchParams] = useSearchParams();
@@ -68,7 +68,7 @@ const Messenger: React.FC = () => {
          queryKey: ['conversations'],
          queryFn: apiGetConversations,
          refetchInterval: 15_000,
-         staleTime: 0, // mo trang la refetch ngay, khong hien cache cu
+         staleTime: 0, // refetch on open, never show a stale list
       });
 
    const conversations: ConversationItem[] = useMemo(
@@ -89,7 +89,7 @@ const Messenger: React.FC = () => {
       queryFn: () => apiGetMessages(selectedId as string),
       enabled: !!selectedId,
       refetchInterval: 3_000,
-      staleTime: 0, // mo hoi thoai la refetch ngay, khong hien cache cu
+      staleTime: 0, // refetch when a thread opens, never show stale messages
    });
 
    const messages: ChatMessage[] = useMemo(
@@ -128,14 +128,14 @@ const Messenger: React.FC = () => {
       },
    });
 
-   // Cuon xuong cuoi KHUNG CHAT khi co tin moi (khong dung scrollIntoView
-   // vi no keo ca trang xuong theo)
+   // Scroll the CHAT PANE to the bottom on new messages (scrollIntoView
+   // would drag the whole page down as well)
    useEffect(() => {
       const list = listRef.current;
       if (list) list.scrollTop = list.scrollHeight;
    }, [messages.length, selectedId]);
 
-   // Doc hoi thoai xong thi lam moi badge chua doc o danh sach
+   // After reading a thread, refresh the unread badges in the list
    useEffect(() => {
       if (selectedId && messagesData) {
          queryClient.invalidateQueries({ queryKey: ['conversations'] });
@@ -155,7 +155,7 @@ const Messenger: React.FC = () => {
       <div className="bg-gray-50 font-main">
          <div className="mx-auto w-full max-w-main">
             <div className="flex overflow-hidden flex-col bg-white border-x border-b border-gray-100 shadow-card-sm h-[calc(100vh-60px)] lg:h-[calc(100vh-80px)]">
-               {/* ===== Thanh tren chia doi 2 ben ===== */}
+               {/* ===== Split top bar ===== */}
                <div className="flex flex-shrink-0 items-stretch border-b border-gray-100 h-[72px]">
                   <div
                      className={clsx(
@@ -218,7 +218,7 @@ const Messenger: React.FC = () => {
                </div>
 
                <div className="flex flex-1 min-h-0">
-                  {/* ===== Cot trai: danh sach hoi thoai ===== */}
+                  {/* ===== Left: conversation list ===== */}
                   <aside
                      className={clsx(
                         'flex-col flex-shrink-0 w-full border-r border-gray-100 md:flex md:w-[340px]',
@@ -325,7 +325,7 @@ const Messenger: React.FC = () => {
                      </div>
                   </aside>
 
-                  {/* ===== Cot phai: khung chat ===== */}
+                  {/* ===== Right: chat pane ===== */}
                   <section
                      className={clsx(
                         'flex-col flex-1 min-w-0 md:flex',
@@ -346,7 +346,7 @@ const Messenger: React.FC = () => {
                         </div>
                      ) : (
                         <>
-                           {/* Tin nhan */}
+                           {/* Messages */}
                            <div
                               ref={listRef}
                               className="overflow-y-auto flex-1 px-5 py-4 bg-white"
@@ -378,7 +378,7 @@ const Messenger: React.FC = () => {
                                           moment(prev.createdAt),
                                           'minutes',
                                        ) > 15;
-                                    // avatar chi hien o tin CUOI cua moi cum tin doi phuong
+                                    // avatar only on the LAST message of each partner group
                                     const isLastOfGroup =
                                        !next ||
                                        next.isMine !== message.isMine ||
@@ -446,7 +446,7 @@ const Messenger: React.FC = () => {
                                                    )}
                                                 >
                                                    {message.content}
-                                                   {/* Chip reactions duoi goc bubble */}
+                                                   {/* Reaction chips under the bubble corner */}
                                                    {!!message.reactions
                                                       ?.length && (
                                                       <span
@@ -499,7 +499,7 @@ const Messenger: React.FC = () => {
                                                       </span>
                                                    )}
                                                 </div>
-                                                {/* Nut react hien khi hover */}
+                                                {/* React button shown on hover */}
                                                 <Popover
                                                    trigger="click"
                                                    placement="top"
@@ -544,7 +544,7 @@ const Messenger: React.FC = () => {
                               )}
                            </div>
 
-                           {/* O nhap */}
+                           {/* Composer */}
                            <div className="flex gap-2 items-end px-4 py-3 bg-white border-t border-gray-100">
                               <Popover
                                  open={emojiOpen}

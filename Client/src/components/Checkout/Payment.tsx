@@ -6,7 +6,7 @@ import { apiBooking, apiCreateStripePayment } from '@/apis';
 import { Button, Flex, Radio, Spin } from 'antd';
 import icons from '@/utils/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 const { IoIosArrowBack, FaLock } = icons;
 
 interface PaymentProps {
@@ -32,7 +32,7 @@ const Payment: React.FC<PaymentProps> = ({
    const [clientSecret, setClientSecret] = useState('');
    const queryClient = useQueryClient();
    const stripePromise = loadStripe(
-      import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
+      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
    );
    const [selectTypePayment, setSelectTypePayment] = useState('before');
    const navigate = useNavigate();

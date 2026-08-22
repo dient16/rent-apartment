@@ -9,13 +9,13 @@ const ButtonSignInGoogle: React.FC = () => {
 
    const handleLoginGoogle = async () => {
       window.open(
-         `${import.meta.env.VITE_SERVER_URL}/api/auth/google`,
+         `${process.env.NEXT_PUBLIC_SERVER_URL}/api/auth/google`,
          '_self',
       );
    };
    const handleLoginFaceBook = async () => {
       window.open(
-         `${import.meta.env.VITE_SERVER_URL}/api/auth/facebook`,
+         `${process.env.NEXT_PUBLIC_SERVER_URL}/api/auth/facebook`,
          '_self',
       );
    };

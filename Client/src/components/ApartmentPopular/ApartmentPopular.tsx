@@ -4,7 +4,7 @@ import { Carousel, Skeleton, Tooltip } from 'antd';
 import icons from '@/utils/icons';
 import { apiGetApartmentPopular } from '@/apis';
 import FavoriteButton from '@/components/FavoriteButton/FavoriteButton';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import moment from 'moment';
 const { MdOutlineKeyboardArrowRight } = icons;
 

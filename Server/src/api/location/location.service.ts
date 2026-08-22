@@ -17,7 +17,7 @@ interface Suggestion {
 
 const cache = new Map<string, { data: Suggestion[]; expires: number }>();
 
-/** GET JSON qua https thuan (Node 16 chua co fetch) */
+/** GET JSON over plain node https */
 const fetchJson = (url: string): Promise<any> =>
   new Promise((resolve, reject) => {
     https
@@ -60,7 +60,7 @@ const toSuggestion = (place: any): Suggestion => {
   return {
     label,
     description: rest.join(', '),
-    // Gia tri ngan gon dua vao o search: "Ten, Tinh/Thanh"
+    // Compact value shown in the search box: "Name, Province"
     value: [label, cityOrProvince].filter(Boolean).filter((v, i, arr) => arr.indexOf(v) === i).join(', '),
   };
 };

@@ -1,11 +1,11 @@
 import { message } from 'antd';
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
-const BASE_URL = `${import.meta.env.VITE_SERVER_URL}/api`;
+const BASE_URL = `${process.env.NEXT_PUBLIC_SERVER_URL}/api`;
 const ACCESS_TOKEN_KEY = 'ACCESS_TOKEN';
 const REFRESH_URL = '/auth/refresh-token';
 
-/** Su kien phat ra khi refresh that bai de AuthContext dang xuat nguoi dung. */
+/** Emitted when refresh fails so AuthContext can sign the user out. */
 export const AUTH_SESSION_EXPIRED_EVENT = 'auth:session-expired';
 
 export const getAccessToken = (): string | null => {
@@ -39,13 +39,13 @@ instance.interceptors.request.use((config) => {
    return config;
 });
 
-// Single-flight: moi request 401 den trong luc dang refresh se cung cho
-// chung mot promise nay, refresh xong thi tat ca cung retry.
+// Single-flight: 401s arriving while a refresh is in flight all await
+// this same promise, then retry together once it resolves.
 let refreshPromise: Promise<string> | null = null;
 
 const refreshAccessToken = (): Promise<string> => {
    if (!refreshPromise) {
-      // Dung axios goc (khong interceptor) de tranh vong lap 401 -> refresh -> 401...
+      // Use bare axios (no interceptors) to avoid a 401 -> refresh -> 401 loop
       refreshPromise = axios
          .post(`${BASE_URL}${REFRESH_URL}`, null, { withCredentials: true })
          .then((res) => {
@@ -57,7 +57,7 @@ const refreshAccessToken = (): Promise<string> => {
             return newToken;
          })
          .finally(() => {
-            // Refresh xong (thanh cong hay that bai) thi mo lai cho lan sau
+            // Reset after settling (success or failure) so the next 401 can refresh again
             refreshPromise = null;
          });
    }

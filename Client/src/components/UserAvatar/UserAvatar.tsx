@@ -7,7 +7,7 @@ interface UserAvatarProps extends Omit<AvatarProps, 'src'> {
    name?: string | null;
 }
 
-/** Bang mau nen cho avatar chu cai dau — chon theo hash ten de moi user 1 mau on dinh */
+/** Background palette for initial avatars — hashed from the name so each user keeps one color */
 const PALETTE = [
    '#3b82f6', // blue
    '#8b5cf6', // violet
@@ -28,8 +28,8 @@ const colorFor = (name: string) => {
 };
 
 /**
- * Avatar dung chung: co anh thi hien anh; khong co anh / anh loi
- * -> hien chu cai dau tren nen mau (khong bao gio trong tron).
+ * Shared avatar: shows the photo when present; missing/broken photo
+ * -> initial on a colored background (never an empty circle).
  */
 const UserAvatar: React.FC<UserAvatarProps> = ({
    src,

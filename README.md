@@ -2,8 +2,17 @@
 
 A full-stack apartment & homestay booking platform — search stays with full-text/fuzzy matching, book rooms with daily pricing, pay with Stripe, and manage your own rental listings as a host.
 
+## Preview
+
+![Home — hero search bar and popular destinations](docs/screenshots/home.jpg)
+
+| Search & filters | Apartment detail | Messenger |
+|---|---|---|
+| ![Search results with filters](docs/screenshots/listing.jpg) | ![Apartment detail page](docs/screenshots/apartment-detail.jpg) | ![Built-in chat](docs/screenshots/messages.jpg) |
+
 ## Table of Contents
 
+- [Preview](#preview)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
@@ -30,7 +39,7 @@ A full-stack apartment & homestay booking platform — search stays with full-te
 
 | Layer | Technologies |
 |---|---|
-| **Client** | React 18, TypeScript, Vite, Ant Design, TailwindCSS, TanStack Query, React Hook Form, React Router, Axios |
+| **Client** | Next.js 13 (App Router), React 18, TypeScript, Ant Design, TailwindCSS, TanStack Query, React Hook Form, Axios |
 | **Server** | Node.js, Express, TypeScript, Mongoose (MongoDB Atlas), Zod, Passport (Google/Facebook), JWT, Nodemailer, Stripe, Pino |
 | **Search** | Elasticsearch 8 (Docker), custom `vi_folding` analyzer |
 | **Tooling** | tsx, tsup, ESLint + Prettier, Vitest, Docker Compose |
@@ -39,18 +48,15 @@ A full-stack apartment & homestay booking platform — search stays with full-te
 
 ```
 Rent_Apartment/
-├── client/                     # React SPA (Vite)
+├── client/                     # Next.js 13 App Router
 │   └── src/
+│       ├── app/                # App Router: layouts + route pages (CSR wrappers)
 │       ├── apis/               # Axios instance + API functions per domain
 │       ├── components/         # Reusable UI (Header, Search, FavoriteButton, ...)
 │       ├── contexts/           # Auth context (reducer + session handling)
 │       ├── hooks/
-│       ├── layouts/            # UserLayout, HostLayout
-│       ├── pages/
-│       │   ├── public/         # Home, Listing, ApartmentDetail, About, Contact, ...
-│       │   ├── user/           # MyBooking, MyFavorites, account settings, ...
-│       │   └── host/           # Dashboard, listings, calendar, ...
-│       ├── router/
+│       ├── lib/                # router-compat (react-router-like API on next/navigation)
+│       ├── views/              # Page-level components (public / user / host)
 │       └── utils/
 │
 └── server/                     # Express API
@@ -82,7 +88,7 @@ Rent_Apartment/
 
 ### Prerequisites
 
-- **Node.js** ≥ 18 (LTS recommended)
+- **Node.js** ≥ 20 — developed on Node 24 LTS (see `.nvmrc`)
 - **Docker Desktop** — for Elasticsearch
 - A **MongoDB** database (e.g. free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster)
 - Optional for full functionality: Gmail app password (emails), Stripe test keys (payments), Google/Facebook OAuth credentials
@@ -106,7 +112,7 @@ Create `.env` files from the provided examples and fill in your values:
 
 ```bash
 cp server/.env.example server/.env
-cp client/.env.example client/.env
+cp client/.env.example client/.env.local
 ```
 
 **Server** (`server/.env`) — key variables:
@@ -124,13 +130,13 @@ cp client/.env.example client/.env
 | `STRIPE_SECRET_KEY` | Stripe secret key (test mode) | `sk_test_...` |
 | `GOOGLE_*` / `FACEBOOK_*` | OAuth credentials | — |
 
-**Client** (`client/.env`):
+**Client** (`client/.env.local`):
 
 | Variable | Description |
 |---|---|
-| `VITE_SERVER_URL` | API base URL (`http://localhost:9009`) |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (`pk_test_...`) |
-| `VITE_API_MAP` | Map API key (optional) |
+| `NEXT_PUBLIC_SERVER_URL` | API base URL (`http://localhost:9009`) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (`pk_test_...`) |
+| `NEXT_PUBLIC_API_MAP` | Map API key (optional) |
 
 ### 3. Start Elasticsearch (Docker)
 
@@ -149,7 +155,7 @@ npm run es:reindex   # index existing apartments from MongoDB
 cd server && npm run dev
 
 # terminal 2 — client on http://localhost:8000
-cd client && npm run dev -- --port 8000
+cd client && npm run dev
 ```
 
 > The client **must** run on the port configured in `CORS_ORIGIN` (default `8000`), otherwise browser requests are blocked by CORS.
@@ -175,9 +181,9 @@ Open http://localhost:8000 🎉
 
 | Script | Description |
 |---|---|
-| `npm run dev` | Vite dev server |
-| `npm run build` | Typecheck + production build |
-| `npm run preview` | Preview the production build |
+| `npm run dev` | Next.js dev server (port 8000) |
+| `npm run build` | Next.js production build |
+| `npm run start` | Serve the production build (port 8000) |
 | `npm run lint` | ESLint |
 
 ## API Documentation

@@ -11,7 +11,7 @@ interface JwtPayload {
   isAdmin?: boolean;
 }
 
-/** Random token dung cho xac thuc email / reset password (khong phai JWT). */
+/** Random token for email verification / password reset (not a JWT). */
 export const generateToken = (): string => {
   return crypto.randomBytes(20).toString('hex');
 };

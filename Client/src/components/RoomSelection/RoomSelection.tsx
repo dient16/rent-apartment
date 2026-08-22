@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaBed, FaShower, FaSmokingBan, FaUsers } from 'react-icons/fa';
+import { FaBed, FaCheck, FaMinus, FaPlus, FaRulerCombined, FaUsers } from 'react-icons/fa';
 import { Modal } from 'antd';
 import { RoomInfo } from '@/components';
 
@@ -11,6 +11,8 @@ interface RoomOption {
    numberOfGuest: number;
    price: number;
    totalPrice: number;
+   bedType?: string;
+   amenities?: { name: string; icon: string }[];
    images: string[];
 }
 
@@ -23,6 +25,8 @@ interface RoomSelectionProps {
    }) => void;
    selectedCount: number;
 }
+
+const PERKS = ['Free cancellation before check-in', 'Pay at the property', 'Instant confirmation'];
 
 const RoomSelection: React.FC<RoomSelectionProps> = ({
    roomOption,
@@ -46,305 +50,166 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({
    };
 
    const increment = () => {
-      if (count < roomOption.quantity) {
-         handleCountChange(count + 1);
-      }
+      if (count < roomOption.quantity) handleCountChange(count + 1);
    };
-
    const decrement = () => {
-      if (count > 0) {
-         handleCountChange(count - 1);
-      }
+      if (count > 0) handleCountChange(count - 1);
    };
 
-   const showModal = () => {
-      setIsModalVisible(true);
-   };
-
-   const handleOk = () => {
-      setIsModalVisible(false);
-   };
-
-   const handleCancel = () => {
-      setIsModalVisible(false);
-   };
+   const isSelected = count > 0;
 
    return (
-      <div className="p-4 mb-4 bg-white rounded-2xl border shadow-lg">
-         <div className="flex flex-col lg:flex-row gap-5">
-            <div className="w-full lg:w-1/3 bg-white">
+      <div
+         className={`overflow-hidden bg-white rounded-2xl border transition-all ${
+            isSelected
+               ? 'border-blue-500 ring-1 ring-blue-500 shadow-lg shadow-blue-100'
+               : 'border-gray-200 shadow-sm hover:shadow-md'
+         }`}
+      >
+         <div className="flex flex-col md:flex-row">
+            {/* Photo */}
+            <div className="relative md:w-[280px] flex-shrink-0">
                <img
-                  alt="room"
+                  alt={roomOption.roomType}
                   src={roomOption.images[0]}
-                  className="w-full rounded-lg h-[200px] object-cover"
+                  className="w-full h-[200px] md:h-full object-cover"
                />
-               <div className="flex flex-col gap-2 p-4">
-                  <h3 className="text-2xl font-semibold">
+               <span className="flex absolute top-3 left-3 gap-1.5 items-center px-2.5 py-1 text-xs font-medium text-gray-800 bg-white/90 rounded-full backdrop-blur">
+                  <FaRulerCombined size={11} />
+                  {roomOption.size} m²
+               </span>
+               {isSelected && (
+                  <span className="flex absolute top-3 right-3 gap-1 items-center px-2.5 py-1 text-xs font-semibold text-white bg-blue-600 rounded-full">
+                     <FaCheck size={10} />
+                     {count} selected
+                  </span>
+               )}
+            </div>
+
+            {/* Info */}
+            <div className="flex flex-col flex-1 gap-3 p-5 min-w-0">
+               <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
                      {roomOption.roomType}
                   </h3>
-                  <div className="flex flex-wrap gap-3">
-                     <div className="flex gap-3 items-center">
-                        <FaBed />
-                        <span>{roomOption.size} m²</span>
-                     </div>
-                     <div className="flex gap-3 items-center">
-                        <FaSmokingBan />
-                        <span>Non-smoking</span>
-                     </div>
-                     <div className="flex gap-2 items-center">
-                        <FaShower />
-                        <span>Shower</span>
-                     </div>
-                  </div>
-                  <div
-                     className="text-blue-600 cursor-pointer"
-                     onClick={showModal}
-                  >
-                     View room details
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-sm text-gray-600">
+                     <span className="flex gap-1.5 items-center">
+                        <FaUsers size={13} className="text-gray-400" />
+                        Up to {roomOption.numberOfGuest} guest
+                        {roomOption.numberOfGuest > 1 ? 's' : ''}
+                     </span>
+                     {roomOption.bedType && (
+                        <span className="flex gap-1.5 items-center">
+                           <FaBed size={14} className="text-gray-400" />
+                           {roomOption.bedType}
+                        </span>
+                     )}
                   </div>
                </div>
+
+               {/* Amenity chips from real data */}
+               {!!roomOption.amenities?.length && (
+                  <div className="flex flex-wrap gap-1.5">
+                     {roomOption.amenities.slice(0, 5).map((amenity) => (
+                        <span
+                           key={amenity.name}
+                           className="px-2.5 py-1 text-xs text-gray-600 bg-gray-50 rounded-full border border-gray-100"
+                        >
+                           {amenity.name}
+                        </span>
+                     ))}
+                     {roomOption.amenities.length > 5 && (
+                        <span className="px-2.5 py-1 text-xs text-gray-400">
+                           +{roomOption.amenities.length - 5} more
+                        </span>
+                     )}
+                  </div>
+               )}
+
+               <ul className="space-y-1">
+                  {PERKS.map((perk) => (
+                     <li
+                        key={perk}
+                        className="flex gap-2 items-center text-sm text-green-700"
+                     >
+                        <FaCheck size={10} className="flex-shrink-0" />
+                        {perk}
+                     </li>
+                  ))}
+               </ul>
+
+               <button
+                  type="button"
+                  onClick={() => setIsModalVisible(true)}
+                  className="self-start text-sm font-medium text-blue-600 cursor-pointer hover:underline"
+               >
+                  View room details
+               </button>
             </div>
-            <div className="w-full lg:w-2/3">
-               <div className="hidden lg:block">
-                  <table className="min-w-full bg-white border border-gray-200">
-                     <thead className="bg-gray-100">
-                        <tr>
-                           <th className="py-2 px-4 text-md font-semibold text-left border-r border-b border-gray-200">
-                              Room Options
-                           </th>
-                           <th className="py-2 px-4 text-md font-semibold text-left border-r border-b border-gray-200">
-                              Guests
-                           </th>
-                           <th className="py-2 px-4 text-md font-semibold text-left border-r border-b border-gray-200">
-                              Price/night
-                           </th>
-                           <th className="py-2 px-4 text-md font-semibold text-left border-b border-gray-200">
-                              Quantity
-                           </th>
-                        </tr>
-                     </thead>
-                     <tbody>
-                        <tr>
-                           <td className="py-2 px-4 border-r border-gray-200">
-                              <div className="flex flex-col gap-1 text-sm">
-                                 <h5 className="font-medium">
-                                    {roomOption.roomType}
-                                 </h5>
-                                 <p>Breakfast not included</p>
-                                 <p>
-                                    Free cancellation before June 23, 2024,
-                                    12:59
-                                 </p>
-                                 <p className="text-blue-600">
-                                    Pay at the hotel
-                                 </p>
-                                 <div className="flex items-center">
-                                    <FaBed className="mr-2" />
-                                    <span>2 Double Beds</span>
-                                 </div>
-                              </div>
-                           </td>
-                           <td className="py-2 px-4 border-r border-gray-200">
-                              <div className="flex items-center">
-                                 <FaUsers />
-                                 <span className="ml-2">
-                                    {roomOption.numberOfGuest}
-                                 </span>
-                              </div>
-                           </td>
-                           <td className="py-2 px-4 border-r border-gray-200">
-                              <div className="flex flex-col items-center">
-                                 <p className="text-md font-bold">
-                                    {roomOption.totalPrice.toLocaleString()} VND
-                                 </p>
-                                 <p className="text-gray-500 text-sm">
-                                    Including taxes and fees
-                                 </p>
-                              </div>
-                           </td>
-                           <td className="py-2 px-4">
-                              <div className="py-2 px-3 bg-white border border-gray-200 rounded-lg">
-                                 <div className="w-full flex justify-between items-center gap-x-3">
-                                    <div className="flex justify-end items-center gap-x-1.5">
-                                       <button
-                                          type="button"
-                                          className={`size-8 inline-flex justify-center items-center gap-x-2 text-base font-medium rounded-full border bg-white text-gray-800 shadow-sm hover:bg-gray-50 ${
-                                             count === 0
-                                                ? 'opacity-50 cursor-not-allowed'
-                                                : ''
-                                          }`}
-                                          onClick={decrement}
-                                          disabled={count === 0}
-                                       >
-                                          <svg
-                                             className="flex-shrink-0 size-5"
-                                             xmlns="http://www.w3.org/2000/svg"
-                                             width="28"
-                                             height="28"
-                                             viewBox="0 0 24 24"
-                                             fill="none"
-                                             stroke="currentColor"
-                                             strokeWidth="2"
-                                             strokeLinecap="round"
-                                             strokeLinejoin="round"
-                                          >
-                                             <path d="M5 12h14"></path>
-                                          </svg>
-                                       </button>
-                                       <input
-                                          type="text"
-                                          className="w-12 text-xl text-center border-t border-b outline-none"
-                                          value={count}
-                                          readOnly
-                                       />
-                                       <button
-                                          type="button"
-                                          className={`size-8 inline-flex justify-center items-center gap-x-2 text-base font-medium rounded-full border bg-white text-gray-800 shadow-sm hover:bg-gray-50 ${
-                                             count === roomOption.quantity
-                                                ? 'opacity-50 cursor-not-allowed'
-                                                : ''
-                                          }`}
-                                          onClick={increment}
-                                          disabled={
-                                             count === roomOption.quantity
-                                          }
-                                       >
-                                          <svg
-                                             className="flex-shrink-0 size-5"
-                                             xmlns="http://www.w3.org/2000/svg"
-                                             width="28"
-                                             height="28"
-                                             viewBox="0 0 24 24"
-                                             fill="none"
-                                             stroke="currentColor"
-                                             strokeWidth="2"
-                                             strokeLinecap="round"
-                                             strokeLinejoin="round"
-                                          >
-                                             <path d="M5 12h14"></path>
-                                             <path d="M12 5v14"></path>
-                                          </svg>
-                                       </button>
-                                    </div>
-                                 </div>
-                              </div>
-                              <p className="text-red-500">
-                                 Only {roomOption.quantity} rooms left
-                              </p>
-                           </td>
-                        </tr>
-                     </tbody>
-                  </table>
+
+            {/* Price + stepper */}
+            <div className="flex flex-col gap-3 justify-center items-stretch p-5 md:w-[220px] flex-shrink-0 bg-gray-50/70 border-t md:border-t-0 md:border-l border-gray-100">
+               <div className="text-right">
+                  <p className="text-xl font-bold text-gray-900">
+                     {roomOption.totalPrice.toLocaleString()}{' '}
+                     <span className="text-sm font-medium text-gray-500">VND</span>
+                  </p>
+                  <p className="text-xs text-gray-400">
+                     per night · taxes included
+                  </p>
                </div>
-               <div className="block lg:hidden">
-                  <div className="flex flex-col gap-2 p-4">
-                     <div className="flex justify-between">
-                        <span>Guests:</span>
-                        <div className="flex items-center">
-                           <FaUsers />
-                           <span className="ml-2">
-                              {roomOption.numberOfGuest}
-                           </span>
-                        </div>
-                     </div>
-                     <div className="flex justify-between">
-                        <span>Price/night:</span>
-                        <span>{roomOption.price.toLocaleString()} VND</span>
-                     </div>
-                     <div className="flex justify-between">
-                        <span>Total Price:</span>
-                        <span>
-                           {roomOption.totalPrice.toLocaleString()} VND
-                        </span>
-                     </div>
-                     {/* <div className="flex justify-between">
-                        <span>Cancellation Policy:</span>
-                        <span>
-                           Free cancellation before June 23, 2024, 12:59
-                        </span>
-                     </div> */}
-                     <div className="flex justify-between">
-                        <span>Payment Method:</span>
-                        <span className="text-blue-600">Pay at the hotel</span>
-                     </div>
-                     <div className="flex justify-between">
-                        <span>Bed Type:</span>
-                        <span>1 Double Bed</span>
-                     </div>
-                     <div className="flex flex-col items-center mt-4">
-                        <div className="flex justify-between items-center gap-x-3 w-full max-w-[240px]">
-                           <button
-                              type="button"
-                              className={`size-8 inline-flex justify-center items-center gap-x-2 text-base font-medium rounded-full border bg-white text-gray-800 shadow-sm hover:bg-gray-50 ${
-                                 count === 0
-                                    ? 'opacity-50 cursor-not-allowed'
-                                    : ''
-                              }`}
-                              onClick={decrement}
-                              disabled={count === 0}
-                           >
-                              <svg
-                                 className="flex-shrink-0 size-5"
-                                 xmlns="http://www.w3.org/2000/svg"
-                                 width="28"
-                                 height="28"
-                                 viewBox="0 0 24 24"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 strokeWidth="2"
-                                 strokeLinecap="round"
-                                 strokeLinejoin="round"
-                              >
-                                 <path d="M5 12h14"></path>
-                              </svg>
-                           </button>
-                           <input
-                              type="text"
-                              className="w-12 text-xl text-center border-t border-b outline-none"
-                              value={count}
-                              readOnly
-                           />
-                           <button
-                              type="button"
-                              className={`size-8 inline-flex justify-center items-center gap-x-2 text-base font-medium rounded-full border bg-white text-gray-800 shadow-sm hover:bg-gray-50 ${
-                                 count === roomOption.quantity
-                                    ? 'opacity-50 cursor-not-allowed'
-                                    : ''
-                              }`}
-                              onClick={increment}
-                              disabled={count === roomOption.quantity}
-                           >
-                              <svg
-                                 className="flex-shrink-0 size-5"
-                                 xmlns="http://www.w3.org/2000/svg"
-                                 width="28"
-                                 height="28"
-                                 viewBox="0 0 24 24"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 strokeWidth="2"
-                                 strokeLinecap="round"
-                                 strokeLinejoin="round"
-                              >
-                                 <path d="M5 12h14"></path>
-                                 <path d="M12 5v14"></path>
-                              </svg>
-                           </button>
-                        </div>
-                        <p className="text-red-500 mt-2">
-                           Only {roomOption.quantity} rooms left
-                        </p>
-                     </div>
-                  </div>
+
+               <div className="flex justify-between items-center px-2 py-1.5 bg-white rounded-xl border border-gray-200">
+                  <button
+                     type="button"
+                     onClick={decrement}
+                     disabled={count === 0}
+                     className={`flex justify-center items-center w-8 h-8 rounded-full border transition-colors ${
+                        count === 0
+                           ? 'text-gray-300 border-gray-100 cursor-not-allowed'
+                           : 'text-gray-700 border-gray-200 cursor-pointer hover:bg-gray-50 hover:border-gray-300'
+                     }`}
+                  >
+                     <FaMinus size={11} />
+                  </button>
+                  <span className="w-10 text-lg font-semibold text-center text-gray-900 select-none">
+                     {count}
+                  </span>
+                  <button
+                     type="button"
+                     onClick={increment}
+                     disabled={count === roomOption.quantity}
+                     className={`flex justify-center items-center w-8 h-8 rounded-full border transition-colors ${
+                        count === roomOption.quantity
+                           ? 'text-gray-300 border-gray-100 cursor-not-allowed'
+                           : 'text-blue-600 border-blue-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300'
+                     }`}
+                  >
+                     <FaPlus size={11} />
+                  </button>
                </div>
+
+               <p
+                  className={`text-xs text-center ${
+                     roomOption.quantity <= 3
+                        ? 'font-medium text-red-500'
+                        : 'text-gray-400'
+                  }`}
+               >
+                  {roomOption.quantity <= 3
+                     ? `Only ${roomOption.quantity} room${roomOption.quantity > 1 ? 's' : ''} left!`
+                     : `${roomOption.quantity} rooms available`}
+               </p>
             </div>
          </div>
+
          <Modal
             title="Room Details"
             open={isModalVisible}
-            onOk={handleOk}
-            onCancel={handleCancel}
-            width="50%"
+            onOk={() => setIsModalVisible(false)}
+            onCancel={() => setIsModalVisible(false)}
+            width={1100}
+            style={{ maxWidth: '92vw' }}
             footer={null}
             styles={{
                mask: {

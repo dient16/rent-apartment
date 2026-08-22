@@ -11,6 +11,7 @@ import { messageRouter } from '@/api/message/message.router';
 import { notificationRouter } from '@/api/notification/notification.router';
 import { paymentRouter } from '@/api/payment/payment.router';
 import { pricingRouter } from '@/api/pricing/pricing.router';
+import { reviewRouter } from '@/api/review/review.router';
 import { roomRouter } from '@/api/room/room.router';
 import { userRouter } from '@/api/user/user.router';
 
@@ -26,6 +27,7 @@ const initRoutes = (app: Application) => {
   app.use('/api/location', locationRouter);
   app.use('/api/message', messageRouter);
   app.use('/api/notification', notificationRouter);
+  app.use('/api/review', reviewRouter);
   app.use('/api/apartment', apartmentRouter);
   app.use('/api/booking', bookingRouter);
   app.use('/api/payment', paymentRouter);

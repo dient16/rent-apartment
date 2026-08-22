@@ -22,7 +22,7 @@ const AMENITY_OPTIONS = [
    'Iron',
 ];
 
-/** Bo loc that su gui len API: gia / diem danh gia / loai giuong */
+/** Filters actually sent to the API: price / rating / bed type */
 const FilterSection: React.FC = () => {
    const { control, watch, setValue } = useFormContext();
 
@@ -47,7 +47,7 @@ const FilterSection: React.FC = () => {
             </Button>
          </div>
 
-         {/* Gia moi dem */}
+         {/* Price per night */}
          <div className="py-4 border-b border-gray-100">
             <h3 className="mb-1 text-sm font-semibold text-gray-700">
                Budget per night
@@ -75,7 +75,7 @@ const FilterSection: React.FC = () => {
             />
          </div>
 
-         {/* Diem danh gia */}
+         {/* Guest rating */}
          <div className="py-4 border-b border-gray-100">
             <h3 className="mb-3 text-sm font-semibold text-gray-700">
                Guest rating

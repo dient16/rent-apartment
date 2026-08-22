@@ -34,7 +34,7 @@ interface StatusBadgeProps {
    size?: 'sm' | 'md';
 }
 
-/** Badge trang thai booking dung chung cho user & host */
+/** Booking status badge shared by user & host */
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'sm' }) => {
    const style =
       BOOKING_STATUS_STYLES[(status as BookingStatus) || 'pending'] ??

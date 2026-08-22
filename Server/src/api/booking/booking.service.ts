@@ -99,8 +99,8 @@ const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceRes
       );
     }
 
-    // $push atomic: khong re-validate cac field cu cua document (data cu co the
-    // thieu field moi required nhu bedType) va tranh race khi 2 booking cung luc
+    // Atomic $push: skips re-validating existing fields (legacy docs may lack newly
+    // required ones like bedType) and avoids races between concurrent bookings
     const [updateError] = await to(
       RoomModel.findByIdAndUpdate(roomId, {
         $push: { unavailableDateRanges: { startDay: checkInTime, endDay: checkOutTime } },
@@ -160,7 +160,7 @@ const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceRes
     return new ServiceResponse(ResponseStatus.Failed, 'Error sending email', null, StatusCodes.INTERNAL_SERVER_ERROR);
   }
 
-  // Bao cho host(s) so huu apartment co booking moi (khong chan flow neu loi)
+  // Notify the owning host(s) about the new booking (never blocks the flow)
   (async () => {
     const roomIds = (newBooking as any).rooms.map((room: any) => room.roomId);
     const bookedRooms = await RoomModel.find({ _id: { $in: roomIds } })
@@ -359,7 +359,7 @@ const confirmBooking = async (bookingId: string): Promise<ServiceResponse<IBooki
     return new ServiceResponse(ResponseStatus.Failed, 'Error sending email', null, StatusCodes.INTERNAL_SERVER_ERROR);
   }
 
-  // Bao cho khach (neu email dat phong co tai khoan)
+  // Notify the guest (if the booking email has an account)
   (async () => {
     const guest = await User.findOne({ email: booking.email }).select('_id').lean();
     if (guest) {
@@ -387,7 +387,7 @@ const cancelBooking = async (bookingId: string, userId: string): Promise<Service
     return new ServiceResponse(ResponseStatus.Failed, 'Booking not found', null, StatusCodes.NOT_FOUND);
   }
 
-  // Chu booking (dat bang email nay) hoac host so huu apartment chua phong nay duoc huy
+  // Only the booking owner (this email) or the host owning the apartment may cancel
   if (booking.email !== user.email) {
     const roomIds = (booking as any).rooms.map((room: any) => room.roomId);
     const [findRoomsError, bookedRooms] = await to(
@@ -438,7 +438,7 @@ const cancelBooking = async (bookingId: string, userId: string): Promise<Service
     );
   }
 
-  // Khach huy -> bao host; host tu choi -> bao khach (neu co tai khoan)
+  // Guest cancels -> notify host; host declines -> notify guest (if they have an account)
   (async () => {
     const dates = `${new Date(booking.checkInTime).toLocaleDateString('en-GB')} - ${new Date(booking.checkOutTime).toLocaleDateString('en-GB')}`;
     if (canceledByGuest) {

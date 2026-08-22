@@ -8,8 +8,8 @@ import { authService } from './auth.service';
 const { CLIENT_URL, NODE_ENV } = env;
 
 const REFRESH_COOKIE_NAME = 'refreshToken';
-// Production: FE/BE thuong khac domain nen can SameSite=None (bat buoc di kem Secure)
-// de trinh duyet chiu gui cookie refresh cross-site. Dev cung localhost thi strict duoc.
+// Production: FE/BE usually live on different domains, so SameSite=None (requires Secure)
+// is needed for the browser to send the refresh cookie cross-site. Same-host dev can stay strict.
 const refreshCookieOptions: CookieOptions = {
   httpOnly: true,
   secure: NODE_ENV === 'production',
@@ -17,7 +17,7 @@ const refreshCookieOptions: CookieOptions = {
   path: '/',
 };
 
-/** Set refresh token vao httpOnly cookie va xoa no khoi body tra ve client. */
+/** Put the refresh token in an httpOnly cookie and strip it from the response body. */
 const attachRefreshCookie = (res: Response, data: { refreshToken?: string }) => {
   if (data.refreshToken) {
     res.cookie(REFRESH_COOKIE_NAME, data.refreshToken, {
@@ -92,7 +92,7 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
     const { refreshToken } = req.cookies;
     const serviceResponse = await authService.refreshAccessToken(refreshToken);
 
-    // Refresh that bai => xoa cookie de client khong retry vo ich voi token hong
+    // Refresh failed => clear the cookie so the client stops retrying a broken token
     if (!serviceResponse.success) {
       res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions);
     }

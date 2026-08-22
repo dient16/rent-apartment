@@ -55,13 +55,19 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       activeTab: 'signin',
    });
 
+   // Only show the fullscreen spinner after mount: on the server the query is
+   // disabled (isLoading=false) while a logged-in client starts loading on the
+   // first render — gating on `mounted` keeps both HTML trees identical.
+   const [mounted, setMounted] = useState(false);
+   useEffect(() => setMounted(true), []);
+
    const { data, isError, isLoading } = useQuery({
       queryKey: ['currentUser'],
       queryFn: apiGetCurrentUser,
-      enabled: !!localStorage.getItem('ACCESS_TOKEN'),
+      enabled: typeof window !== 'undefined' && !!localStorage.getItem('ACCESS_TOKEN'),
    });
-   // axiosConfig lo viec refresh access token (single-flight); khi refresh
-   // that bai no phat su kien nay de dang xuat va bao nguoi dung.
+   // axiosConfig handles access-token refresh (single-flight); when refresh
+   // fails it emits this event so we sign the user out.
    useEffect(() => {
       const onSessionExpired = () => {
          dispatch(signOut());
@@ -101,7 +107,11 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       <AuthContext.Provider
          value={{ ...state, dispatch, authModal, setAuthModal }}
       >
-         <Spin spinning={isLoading} fullscreen={isLoading} size="large">
+         <Spin
+            spinning={mounted && isLoading}
+            fullscreen={mounted && isLoading}
+            size="large"
+         >
             {children}
          </Spin>
       </AuthContext.Provider>

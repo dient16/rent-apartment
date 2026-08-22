@@ -43,7 +43,7 @@ roomMongooseSchema.methods.isAvailable = function (date: Date): boolean {
     (range: { startDay: Date; endDay: Date }) => date >= range.startDay && date <= range.endDay
   );
 };
-// Phuc vu search: loc theo gia/so khach/so phong truoc khi group theo apartment
+// For search: filter by price/guests/quantity before grouping by apartment
 roomMongooseSchema.index({ price: 1, numberOfGuest: 1, quantity: 1 });
 roomMongooseSchema.plugin(aggregatePaginate);
 

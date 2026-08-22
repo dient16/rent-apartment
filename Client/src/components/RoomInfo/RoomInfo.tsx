@@ -1,6 +1,6 @@
 import React from 'react';
 import { Carousel } from 'antd';
-import { FaUsers, FaRulerCombined, FaMoneyBillWave } from 'react-icons/fa';
+import { FaBed, FaCheck, FaRulerCombined, FaUsers } from 'react-icons/fa';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 
 interface RoomOption {
@@ -11,6 +11,8 @@ interface RoomOption {
    numberOfGuest: number;
    price: number;
    totalPrice: number;
+   bedType?: string;
+   amenities?: { name: string; icon: string }[];
    images: string[];
 }
 
@@ -19,70 +21,94 @@ interface RoomInfoProps {
 }
 
 const RoomInfo: React.FC<RoomInfoProps> = ({ roomInfo }) => {
-   const { roomType, size, numberOfGuest, price, images } = roomInfo;
+   const { roomType, size, numberOfGuest, bedType, amenities, totalPrice, quantity, images } =
+      roomInfo;
+
+   const facts = [
+      { icon: <FaRulerCombined size={14} />, label: `${size} m²` },
+      { icon: <FaUsers size={14} />, label: `Up to ${numberOfGuest} guest${numberOfGuest > 1 ? 's' : ''}` },
+      ...(bedType ? [{ icon: <FaBed size={15} />, label: bedType }] : []),
+   ];
 
    return (
-      <div className="flex bg-white overflow-hidden">
-         <div className="w-2/3">
+      <div className="flex flex-col gap-6 bg-white lg:flex-row font-main">
+         {/* Gallery */}
+         <div className="lg:w-3/5 w-full">
             <Carousel
                autoplay
-               arrows={true}
+               arrows
                swipeToSlide
                draggable
                prevArrow={<LeftOutlined />}
                nextArrow={<RightOutlined />}
-               className="rounded-md overflow-hidden"
+               className="overflow-hidden rounded-2xl"
             >
                {images.map((image, index) => (
                   <img
                      key={index}
                      src={image}
-                     alt={`Slide ${index}`}
-                     className="w-full h-[420px] object-cover"
+                     alt={`${roomType} photo ${index + 1}`}
+                     className="w-full h-[340px] lg:h-[520px] object-cover"
                   />
                ))}
             </Carousel>
          </div>
-         <div className="w-1/3 p-4 flex flex-col justify-between">
-            <div>
-               <h2 className="text-lg font-semibold mb-2">{roomType}</h2>
-               <div className="flex items-center mb-4">
-                  <FaRulerCombined className="text-gray-500 mr-2" />
-                  <p className="text-gray-500 text-sm mr-4">{size} m²</p>
-                  <FaUsers className="text-gray-500 mr-2" />
-                  <p className="text-gray-500 text-sm">
-                     {numberOfGuest} guests
-                  </p>
-               </div>
-               <h3 className="text-sm font-medium mb-2">
-                  Preferred Room Features:
-               </h3>
-               <ul className="list-disc list-inside text-sm text-gray-700 mb-4">
-                  <li>Standing shower</li>
-                  <li>Balcony/Terrace</li>
-                  <li>Sitting area</li>
-                  <li>Air conditioning</li>
-               </ul>
-               <h3 className="text-sm font-medium mb-2">Basic Amenities:</h3>
-               <ul className="list-disc list-inside text-sm text-gray-700 mb-4">
-                  <li>Non-smoking</li>
-                  <li>Sitting area</li>
-               </ul>
-               <h3 className="text-sm font-medium mb-2">Room Amenities:</h3>
-               <ul className="list-disc list-inside text-sm text-gray-700 mb-4">
-                  <li>Air conditioning</li>
-                  <li>Blackout curtains</li>
-                  <li>Mini bar</li>
-                  <li>Complimentary bottled water</li>
-               </ul>
+
+         {/* Info */}
+         <div className="flex flex-col lg:w-2/5 w-full min-w-0">
+            <h2 className="text-2xl font-semibold text-gray-900">{roomType}</h2>
+
+            <div className="flex flex-wrap gap-2 mt-3">
+               {facts.map((fact) => (
+                  <span
+                     key={fact.label}
+                     className="flex gap-1.5 items-center px-3 py-1.5 text-sm text-gray-700 bg-gray-50 rounded-full border border-gray-100"
+                  >
+                     <span className="text-gray-400">{fact.icon}</span>
+                     {fact.label}
+                  </span>
+               ))}
             </div>
-            <div>
-               <div className="flex items-center mb-4">
-                  <FaMoneyBillWave className="text-red-500 mr-2" />
-                  <p className="text-red-500 text-lg font-semibold">
-                     Starting from: {price.toLocaleString()} VND / night
-                  </p>
+
+            {!!amenities?.length && (
+               <div className="mt-5">
+                  <h3 className="mb-2 text-sm font-semibold text-gray-900">
+                     Room amenities
+                  </h3>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                     {amenities.map((amenity) => (
+                        <div
+                           key={amenity.name}
+                           className="flex gap-2 items-center text-sm text-gray-600"
+                        >
+                           <FaCheck size={10} className="flex-shrink-0 text-green-600" />
+                           <span className="truncate">{amenity.name}</span>
+                        </div>
+                     ))}
+                  </div>
                </div>
+            )}
+
+            <div className="flex justify-between items-end p-4 mt-auto bg-blue-50/60 rounded-2xl border border-blue-100 lg:mt-6 mt-6">
+               <div>
+                  <p className="text-xs text-gray-500">From</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                     {totalPrice.toLocaleString()}{' '}
+                     <span className="text-sm font-medium text-gray-500">
+                        VND / night
+                     </span>
+                  </p>
+                  <p className="text-xs text-gray-400">Taxes &amp; fees included</p>
+               </div>
+               <span
+                  className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+                     quantity <= 3
+                        ? 'text-red-600 bg-red-50'
+                        : 'text-green-700 bg-green-50'
+                  }`}
+               >
+                  {quantity <= 3 ? `Only ${quantity} left` : `${quantity} available`}
+               </span>
             </div>
          </div>
       </div>

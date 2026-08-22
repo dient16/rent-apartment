@@ -3,7 +3,6 @@ import { Button, Tooltip, Drawer } from 'antd';
 import { useFormContext } from 'react-hook-form';
 import { PiUserThin } from 'react-icons/pi';
 import { FaChevronUp } from 'react-icons/fa';
-import { FaArrowRight } from 'react-icons/fa';
 import moment from 'moment';
 
 interface RoomValue {
@@ -75,79 +74,99 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
    }, [selectedRooms, apartment]);
    return (
       <>
-         <div className="hidden xl:block sticky p-6 mt-5 rounded-lg shadow min-w-[370px] shadow-gray-400 top-[140px]">
-            <div className="flex flex-col gap-3 justify-center items-center w-full">
-               <div className="text-xl font-medium">
-                  <span>{totalAmountPerNight.toLocaleString()} VND</span>
-                  <span className="text-base font-light">/ night</span>
+         <div className="hidden xl:block sticky p-6 mt-5 bg-white rounded-2xl border border-gray-100 shadow-lg shadow-gray-200/70 min-w-[370px] top-[140px] font-main">
+            {/* Price headline */}
+            <div className="flex gap-1 items-baseline">
+               <span className="text-2xl font-bold text-gray-900">
+                  {totalAmountPerNight.toLocaleString()}
+               </span>
+               <span className="text-sm font-medium text-gray-500">
+                  VND / night
+               </span>
+            </div>
+
+            {/* Dates + guests */}
+            <div className="mt-4 rounded-xl border border-gray-200 divide-y divide-gray-200 overflow-hidden">
+               <div className="grid grid-cols-2 divide-x divide-gray-200">
+                  <Tooltip title="Check-in date">
+                     <div className="px-4 py-2.5 cursor-default">
+                        <p className="text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
+                           Check-in
+                        </p>
+                        <p className="text-sm font-medium text-gray-900">
+                           {moment(startDate).format('DD MMM YYYY')}
+                        </p>
+                     </div>
+                  </Tooltip>
+                  <Tooltip title="Check-out date">
+                     <div className="px-4 py-2.5 cursor-default">
+                        <p className="text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
+                           Check-out
+                        </p>
+                        <p className="text-sm font-medium text-gray-900">
+                           {moment(endDate).format('DD MMM YYYY')}
+                        </p>
+                     </div>
+                  </Tooltip>
                </div>
-               <div className="flex flex-col justify-center w-full">
-                  <div className="flex items-center justify-center w-full py-3 rounded-t-lg cursor-pointer font-main border border-gray-300">
-                     <Tooltip title="Check-in Date">
-                        <span className="mx-2">
-                           {moment(startDate).format('DD-MM-YYYY')}
-                        </span>
-                     </Tooltip>
-                     <FaArrowRight className="mx-2" />
-                     <Tooltip title="Check-out Date">
-                        <span className="mx-2">
-                           {moment(endDate).format('DD-MM-YYYY')}
-                        </span>
-                     </Tooltip>
-                  </div>
-                  <div className="flex gap-1 justify-center items-center w-full font-normal bg-white border rounded-b-lg border-t-0 border-gray-300 cursor-default select-none font-main h-[48px]">
-                     <PiUserThin size={25} />
-                     <span className="">{`${numberOfGuest} adult · ${selectedRooms.reduce(
+               <div className="flex gap-2 items-center px-4 py-2.5 cursor-default select-none">
+                  <PiUserThin size={20} className="text-gray-500" />
+                  <span className="text-sm text-gray-700">
+                     {`${numberOfGuest} adult · ${selectedRooms.reduce(
                         (acc, room) => acc + room.count,
                         0,
-                     )} rooms`}</span>
-                  </div>
-                  <Button
-                     className="mt-3 bg-blue-500 rounded-lg h-[38px] font-main"
-                     htmlType="submit"
-                     type="primary"
-                     size="large"
-                     disabled={!isValid}
-                  >
-                     Booking now
-                  </Button>
+                     )} room${selectedRooms.reduce((acc, room) => acc + room.count, 0) > 1 ? 's' : ''} · ${numberOfDays} night${numberOfDays > 1 ? 's' : ''}`}
+                  </span>
                </div>
-               <div className="flex flex-col gap-3 w-full">
-                  {roomCosts.map((room) => (
-                     <div
-                        key={room!._id}
-                        className="flex justify-between items-center mt-1 w-full font-light"
-                     >
-                        <span>
-                           {room!.price.toLocaleString()} VND x {room!.count}{' '}
-                           rooms
-                        </span>
-                        <span>{room!.totalCost.toLocaleString()} VND</span>
-                     </div>
-                  ))}
-                  <div className="flex justify-between items-center mt-2 w-full font-light">
-                     <div>
-                        <span>{totalAmountPerNight.toLocaleString()} VND</span>
-                        <span>{` x ${numberOfDays} night`}</span>
-                     </div>
+            </div>
+
+            <Button
+               className="mt-4 w-full !h-11 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl border-none"
+               htmlType="submit"
+               type="primary"
+               size="large"
+               disabled={!isValid}
+            >
+               Book now
+            </Button>
+            {!isValid && (
+               <p className="mt-2 text-xs text-center text-gray-400">
+                  Select a room to continue
+               </p>
+            )}
+
+            {/* Price breakdown */}
+            <div className="flex flex-col gap-2.5 mt-5 text-sm">
+               {roomCosts.map((room) => (
+                  <div
+                     key={room!._id}
+                     className="flex justify-between items-center text-gray-600"
+                  >
                      <span>
-                        {(totalAmountPerNight * numberOfDays).toLocaleString()}{' '}
-                        VND
+                        {room!.price.toLocaleString()} VND × {room!.count} room
+                        {room!.count > 1 ? 's' : ''}
                      </span>
+                     <span>{room!.totalCost.toLocaleString()} VND</span>
                   </div>
-                  <div className="flex justify-between items-center pt-5 w-full font-light border-t border-gray-500">
-                     <span>Tax fee 11%</span>
-                     <span>{`+ ${taxAmount.toLocaleString()} VND`}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-1 w-full font-light border-t">
-                     <span className="flex-1">
-                        Total amount,
-                        <br /> tax included
-                     </span>
-                     <span className="flex-2 text-right">
-                        {finalAmount.toLocaleString()} VND
-                     </span>
-                  </div>
+               ))}
+               <div className="flex justify-between items-center text-gray-600">
+                  <span>
+                     {totalAmountPerNight.toLocaleString()} VND × {numberOfDays}{' '}
+                     night{numberOfDays > 1 ? 's' : ''}
+                  </span>
+                  <span>
+                     {(totalAmountPerNight * numberOfDays).toLocaleString()} VND
+                  </span>
+               </div>
+               <div className="flex justify-between items-center text-gray-600">
+                  <span>Taxes &amp; fees (11%)</span>
+                  <span>+ {taxAmount.toLocaleString()} VND</span>
+               </div>
+               <div className="flex justify-between items-center pt-3 mt-1 border-t border-gray-100">
+                  <span className="font-semibold text-gray-900">Total</span>
+                  <span className="text-base font-bold text-blue-600">
+                     {finalAmount.toLocaleString()} VND
+                  </span>
                </div>
             </div>
          </div>

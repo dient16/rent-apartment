@@ -132,7 +132,25 @@ export const apartmentService = {
             images: { $first: '$images' },
             title: { $first: '$apartment.title' },
             location: { $first: '$apartment.location' },
-            avgRating: { $avg: '$reviews.score' },
+          },
+        },
+        {
+          $lookup: {
+            from: 'reviews',
+            localField: '_id',
+            foreignField: 'apartment',
+            as: 'reviewDocs',
+          },
+        },
+        {
+          $addFields: {
+            avgRating: {
+              $cond: {
+                if: { $gt: [{ $size: '$reviewDocs' }, 0] },
+                then: { $round: [{ $avg: '$reviewDocs.rating' }, 1] },
+                else: null,
+              },
+            },
           },
         },
         {
@@ -172,7 +190,7 @@ export const apartmentService = {
   },
   async getApartmentDetail(apartmentId: string, query: GetApartmentQuery['query']) {
     const { numberOfGuest, roomNumber, minPrice, maxPrice } = query;
-    // Khong truyen ngay => mac dinh hom nay -> ngay mai
+    // No dates provided => default to today -> tomorrow
     const startDate = query.startDate ? moment(query.startDate).toDate() : moment().startOf('day').toDate();
     const endDate =
       query.endDate && moment(query.endDate).isAfter(startDate)
@@ -404,7 +422,7 @@ export const apartmentService = {
       .map((amenity: string) => amenity.trim())
       .filter(Boolean);
 
-    // Khong truyen ngay => mac dinh hom nay -> ngay mai (duyet tat ca cho con trong)
+    // No dates => default today -> tomorrow (scan all availability)
     const start = startDate ? moment(startDate).toDate() : moment().startOf('day').toDate();
     const end =
       endDate && moment(endDate).isAfter(start) ? moment(endDate).toDate() : moment(start).add(1, 'day').toDate();
@@ -412,8 +430,8 @@ export const apartmentService = {
     const nights = moment(end).diff(moment(start), 'days');
     const totalNights = nights > 0 ? nights : 1;
 
-    // Loc phong ngay tu dau (dung index {price, numberOfGuest, quantity}):
-    // chi nhung phong du cho, con trong trong khoang ngay, va nam trong khoang gia
+    // Filter rooms up front (uses the {price, numberOfGuest, quantity} index):
+    // enough capacity, free in the date range, within the price range
     const roomMatch: Record<string, unknown> = {
       numberOfGuest: { $gte: numberOfGuest },
       quantity: { $gte: roomNumber },
@@ -431,9 +449,9 @@ export const apartmentService = {
       roomMatch.bedType = new RegExp(String(bedType).trim(), 'i');
     }
 
-    // Full-text qua Elasticsearch: chiu duoc go khong dau ("da nang" -> "Đà Nẵng")
-    // va sai chinh ta nhe (fuzziness AUTO). Tra ve null khi ES khong chay
-    // -> fallback ve regex tren Mongo de search khong bao gio chet.
+    // Full-text via Elasticsearch: tolerates unaccented input ("da nang" -> "Đà Nẵng")
+    // and small typos (fuzziness AUTO). Returns null when ES is down
+    // -> falls back to Mongo regex so search never dies.
     const searchText = [province, district, name]
       .filter(Boolean)
       .map((value) => String(value).trim())
@@ -449,12 +467,12 @@ export const apartmentService = {
           StatusCodes.OK
         );
       }
-      // Thu hep ngay tu stage dau tien bang index apartmentId
+      // Narrow the first stage using the apartmentId index
       (roomMatch as any).apartmentId = { $in: esApartmentIds.map((id) => new mongoose.Types.ObjectId(id)) };
     }
 
-    // Fallback (ES tat): match substring khong phan biet hoa thuong tren dia chi + ten.
-    // ($text cua Mongo match theo TUNG TU nen "Thanh pho Ho Chi Minh" se dinh ca tinh khac)
+    // Fallback (ES off): case-insensitive substring match on address + name.
+    // (Mongo $text matches PER WORD, so "Thanh pho Ho Chi Minh" would hit other provinces too)
     const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const apartmentMatch: Record<string, unknown>[] = [];
     if (esApartmentIds === null) {
@@ -478,9 +496,9 @@ export const apartmentService = {
       }
     }
 
-    // Mot pipeline duy nhat bat dau tu rooms: loc -> gom theo apartment -> join.
-    // Sort theo gia truoc khi $group de $first luon la PHONG RE NHAT con trong,
-    // nen roomId/price/anh tra ve nhat quan cung mot phong.
+    // Single pipeline starting from rooms: filter -> group by apartment -> join.
+    // Sort by price before $group so $first is always the CHEAPEST available room,
+    // keeping the returned roomId/price/image consistent.
     const aggregation: any[] = [
       { $match: roomMatch },
       { $sort: { price: 1, _id: 1 } },
@@ -491,7 +509,6 @@ export const apartmentService = {
           price: { $first: '$price' },
           numberOfGuest: { $first: '$numberOfGuest' },
           quantity: { $first: '$quantity' },
-          reviews: { $first: '$reviews' },
           images: { $first: '$images' },
           amenityIds: { $first: '$amenities' },
         },
@@ -504,6 +521,14 @@ export const apartmentService = {
           as: 'apartment',
         },
       },
+      {
+        $lookup: {
+          from: 'reviews',
+          localField: '_id',
+          foreignField: 'apartment',
+          as: 'reviewDocs',
+        },
+      },
       { $unwind: '$apartment' },
       ...(apartmentMatch.length ? [{ $match: { $and: apartmentMatch } }] : []),
       {
@@ -514,7 +539,7 @@ export const apartmentService = {
           as: 'amenities',
         },
       },
-      // Loc theo tien nghi (phong dai dien phai co du cac tien nghi da chon)
+      // Amenities filter (the representative room must have every selected amenity)
       ...(amenityList.length
         ? [{ $match: { 'amenities.name': { $all: amenityList.map((amenity) => new RegExp(`^${amenity}$`, 'i')) } } }]
         : []),
@@ -548,26 +573,20 @@ export const apartmentService = {
           rating: {
             ratingAvg: {
               $cond: {
-                if: { $gt: [{ $size: { $ifNull: ['$reviews', []] } }, 0] },
-                then: { $avg: '$reviews.score' },
+                if: { $gt: [{ $size: '$reviewDocs' }, 0] },
+                then: { $round: [{ $avg: '$reviewDocs.rating' }, 1] },
                 else: 0,
               },
             },
-            totalRating: {
-              $cond: {
-                if: { $gt: [{ $size: { $ifNull: ['$reviews', []] } }, 0] },
-                then: { $sum: '$reviews.score' },
-                else: 0,
-              },
-            },
+            totalRating: { $size: '$reviewDocs' },
           },
           nights: { $literal: totalNights },
           totalPrice: { $multiply: ['$price', totalNights] },
         },
       },
-      // Loc theo diem danh gia toi thieu (tinh sau khi project rating)
+      // Minimum-rating filter (applied after rating is projected)
       ...(minRating ? [{ $match: { 'rating.ratingAvg': { $gte: minRating } } }] : []),
-      // Thu tu on dinh de phan trang khong trung/lap giua cac trang
+      // Stable order so pagination never duplicates or skips items
       {
         $sort:
           sortBy === 'price_desc'
@@ -861,10 +880,10 @@ export const apartmentService = {
       return new ServiceResponse(ResponseStatus.Failed, err.message, null, StatusCodes.INTERNAL_SERVER_ERROR);
     }
 
-    // Chua co can nao van la thanh cong voi danh sach rong (404 lam FE toast loi)
+    // No apartments is still a success with an empty list (a 404 would make the FE toast an error)
     const withImageUrls = (apartments || []).map((apartment: any) => {
       const rooms = apartment.rooms || [];
-      // Apartment khong co anh rieng -> muon anh phong dau tien lam thumbnail
+      // Apartment has no own images -> borrow the first room image as thumbnail
       const rawImages: string[] = apartment.images?.length ? apartment.images : rooms[0]?.images || [];
       const prices = rooms.map((room: any) => room.price).filter((price: number) => typeof price === 'number');
       return {

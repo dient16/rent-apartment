@@ -4,7 +4,7 @@ import { signOut } from '@/contexts/auth/reduces';
 import { useAuth } from '@/hooks';
 import { path } from '@/utils/constant';
 import type { FC, ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import {
    IoHeartOutline,
    IoChatbubbleEllipsesOutline,
@@ -30,7 +30,7 @@ interface MenuEntry {
    highlight?: boolean;
 }
 
-/** Menu theo role: khach thay muc du lich, host thay muc quan ly */
+/** Role-based menu: guests see trip items, hosts see management items */
 const guestMenu: MenuEntry[] = [
    {
       icon: <IoPersonOutline size={18} />,
@@ -98,7 +98,7 @@ const MenuAccount: FC<MenuAccountProps> = ({ isHost = false, onClose }) => {
    const { dispatch, user } = useAuth();
    const entries = isHost ? hostMenu : guestMenu;
 
-   // So tin nhan chua doc de gan badge vao muc Messages
+   // Unread count for the Messages badge
    const { data: conversationsData } = useQuery({
       queryKey: ['conversations'],
       queryFn: apiGetConversations,
@@ -109,7 +109,7 @@ const MenuAccount: FC<MenuAccountProps> = ({ isHost = false, onClose }) => {
    const handleSignOut = async () => {
       onClose?.();
       try {
-         // Huy refresh token o server (xoa cookie + DB) roi moi xoa state
+         // Revoke the refresh token server-side (cookie + DB) before clearing state
          await apiLogout();
       } finally {
          dispatch(signOut());
@@ -121,7 +121,7 @@ const MenuAccount: FC<MenuAccountProps> = ({ isHost = false, onClose }) => {
 
    return (
       <div className="w-[240px] font-main">
-         {/* Chao + role hien tai */}
+         {/* Greeting + current role */}
          <div className="flex gap-3 items-center px-3 pt-1 pb-3 border-b border-gray-100">
             <span className="flex justify-center items-center w-9 h-9 text-blue-600 bg-blue-50 rounded-full">
                {isHost ? (

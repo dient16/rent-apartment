@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.ts",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/index.ts | pino-pretty",
     "build": "rimraf dist && tsup",
@@ -88,5 +91,9 @@
     "**/*.{js,ts}": "npm run lint:fix"
   },
   "author": "dient16",
-  "license": "ISC"
+  "license": "ISC",
+  "allowScripts": {
+    "bcrypt@5.1.1": true,
+    "esbuild@0.21.5": true
+  }
 }

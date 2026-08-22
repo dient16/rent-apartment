@@ -1,7 +1,7 @@
 import type { ZodNumber, ZodOptional } from 'zod';
 import z from 'zod';
 
-/** Bọc schema bằng preprocess: parse string (query/param) truoc khi validate. */
+/** Wrap a schema with preprocess: parse strings (query/params) before validating. */
 export function preprocessString<Schema extends z.ZodTypeAny>(schema: Schema, parseFunction: (value: string) => any) {
   return z.preprocess((value) => {
     if (typeof value === 'string') {

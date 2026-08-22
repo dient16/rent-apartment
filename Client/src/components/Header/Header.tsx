@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import logo from '@/assets/logo.png';
 import { navigateHosts, navigates, path } from '@/utils/constant';
 import { MenuAccount, NotificationBell, SignIn, SignUp, UserAvatar } from '@/components';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from '@/lib/router-compat';
 import {
    Flex,
    Button,
@@ -88,7 +88,7 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                   src={logo}
                   className="cursor-pointer w-[110px] md:w-[150px]"
                   preview={false}
-                  // Logo ton trong mode hien tai: dang o host thi ve host dashboard
+                  // Logo respects the current mode: in host mode it links to the host dashboard
                   onClick={() =>
                      navigate(
                         isHost
@@ -99,7 +99,7 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                />
             </Flex>
 
-            {/* Nav giua: chi hien desktop */}
+            {/* Center nav: desktop only */}
             <nav className="hidden absolute left-1/2 -translate-x-1/2 lg:block">
                <Flex gap={30} align="center">
                   {(isHost ? navigateHosts : navigates).map(

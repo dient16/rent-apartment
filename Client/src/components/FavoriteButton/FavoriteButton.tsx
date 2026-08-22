@@ -12,7 +12,7 @@ interface FavoriteButtonProps {
    className?: string;
 }
 
-/** Nut tim dung chung: tu biet trang thai tu user.favorites, tu invalidate cache sau khi toggle. */
+/** Shared heart button: derives state from user.favorites, invalidates the cache after toggling. */
 const FavoriteButton: React.FC<FavoriteButtonProps> = ({
    apartmentId,
    size = 20,

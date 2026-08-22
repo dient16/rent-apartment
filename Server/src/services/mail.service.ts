@@ -11,7 +11,7 @@ interface SendMailOptions {
   subject: string;
 }
 
-/** Transporter dung chung cho ca app, khong tao lai moi lan gui mail. */
+/** Shared transporter for the whole app — not recreated per email. */
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 587,

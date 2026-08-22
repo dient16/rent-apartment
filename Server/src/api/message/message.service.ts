@@ -14,8 +14,8 @@ const { SERVER_URL } = env;
 const toAvatarUrl = (avatar?: string) =>
   avatar && !avatar.startsWith('http') ? `${SERVER_URL}/api/image/${avatar}` : avatar;
 
-/** Nguoi con lai trong hoi thoai 2 nguoi */
-/** Gom reactions: [{emoji, count, mine}] */
+/** The other participant of a 2-person conversation */
+/** Group raw reactions into [{emoji, count, mine}] */
 const groupReactions = (reactions: any[] = [], userId: string) => {
   const grouped: Record<string, { emoji: string; count: number; mine: boolean }> = {};
   for (const reaction of reactions) {
@@ -42,7 +42,7 @@ const pickPartner = (conversation: any, userId: string) => {
 };
 
 export const messageService = {
-  /** Tim hoac tao hoi thoai giua 2 nguoi (entry: nut "Message host") */
+  /** Find or create the conversation between 2 users (entry: "Message host" button) */
   async startConversation(userId: string, recipientId: string) {
     if (String(userId) === String(recipientId)) {
       return new ServiceResponse(ResponseStatus.Failed, 'You cannot message yourself', null, StatusCodes.BAD_REQUEST);
@@ -80,7 +80,7 @@ export const messageService = {
     return new ServiceResponse(ResponseStatus.Success, 'Conversation ready', conversation, StatusCodes.OK);
   },
 
-  /** Danh sach hoi thoai cua toi + so tin chua doc moi hoi thoai */
+  /** My conversations with a per-conversation unread count */
   async getConversations(userId: string) {
     const [err, conversations] = await to(
       ConversationModel.find({ participants: userId })
@@ -150,7 +150,7 @@ export const messageService = {
     );
   },
 
-  /** Tin nhan cua mot hoi thoai; dong thoi danh dau tin den la da doc */
+  /** Messages of one conversation; also marks incoming ones as read */
   async getMessages(userId: string, conversationId: string, limit: number) {
     const [errConversation, conversation] = await to(
       ConversationModel.findOne({ _id: conversationId, participants: userId })
@@ -174,7 +174,7 @@ export const messageService = {
       );
     }
 
-    // Doc hoi thoai => tin cua doi phuong thanh da doc + noti tin nhan cua hoi thoai nay da doc
+    // Opening the thread marks partner messages and this conversation's message notification read
     await to(
       MessageModel.updateMany(
         { conversation: conversationId, sender: { $ne: userId }, isRead: false },
@@ -211,7 +211,7 @@ export const messageService = {
       return new ServiceResponse(ResponseStatus.Failed, 'Message not found', null, StatusCodes.NOT_FOUND);
     }
 
-    // Chi thanh vien cua hoi thoai moi duoc react
+    // Only conversation members may react
     const [errConversation, conversation] = await to(
       ConversationModel.findOne({ _id: message.conversation, participants: userId }).select('_id').lean().exec()
     );
@@ -273,7 +273,7 @@ export const messageService = {
     } as any;
     await to(conversation.save());
 
-    // Bao cho nguoi nhan (fire-and-forget, khong chan flow gui tin)
+    // Notify the recipient (fire-and-forget, never blocks sending)
     (async () => {
       const recipientId = (conversation.participants as any[]).find(
         (participant) => String(participant) !== String(userId)

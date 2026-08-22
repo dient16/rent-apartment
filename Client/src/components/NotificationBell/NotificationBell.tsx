@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Badge, Button, Empty, Popover, Skeleton } from 'antd';
+import { Button, Empty, Popover, Skeleton } from 'antd';
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from '@/lib/router-compat';
 import moment from 'moment';
 import clsx from 'clsx';
 import {
@@ -209,7 +209,14 @@ const NotificationBell: React.FC = () => {
    return (
       <Popover
          open={open}
-         onOpenChange={setOpen}
+         onOpenChange={(next) => {
+            // On mobile the popover is cramped — go straight to the page instead
+            if (next && window.innerWidth < 1024) {
+               navigate(`/${path.NOTIFICATIONS}`);
+               return;
+            }
+            setOpen(next);
+         }}
          content={panel}
          trigger="click"
          placement="bottomRight"
@@ -218,11 +225,14 @@ const NotificationBell: React.FC = () => {
          <button
             type="button"
             aria-label="Notifications"
-            className="flex justify-center items-center w-10 h-10 text-gray-600 bg-transparent rounded-full border-none transition-colors cursor-pointer hover:bg-gray-100"
+            className="flex relative justify-center items-center w-10 h-10 text-gray-600 bg-transparent rounded-full border-none transition-colors cursor-pointer hover:bg-gray-100"
          >
-            <Badge count={unreadCount} size="small">
-               <BellOutlined className="text-xl text-gray-600" />
-            </Badge>
+            <BellOutlined className="text-[20px] text-gray-600" />
+            {unreadCount > 0 && (
+               <span className="flex absolute top-0.5 right-0.5 justify-center items-center px-1 h-4 min-w-[16px] text-[10px] font-bold leading-none text-white bg-red-500 rounded-full ring-2 ring-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+               </span>
+            )}
          </button>
       </Popover>
    );

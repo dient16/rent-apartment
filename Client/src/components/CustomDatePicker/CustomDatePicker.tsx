@@ -39,7 +39,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
    const [popoverVisible, setPopoverVisible] = useState(false);
    const [dates, setDates] = useState<[Date, Date]>(value);
    const [selectingEndDate, setSelectingEndDate] = useState(false);
-   const isMobileOrTablet = useMediaQuery({ query: '(max-width: 800px)' });
+   const isMobileOrTablet = useMediaQuery({ query: '(max-width: 1023px)' });
    const isMobile = useMediaQuery({ query: '(max-width: 440px)' });
    const handleDateChange = (ranges: RangeKeyDict) => {
       const selection = ranges.selection as Range;
@@ -93,25 +93,34 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
             disabledDates={disabledDates}
             minDate={minDate}
          />
-         <div className="flex justify-between items-center pt-5 border-t bg-white lg:hidden px-2 pb-5 sm:p-5 w-full">
-            <div className="flex flex-col">
-               <span className="text-sm text-gray-500">Check-in</span>
-               <span className="text-blue-600">
-                  {moment(dates[0]).format('dddd, MMM D, YYYY')}
-               </span>
-            </div>
-            <div className="flex flex-col">
-               <span className="text-sm text-gray-500">Check-out</span>
-               <span className="text-blue-600">
-                  {moment(dates[1]).format('dddd, MMM D, YYYY')}
-               </span>
+         <div className="pt-4 px-4 pb-5 w-full bg-white border-t border-gray-100 lg:hidden">
+            <div className="grid grid-cols-2 gap-3 mb-4">
+               <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  <p className="mb-0.5 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
+                     Check-in
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900">
+                     {moment(dates[0]).format('ddd, MMM D, YYYY')}
+                  </p>
+               </div>
+               <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  <p className="mb-0.5 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
+                     Check-out
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900">
+                     {moment(dates[1]).format('ddd, MMM D, YYYY')}
+                  </p>
+               </div>
             </div>
             <Button
-               className="bg-blue-500"
+               block
+               size="large"
                type="primary"
                onClick={handleConfirm}
+               className="!h-12 font-semibold bg-blue-500 rounded-xl"
             >
-               Confirm
+               Confirm · {getNightCount(dates[0], dates[1])} night
+               {getNightCount(dates[0], dates[1]) > 1 ? 's' : ''}
             </Button>
          </div>
       </div>
@@ -214,7 +223,9 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
             {renderButtonContent()}
 
             <Drawer
-               title="Select Dates"
+               title={
+                  <span className="text-base font-semibold">Select dates</span>
+               }
                placement="bottom"
                onClose={() => setDrawerVisible(false)}
                open={drawerVisible}
@@ -228,7 +239,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
             <Popover
                content={content}
                trigger="click"
-               placement="bottom"
+               placement="bottomLeft"
                align={{ offset: [0, 24] }}
                open={popoverVisible}
                onOpenChange={setPopoverVisible}

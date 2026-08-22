@@ -10,15 +10,15 @@ export const APARTMENT_INDEX = 'apartments';
 
 export const esClient = new Client({ node: env.ELASTICSEARCH_URL });
 
-// ES co the chua san sang / khong bat (dev khong chay docker):
-// moi ham deu fail-soft de search API fallback ve regex tren Mongo.
+// ES may be down or disabled (dev without docker):
+// every function fails soft so the search API falls back to Mongo regex.
 let esAvailable = false;
 
 export const isEsAvailable = () => esAvailable;
 
 /**
  * Mapping: custom analyzer `vi_folding` = lowercase + asciifolding
- * -> "Đà Nẵng" duoc danh index thanh "da nang", nguoi dung go khong dau van khop.
+ * -> "Đà Nẵng" is indexed as "da nang", so unaccented queries still match.
  */
 const INDEX_SETTINGS = {
   settings: {
@@ -65,7 +65,7 @@ const toEsDocument = (apartment: any) => ({
   },
 });
 
-/** Goi mot lan khi server boot: tao index neu chua co. Khong chan app neu ES chua len. */
+/** Called once at boot: creates the index if missing. Never blocks the app when ES is down. */
 export const initApartmentIndex = async (): Promise<void> => {
   try {
     const exists = await esClient.indices.exists({ index: APARTMENT_INDEX });
@@ -78,12 +78,12 @@ export const initApartmentIndex = async (): Promise<void> => {
   } catch (error) {
     esAvailable = false;
     logger.warn(`Elasticsearch unavailable, search falls back to MongoDB regex: ${(error as Error).message}`);
-    // Tu dong thu lai: ES co the duoc bat sau khi server da chay
+    // Auto-retry: ES may come up after the server started
     setTimeout(() => initApartmentIndex(), 30_000).unref();
   }
 };
 
-/** Index (upsert) mot apartment — goi sau khi create/update. */
+/** Index (upsert) one apartment — call after create/update. */
 export const indexApartment = async (apartment: Apartment & { _id: unknown }): Promise<void> => {
   if (!esAvailable) return;
   try {
@@ -97,7 +97,7 @@ export const indexApartment = async (apartment: Apartment & { _id: unknown }): P
   }
 };
 
-/** Xoa apartment khoi index — goi sau khi delete. */
+/** Remove an apartment from the index — call after delete. */
 export const removeApartmentFromIndex = async (apartmentId: string): Promise<void> => {
   if (!esAvailable) return;
   try {
@@ -110,9 +110,9 @@ export const removeApartmentFromIndex = async (apartmentId: string): Promise<voi
 };
 
 /**
- * Full-text search -> tra ve danh sach apartmentId (theo do relevance).
- * fuzziness AUTO: chiu duoc go sai 1-2 ky tu ("danag" van ra "Da Nang").
- * Tra ve null khi ES khong san sang de caller fallback ve regex.
+ * Full-text search -> returns apartmentIds sorted by relevance.
+ * fuzziness AUTO: tolerates 1-2 wrong characters ("danag" still finds "Da Nang").
+ * Returns null when ES is unavailable so the caller falls back to regex.
  */
 export const searchApartmentIds = async (searchText: string, maxResults = 500): Promise<string[] | null> => {
   if (!esAvailable) return null;
@@ -137,7 +137,7 @@ export const searchApartmentIds = async (searchText: string, maxResults = 500): 
   }
 };
 
-/** Reindex toan bo apartments tu MongoDB (bulk) — dung cho lan dau va khi mapping doi. */
+/** Bulk-reindex all apartments from MongoDB — for first run and mapping changes. */
 export const reindexAllApartments = async (apartments: any[]): Promise<number> => {
   const exists = await esClient.indices.exists({ index: APARTMENT_INDEX });
   if (exists) {
