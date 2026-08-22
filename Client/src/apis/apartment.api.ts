@@ -25,7 +25,7 @@ export const apiCreateStripePayment = (data: {
    source?: string;
 }): Promise<{ data: string }> =>
    axios({
-      url: `/apartment/create-stripe-payment`,
+      url: `/payment/create-payment-intent`,
       method: 'post',
       data,
    });

@@ -23,6 +23,7 @@ interface EditUser {
 }
 
 interface UserType {
+   _id: string;
    firstname: string;
    lastname: string;
    email: string;
@@ -33,6 +34,7 @@ interface UserType {
    gender: string;
    address: string;
    personalId: string;
+   favorites?: string[];
 }
 
 interface CustomerBooking {

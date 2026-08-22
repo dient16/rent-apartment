@@ -1,3 +1,4 @@
+import { apiLogout } from '@/apis';
 import { signOut } from '@/contexts/auth/reduces';
 import { useAuth } from '@/hooks';
 import { path } from '@/utils/constant';
@@ -5,6 +6,7 @@ import icons from '@/utils/icons';
 import { Button, Flex } from 'antd';
 import type { FC } from 'react';
 import { Link } from 'react-router-dom';
+import { IoHeartOutline } from 'react-icons/io5';
 
 const MenuAccount: FC = () => {
    const { AiOutlineUser, LiaSignOutAltSolid, BsHouses, TbBrandBooking } =
@@ -33,6 +35,15 @@ const MenuAccount: FC = () => {
                </Link>
             </Flex>
             <Flex align="center" gap={10}>
+               <IoHeartOutline size={20} />
+               <Link
+                  className="p-0 m-0 w-full text-base text-left font-main"
+                  to={`/${path.FAVORITES}`}
+               >
+                  My Favorites
+               </Link>
+            </Flex>
+            <Flex align="center" gap={10}>
                <TbBrandBooking size={20} />
                <Link
                   className="p-0 m-0 w-full text-base text-left font-main"
@@ -46,8 +57,13 @@ const MenuAccount: FC = () => {
                <LiaSignOutAltSolid size={20} />
                <Button
                   className="flex p-0 m-0 text-base text-left border-none outline-none font-main h-fit"
-                  onClick={() => {
-                     dispatch(signOut());
+                  onClick={async () => {
+                     try {
+                        // Huy refresh token o server (xoa cookie + DB) roi moi xoa state
+                        await apiLogout();
+                     } finally {
+                        dispatch(signOut());
+                     }
                   }}
                >
                   Sign out

@@ -3,9 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Carousel, Skeleton, Tooltip } from 'antd';
 import icons from '@/utils/icons';
 import { apiGetApartmentPopular } from '@/apis';
+import FavoriteButton from '@/components/FavoriteButton/FavoriteButton';
 import { useNavigate } from 'react-router-dom';
 import moment from 'moment';
-const { IoHeartSharp, MdOutlineKeyboardArrowRight } = icons;
+const { MdOutlineKeyboardArrowRight } = icons;
 
 const ApartmentPopular: React.FC = () => {
    const navigate = useNavigate();
@@ -54,9 +55,11 @@ const ApartmentPopular: React.FC = () => {
                      <span className="absolute top-2 left-2 px-4 py-1.5 bg-green-200 rounded-full text-xs uppercase text-center tracking-normal leading-4 whitespace-nowrap text-green-500">
                         {apartment.avgRating}
                      </span>
-                     <span className="absolute top-2 right-2 text-white flex justify-center items-center p-1 bg-opacity-50 bg-white rounded-full">
-                        <IoHeartSharp size={18} />
-                     </span>
+                     <FavoriteButton
+                        apartmentId={apartment._id}
+                        size={15}
+                        className="absolute top-2 right-2"
+                     />
                   </div>
                   <div className="mt-2 p-1 w-full">
                      <Tooltip title={apartment.title} placement="top">

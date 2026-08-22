@@ -8,6 +8,7 @@ import {
    ImageGallery,
    BookingSummary,
    SearchInfoBar,
+   FavoriteButton,
 } from '@/components';
 import { Button, Result, Spin } from 'antd';
 import { Controller, useForm, FormProvider } from 'react-hook-form';
@@ -125,7 +126,10 @@ const ApartmentDetail: React.FC = () => {
                <div className="flex gap-5 items-start lg:mt-5">
                   <div className="flex flex-col w-full">
                      <div className="flex flex-col gap-2 justify-center lg:mt-5 mt-3 font-main">
-                        <div className="text-3xl">{apartment?.title}</div>
+                        <div className="flex gap-3 justify-between items-center">
+                           <div className="text-3xl">{apartment?.title}</div>
+                           <FavoriteButton apartmentId={apartmentId as string} />
+                        </div>
                         <div className="flex gap-1 items-center text-sm font-light font-main">
                            <FaLocationDot color="#1640D6" size={15} />
                            <p className="hover:underline">

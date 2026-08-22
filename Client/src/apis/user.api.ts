@@ -12,3 +12,13 @@ export const apiEditUser = (data: FormData): Promise<Res> =>
       method: 'put',
       data,
    });
+export const apiGetFavorites = (): Promise<Res> =>
+   axios({
+      url: '/user/favorites',
+      method: 'get',
+   });
+export const apiToggleFavorite = (apartmentId: string): Promise<Res> =>
+   axios({
+      url: `/user/favorites/${apartmentId}`,
+      method: 'post',
+   });

@@ -30,3 +30,4 @@ export { default as Step2FormApartment } from './CreateApartmentForm/Step2';
 export { default as Step3FormApartment } from './CreateApartmentForm/Step3';
 export { default as RoomAmenitySelector } from './AmenitiesCheckbox/RoomAmenitiesSelector';
 export { default as RoomInfo } from './RoomInfo/RoomInfo';
+export { default as FavoriteButton } from './FavoriteButton/FavoriteButton';

@@ -1,5 +1,6 @@
 import { RiHome4Line, RiContactsFill } from 'react-icons/ri';
-import { GrFavorite } from 'react-icons/gr';
+import { BiCompass } from 'react-icons/bi';
+import { IoInformationCircleOutline } from 'react-icons/io5';
 import { FaHome, FaCalendarAlt, FaListUl, FaComments } from 'react-icons/fa';
 
 export const path: { [key: string]: string } = {
@@ -45,8 +46,9 @@ export const navigates: {
    icon: React.ReactNode;
 }[] = [
    { title: 'Home', path: path.HOME, icon: <RiHome4Line /> },
+   { title: 'Explore', path: path.LISTING, icon: <BiCompass /> },
+   { title: 'About', path: path.ABOUT, icon: <IoInformationCircleOutline /> },
    { title: 'Contact', path: path.CONTACT, icon: <RiContactsFill /> },
-   { title: 'About', path: path.ABOUT, icon: <GrFavorite /> },
 ];
 
 export const navigateHosts: {

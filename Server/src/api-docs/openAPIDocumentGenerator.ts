@@ -1,22 +1,24 @@
 import { OpenApiGeneratorV3, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 
-import { healthCheckRegistry } from '@/api/healthCheck/healthCheckRouter';
-import { amenityRegistry } from '@/common/routes/amenityRouter';
-import { apartmentRegistry } from '@/common/routes/apartmentRouter';
-import { authRegistry } from '@/common/routes/authRouter';
-import { bookingRegistry } from '@/common/routes/bookingRouter';
-import { imageRegistry } from '@/common/routes/imageRouter';
-import { userRegistry } from '@/common/routes/userRouter';
+import { amenityRegistry } from '@/api/amenity/amenity.router';
+import { apartmentRegistry } from '@/api/apartment/apartment.router';
+import { authRegistry } from '@/api/auth/auth.router';
+import { bookingRegistry } from '@/api/booking/booking.router';
+import { healthRegistry } from '@/api/health/health.router';
+import { imageRegistry } from '@/api/image/image.router';
+import { roomRegistry } from '@/api/room/room.router';
+import { userRegistry } from '@/api/user/user.router';
 
 export function generateOpenAPIDocument() {
   const registry = new OpenAPIRegistry([
-    healthCheckRegistry,
+    healthRegistry,
     userRegistry,
     authRegistry,
     apartmentRegistry,
     amenityRegistry,
     bookingRegistry,
     imageRegistry,
+    roomRegistry,
   ]);
 
   registry.registerComponent('securitySchemes', 'BearerAuth', {

@@ -4,16 +4,16 @@ import cors from 'cors';
 import type { Express } from 'express';
 import express from 'express';
 import helmet from 'helmet';
-import mogran from 'morgan';
 import { pino } from 'pino';
 
-import { dbConnect } from '@/common/config/dbConfig';
-import passport from '@/common/config/passportConfig';
-import errorHandler from '@/common/middleware/errorHandler';
-import rateLimiter from '@/common/middleware/rateLimiter';
-import requestLogger from '@/common/middleware/requestLogger';
-import initRoutes from '@/common/routes';
-import { env } from '@/common/utils/envConfig';
+import { dbConnect } from '@/config/db.config';
+import { env } from '@/config/env.config';
+import passport from '@/config/passport.config';
+import errorHandler from '@/middlewares/errorHandler';
+import rateLimiter from '@/middlewares/rateLimiter';
+import requestLogger from '@/middlewares/requestLogger';
+import initRoutes from '@/routes';
+import { initApartmentIndex } from '@/services/apartmentSearch.service';
 
 const logger = pino({ name: 'server start' });
 const app: Express = express();
@@ -30,9 +30,9 @@ app.use(
   })
 );
 dbConnect();
+initApartmentIndex();
 app.use(passport.initialize());
 app.use(rateLimiter);
-app.use(mogran('dev'));
 app.use(requestLogger);
 
 initRoutes(app);

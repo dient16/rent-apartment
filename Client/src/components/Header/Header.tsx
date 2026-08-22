@@ -12,8 +12,11 @@ import {
    Image,
    Popover,
    Avatar,
+   Tooltip,
 } from 'antd';
 import type { TabsProps } from 'antd';
+import { FiHeart } from 'react-icons/fi';
+import { TbHomePlus } from 'react-icons/tb';
 import icons from '@/utils/icons';
 import { useAuth } from '@/hooks';
 import clsx from 'clsx';
@@ -31,6 +34,14 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
       authModal,
       setAuthModal,
    } = useAuth();
+
+   const goToHost = () => {
+      if (isAuthenticated) {
+         navigate(`${path.HOST_ROOT}${path.HOST_DASHBOARD}`);
+      } else {
+         setAuthModal({ isOpen: true, activeTab: 'signin' });
+      }
+   };
 
    const tabItemsModal: TabsProps['items'] = [
       {
@@ -63,90 +74,112 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
       },
    ];
    return (
-      <header className="flex sticky top-0 z-50 justify-center items-center w-full bg-white lg:h-[90px] h-[60px] shadow">
-         <div className="flex justify-between px-3 w-full select-none md:px-10">
-            <div className="lg:hidden" onClick={() => setOpenNavigate(true)}>
-               <CgMenuLeft size={30} />
-            </div>
-            <Image
-               src={logo}
-               className="cursor-pointer w-[110px] md:w-[150px]"
-               preview={false}
-               onClick={() => navigate(`/${path.HOME}`)}
-            />
-            <Flex gap={40} align="center">
-               <div className="hidden lg:block">
-                  <Flex gap={20} align="center">
-                     {(isHost ? navigateHosts : navigates).map(
-                        (navigate, index) => (
-                           <NavLink
-                              key={index}
-                              to={navigate.path}
-                              className={({ isActive }) =>
-                                 clsx(
-                                    'relative font-main text-lg font-medium text-black transition duration-500 ease-in-out flex items-start gap-2',
-                                    isActive
-                                       ? 'navLink-active text-blue-500'
-                                       : '',
-                                    'navLink',
-                                 )
-                              }
-                           >
-                              <span>{navigate.title}</span>
-                           </NavLink>
-                        ),
-                     )}
-                  </Flex>
+      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
+         <div className="flex justify-between items-center px-3 mx-auto w-full h-[60px] select-none md:px-10 lg:h-[80px] max-w-main">
+            <Flex align="center" gap={12}>
+               <div
+                  className="p-1 rounded-md transition-colors cursor-pointer lg:hidden hover:bg-gray-100"
+                  onClick={() => setOpenNavigate(true)}
+               >
+                  <CgMenuLeft size={26} />
                </div>
+               <Image
+                  src={logo}
+                  className="cursor-pointer w-[110px] md:w-[150px]"
+                  preview={false}
+                  onClick={() => navigate(`/${path.HOME}`)}
+               />
+            </Flex>
 
-               <Flex gap={10} align="center">
-                  {!isAuthenticated && !currentUser ? (
-                     <>
-                        <Button
-                           className="hidden px-2 h-10 rounded-full md:px-7 lg:block font-main"
-                           onClick={() =>
-                              setAuthModal({
-                                 isOpen: true,
-                                 activeTab: 'signup',
-                              })
+            {/* Nav giua: chi hien desktop */}
+            <nav className="hidden absolute left-1/2 -translate-x-1/2 lg:block">
+               <Flex gap={30} align="center">
+                  {(isHost ? navigateHosts : navigates).map(
+                     (navigateItem, index) => (
+                        <NavLink
+                           key={index}
+                           to={navigateItem.path}
+                           className={({ isActive }) =>
+                              clsx(
+                                 'relative font-main text-base font-medium transition duration-300 ease-in-out flex items-center gap-2 py-1',
+                                 isActive
+                                    ? 'navLink-active text-blue-600'
+                                    : 'text-gray-700 hover:text-blue-600',
+                                 'navLink',
+                              )
                            }
                         >
-                           Sign up
-                        </Button>
-                        <Button
-                           type="primary"
-                           className="hidden px-2 h-10 text-white bg-blue-500 rounded-full md:px-7 lg:block font-main"
-                           onClick={() =>
-                              setAuthModal({
-                                 isOpen: true,
-                                 activeTab: 'signin',
-                              })
-                           }
-                        >
-                           Sign in
-                        </Button>
-                     </>
-                  ) : (
-                     <Popover
-                        placement="bottom"
-                        content={<MenuAccount />}
-                        arrow={true}
-                        mouseLeaveDelay={0.3}
-                        trigger={['hover']}
-                     >
-                        <span className="flex gap-1.5 justify-center items-center py-1.5 px-3 rounded-full border border-gray-300 cursor-pointer lg:mx-5">
-                           <HiMenu size={17} />
-                           <Avatar
-                              size={30}
-                              src={currentUser?.avatar}
-                              className="border border-blue-500"
-                           >
-                              {currentUser?.avatar}
-                           </Avatar>
-                        </span>
-                     </Popover>
+                           <span>{navigateItem.title}</span>
+                        </NavLink>
+                     ),
                   )}
                </Flex>
+            </nav>
+
+            <Flex gap={8} align="center">
+               {!isHost && (
+                  <Button
+                     type="text"
+                     onClick={goToHost}
+                     className="hidden items-center gap-1.5 px-4 h-10 rounded-full font-main text-base font-medium text-gray-700 lg:flex hover:text-blue-600 hover:bg-blue-50"
+                     icon={<TbHomePlus size={18} />}
+                  >
+                     Become a Host
+                  </Button>
+               )}
+
+               {isAuthenticated && !isHost && (
+                  <Tooltip title="My favorites">
+                     <button
+                        aria-label="My favorites"
+                        onClick={() => navigate(`/${path.FAVORITES}`)}
+                        className="hidden justify-center items-center w-10 h-10 rounded-full border-none bg-transparent transition-colors cursor-pointer md:flex hover:bg-rose-50 hover:text-rose-500 text-gray-600"
+                     >
+                        <FiHeart size={19} />
+                     </button>
+                  </Tooltip>
+               )}
+
+               {!isAuthenticated && !currentUser ? (
+                  <Flex gap={10} align="center">
+                     <Button
+                        className="hidden px-6 h-10 rounded-full border-gray-300 lg:block font-main hover:border-blue-500 hover:text-blue-600"
+                        onClick={() =>
+                           setAuthModal({ isOpen: true, activeTab: 'signup' })
+                        }
+                     >
+                        Sign up
+                     </Button>
+                     <Button
+                        type="primary"
+                        className="hidden px-6 h-10 text-white bg-blue-500 rounded-full shadow-none lg:block font-main hover:bg-blue-600"
+                        onClick={() =>
+                           setAuthModal({ isOpen: true, activeTab: 'signin' })
+                        }
+                     >
+                        Sign in
+                     </Button>
+                  </Flex>
+               ) : (
+                  <Popover
+                     placement="bottomRight"
+                     content={<MenuAccount />}
+                     arrow={true}
+                     mouseLeaveDelay={0.3}
+                     trigger={['hover']}
+                  >
+                     <span className="flex gap-2 justify-center items-center py-1.5 pr-1.5 pl-3 rounded-full border border-gray-300 transition-shadow cursor-pointer hover:shadow-card-lg">
+                        <HiMenu size={16} className="text-gray-600" />
+                        <Avatar
+                           size={30}
+                           src={currentUser?.avatar}
+                           className="border border-blue-400"
+                        >
+                           {currentUser?.firstname?.[0]?.toUpperCase()}
+                        </Avatar>
+                     </span>
+                  </Popover>
+               )}
             </Flex>
          </div>
 
@@ -194,16 +227,25 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
             >
                <Flex gap={20} vertical>
                   {(isHost ? navigateHosts : navigates).map(
-                     (navigate, index) => (
+                     (navigateItem, index) => (
                         <NavLink
                            className="flex gap-5 items-center font-medium font-main text-[22px]"
                            key={index}
-                           to={navigate.path}
+                           to={navigateItem.path}
                         >
-                           <span>{navigate.icon}</span>
-                           <span>{navigate.title}</span>
+                           <span>{navigateItem.icon}</span>
+                           <span>{navigateItem.title}</span>
                         </NavLink>
                      ),
+                  )}
+                  {!isHost && (
+                     <span
+                        className="flex gap-5 items-center font-medium cursor-pointer font-main text-[22px]"
+                        onClick={goToHost}
+                     >
+                        <TbHomePlus />
+                        <span>Become a Host</span>
+                     </span>
                   )}
                </Flex>
                {!isAuthenticated && (
