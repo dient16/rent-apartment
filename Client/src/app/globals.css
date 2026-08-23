@@ -1,7 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Cascade layers (antd's official Tailwind setup): preflight < antd < tailwind utilities,
+   so utility classes can still override antd component styles. */
+@layer tailwind-base, antd;
+@import 'tailwindcss/preflight' layer(tailwind-base);
+@import 'tailwindcss/theme' layer(theme);
+@import 'tailwindcss/utilities' layer(utilities);
+@config '../../tailwind.config.js';
 
 .apartment-detail .ant-image-mask-info,
 .list-image-room .ant-image-mask-info {
@@ -288,38 +292,3 @@
    background: #fff !important;
 }
 
-/* Listing pagination: rounded modern buttons */
-.listing-pagination .ant-pagination-item,
-.listing-pagination .ant-pagination-prev .ant-pagination-item-link,
-.listing-pagination .ant-pagination-next .ant-pagination-item-link {
-   border-radius: 10px !important;
-   border: 1px solid #e5e7eb !important;
-   background: #fff !important;
-   transition: all 0.15s;
-}
-.listing-pagination .ant-pagination-item a {
-   color: #374151;
-   font-weight: 500;
-}
-.listing-pagination .ant-pagination-item:hover,
-.listing-pagination .ant-pagination-prev:hover .ant-pagination-item-link,
-.listing-pagination .ant-pagination-next:hover .ant-pagination-item-link {
-   border-color: #93c5fd !important;
-   color: #2563eb !important;
-}
-.listing-pagination .ant-pagination-item:hover a {
-   color: #2563eb;
-}
-.listing-pagination .ant-pagination-item-active {
-   background: #2563eb !important;
-   border-color: #2563eb !important;
-   box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-}
-.listing-pagination .ant-pagination-item-active a,
-.listing-pagination .ant-pagination-item-active:hover a {
-   color: #fff !important;
-}
-.listing-pagination .ant-pagination-disabled .ant-pagination-item-link {
-   color: #d1d5db !important;
-   border-color: #f3f4f6 !important;
-}

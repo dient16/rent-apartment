@@ -39,8 +39,8 @@ A full-stack apartment & homestay booking platform — search stays with full-te
 
 | Layer | Technologies |
 |---|---|
-| **Client** | Next.js 13 (App Router), React 18, TypeScript, Ant Design, TailwindCSS, TanStack Query, React Hook Form, Axios |
-| **Server** | Node.js, Express, TypeScript, Mongoose (MongoDB Atlas), Zod, Passport (Google/Facebook), JWT, Nodemailer, Stripe, Pino |
+| **Client** | Next.js 16 (App Router, Turbopack), React 19, TypeScript, Ant Design 6, Tailwind CSS 4, TanStack Query, React Hook Form, Axios |
+| **Server** | Node.js 24, Express 5, TypeScript, Mongoose 9 (MongoDB Atlas), Zod 4, Passport (Google/Facebook), JWT, Nodemailer, Stripe, Pino, Elasticsearch 9 |
 | **Search** | Elasticsearch 8 (Docker), custom `vi_folding` analyzer |
 | **Tooling** | tsx, tsup, ESLint + Prettier, Vitest, Docker Compose |
 
@@ -48,14 +48,14 @@ A full-stack apartment & homestay booking platform — search stays with full-te
 
 ```
 Rent_Apartment/
-├── client/                     # Next.js 13 App Router
+├── client/                     # Next.js 16 App Router
 │   └── src/
-│       ├── app/                # App Router: layouts + route pages (CSR wrappers)
+│       ├── app/                # App Router: public pages SSR + hydrated (SEO), host/user pages CSR
 │       ├── apis/               # Axios instance + API functions per domain
 │       ├── components/         # Reusable UI (Header, Search, FavoriteButton, ...)
 │       ├── contexts/           # Auth context (reducer + session handling)
 │       ├── hooks/
-│       ├── lib/                # router-compat (react-router-like API on next/navigation)
+│       ├── lib/                # router-compat, server-api (server-side fetch), AntdRegistry
 │       ├── views/              # Page-level components (public / user / host)
 │       └── utils/
 │
@@ -88,7 +88,7 @@ Rent_Apartment/
 
 ### Prerequisites
 
-- **Node.js** ≥ 20 — developed on Node 24 LTS (see `.nvmrc`)
+- **Node.js** ≥ 24 (LTS) — pinned to 24.19.0 in `.nvmrc` (root, `client/.nvmrc`, `server/.nvmrc`)
 - **Docker Desktop** — for Elasticsearch
 - A **MongoDB** database (e.g. free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster)
 - Optional for full functionality: Gmail app password (emails), Stripe test keys (payments), Google/Facebook OAuth credentials

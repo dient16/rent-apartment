@@ -7,6 +7,7 @@ import React, {
    useReducer,
    useState,
 } from 'react';
+import { useIsHydrated } from '@/hooks';
 import { AuthActionType } from './types';
 import { initialize, reducer, signOut } from './reduces';
 import { apiGetCurrentUser } from '@/apis';
@@ -58,8 +59,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
    // Only show the fullscreen spinner after mount: on the server the query is
    // disabled (isLoading=false) while a logged-in client starts loading on the
    // first render — gating on `mounted` keeps both HTML trees identical.
-   const [mounted, setMounted] = useState(false);
-   useEffect(() => setMounted(true), []);
+   const mounted = useIsHydrated();
 
    const { data, isError, isLoading } = useQuery({
       queryKey: ['currentUser'],

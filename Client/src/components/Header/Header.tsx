@@ -11,7 +11,6 @@ import {
    Drawer,
    Image,
    Popover,
-   Avatar,
    Tooltip,
 } from 'antd';
 import type { TabsProps } from 'antd';
@@ -230,7 +229,7 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                </div>
             }
             placement="left"
-            width="100%"
+            size="100%"
             onClose={() => setOpenNavigate(false)}
             open={openNavigate}
             closeIcon={null}

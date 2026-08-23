@@ -134,7 +134,7 @@ router.get(
   '/google/callback',
   (req, res, next) => {
     passport.authenticate('google', (__err: Error, profile: GoogleProfile) => {
-      req.user = profile;
+      req.user = profile as unknown as Express.User;
       next();
     })(req, res, next);
   },
@@ -165,7 +165,7 @@ router.get(
   '/facebook/callback',
   (req, res, next) => {
     passport.authenticate('facebook', (_err: Error, profile: FacebookProfile) => {
-      req.user = profile;
+      req.user = profile as unknown as Express.User;
       next();
     })(req, res, next);
   },

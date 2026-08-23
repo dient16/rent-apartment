@@ -130,7 +130,7 @@ export const searchApartmentIds = async (searchText: string, maxResults = 500): 
         },
       },
     });
-    return result.hits.hits.map((hit) => hit._id);
+    return result.hits.hits.map((hit) => hit._id).filter((id): id is string => Boolean(id));
   } catch (error) {
     logger.error(`Elasticsearch search failed, falling back to regex: ${(error as Error).message}`);
     return null;

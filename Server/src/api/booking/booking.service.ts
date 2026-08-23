@@ -2,15 +2,13 @@ import fs from 'node:fs/promises';
 
 import to from 'await-to-js';
 import { StatusCodes } from 'http-status-codes';
-import mongoose from 'mongoose';
 
-import Apartment from '@/api/apartment/apartment.model';
-import User, { User as IUser } from '@/api/user/user.model';
+import User from '@/api/user/user.model';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 import { notificationService } from '@/api/notification/notification.service';
 import { sendMail } from '@/services/mail.service';
 
-import Booking, { IBooking } from './booking.model';
+import type { Booking as IBooking } from './booking.dto';
 import RoomModel from '../room/room.model';
 import BookingModel from './booking.model';
 import { env } from '@/config/env.config';
@@ -26,12 +24,14 @@ const getUserBookings = async (userId: string) => {
     }
 
     // Step 2: Find all rooms in those apartments
-    const rooms = await RoomModel.find({ apartmentId: { $in: apartments.map((apartment) => apartment._id) } }).exec();
+    const rooms = await RoomModel.find({
+      apartmentId: { $in: apartments.map((apartment) => apartment._id) },
+    } as any).exec();
 
     // Step 3: Find all bookings related to those rooms
     const bookings = await BookingModel.find({
       'rooms.roomId': { $in: rooms.map((room) => room._id) },
-    })
+    } as any)
       .populate({
         path: 'rooms.roomId',
         select: 'roomType apartmentId',
@@ -71,10 +71,10 @@ const getUserBookings = async (userId: string) => {
   }
 };
 
-const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceResponse<IBooking>> => {
+const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceResponse<IBooking | null>> => {
   const { email, firstname, lastname, phone, arrivalTime, checkInTime, checkOutTime, totalPrice, rooms } = bookingData;
 
-  if (!email || !rooms || rooms.length === 0 || !totalPrice || !checkInTime || !checkOutTime) {
+  if (!email || !firstname || !lastname || !rooms || rooms.length === 0 || !totalPrice || !checkInTime || !checkOutTime) {
     return new ServiceResponse(ResponseStatus.Failed, 'Missing required fields', null, StatusCodes.BAD_REQUEST);
   }
 
@@ -126,7 +126,7 @@ const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceRes
     checkOutTime,
     totalPrice,
     status: 'pending',
-    rooms: bookingData.rooms.map((roomData: { roomId: string; roomNumber: number }) => ({
+    rooms: rooms.map((roomData) => ({
       roomId: roomData.roomId,
       roomNumber: roomData.roomNumber,
     })),
@@ -184,7 +184,7 @@ const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceRes
 
   return new ServiceResponse(ResponseStatus.Success, 'Booking successfully created', savedBooking, StatusCodes.CREATED);
 };
-const getBookings = async (userId: string): Promise<ServiceResponse> => {
+const getBookings = async (userId: string): Promise<ServiceResponse<any>> => {
   const [errFindUser, user] = await to(User.findById(userId).lean().exec());
   if (errFindUser || !user) {
     return new ServiceResponse(ResponseStatus.Failed, 'User not found', null, StatusCodes.NOT_FOUND);
@@ -225,7 +225,7 @@ const getBookings = async (userId: string): Promise<ServiceResponse> => {
     firstname: booking.firstname,
     lastname: booking.lastname,
     phone: booking.phone,
-    rooms: booking.rooms.map((room) => ({
+    rooms: booking.rooms.map((room: any) => ({
       roomId: room.roomId._id,
       roomType: room.roomId.roomType,
       roomNumber: room.roomNumber,
@@ -263,7 +263,7 @@ const getBooking = async (bookingId: string): Promise<ServiceResponse<any>> => {
     return new ServiceResponse(ResponseStatus.Failed, 'Booking not found', null, StatusCodes.NOT_FOUND);
   }
 
-  const apartmentIds = booking.rooms.map((room) => room.roomId.apartmentId);
+  const apartmentIds = booking.rooms.map((room: any) => room.roomId.apartmentId);
   const uniqueApartmentIds = [...new Set(apartmentIds)];
 
   const [errApartments, apartments] = await to(
@@ -276,7 +276,7 @@ const getBooking = async (bookingId: string): Promise<ServiceResponse<any>> => {
   if (errApartments || apartments.length === 0) {
     return new ServiceResponse(ResponseStatus.Failed, 'Apartments not found', null, StatusCodes.NOT_FOUND);
   }
-  const apartment = apartments.find((ap) => ap._id.toString() === booking.rooms[0].roomId.apartmentId.toString());
+  const apartment = apartments.find((ap) => ap._id.toString() === (booking.rooms[0] as any).roomId.apartmentId.toString());
   const bookingDetails = {
     _id: booking._id,
     status: booking.status,
@@ -292,8 +292,8 @@ const getBooking = async (bookingId: string): Promise<ServiceResponse<any>> => {
     totalPrice: booking.totalPrice,
     apartmentName: apartment ? apartment.title : 'Unknown',
     address: apartment ? apartment.location : {},
-    contact: apartment ? apartment.owner : {},
-    rooms: booking.rooms.map((room) => {
+    contact: apartment ? (apartment as any).owner : {},
+    rooms: booking.rooms.map((room: any) => {
       return {
         roomId: room.roomId._id,
         roomType: room.roomId.roomType,
@@ -301,14 +301,14 @@ const getBooking = async (bookingId: string): Promise<ServiceResponse<any>> => {
         size: room.roomId.size,
         price: room.roomId.price,
         bedType: room.roomId.bedType,
-        images: room.roomId.images.map((image) => `${process.env.SERVER_URL}/api/image/${image}`),
+        images: room.roomId.images.map((image: string) => `${process.env.SERVER_URL}/api/image/${image}`),
       };
     }),
   };
 
   return new ServiceResponse(ResponseStatus.Success, 'Booking retrieved successfully', bookingDetails, StatusCodes.OK);
 };
-const confirmBooking = async (bookingId: string): Promise<ServiceResponse<IBooking>> => {
+const confirmBooking = async (bookingId: string): Promise<ServiceResponse<IBooking | null>> => {
   const [findError, booking] = await to(BookingModel.findById(bookingId).exec());
   if (findError || !booking) {
     return new ServiceResponse(ResponseStatus.Failed, 'Booking not found', null, StatusCodes.NOT_FOUND);

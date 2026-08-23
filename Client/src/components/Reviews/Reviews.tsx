@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Button, Empty, Input, Popconfirm, Progress, Rate, Spin, message } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import moment from 'moment';
@@ -88,12 +88,12 @@ const Reviews: React.FC<ReviewsProps> = ({ apartmentId }) => {
    const myReview = reviews.find((review) => review.user?._id === user?._id);
 
    // Editing an existing review pre-fills the form
-   useEffect(() => {
-      if (myReview) {
-         setScores({ ...DEFAULT_SCORES, ...(myReview.categories || {}) });
-         setComment(myReview.comment);
-      }
-   }, [myReview?._id]);
+   const [prefilledReviewId, setPrefilledReviewId] = useState<string | undefined>();
+   if (myReview && myReview._id !== prefilledReviewId) {
+      setPrefilledReviewId(myReview._id);
+      setScores({ ...DEFAULT_SCORES, ...(myReview.categories || {}) });
+      setComment(myReview.comment);
+   }
 
    const refresh = () => {
       queryClient.invalidateQueries({ queryKey: ['reviews', apartmentId] });
@@ -327,7 +327,11 @@ const Reviews: React.FC<ReviewsProps> = ({ apartmentId }) => {
                         )}
                         <Button
                            type="primary"
-                           className="bg-blue-500"
+                           className={
+                              comment.trim().length < 3
+                                 ? '!bg-gray-100 !text-gray-400'
+                                 : 'bg-blue-500'
+                           }
                            loading={saveMutation.isPending}
                            disabled={comment.trim().length < 3}
                            onClick={() => saveMutation.mutate()}

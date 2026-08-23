@@ -88,7 +88,7 @@ const Search: React.FC = () => {
                      open={whereOpen}
                      onClose={() => setWhereOpen(false)}
                      placement="bottom"
-                     height="100%"
+                     size="100%"
                      closable={false}
                      zIndex={1000}
                      styles={{ body: { padding: 0 } }}
@@ -190,7 +190,7 @@ const Search: React.FC = () => {
                      {/* Desktop: inline dropdown */}
                      <div className="hidden lg:block flex-1">
                         <Dropdown
-                           dropdownRender={() => (
+                           popupRender={() => (
                               <DropDownItem
                                  value={field.value}
                                  onChange={(value) => field.onChange(value)}
@@ -214,7 +214,7 @@ const Search: React.FC = () => {
                         open={whoOpen}
                         onClose={() => setWhoOpen(false)}
                         placement="bottom"
-                        height="100%"
+                        size="100%"
                         closable={false}
                         zIndex={1000}
                         styles={{ body: { padding: 0 } }}
@@ -229,7 +229,7 @@ const Search: React.FC = () => {
                                  <ArrowLeftOutlined />
                               </button>
                               <span className="text-base font-semibold text-gray-900">
-                                 Who's coming?
+                                 Who&apos;s coming?
                               </span>
                            </div>
                            <div className="flex-1 px-5 py-2">

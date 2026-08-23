@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Button, Result, Spin, Steps, Tabs } from 'antd';
 import { CustomerInfo, Payment } from '@/components';
 import { useForm } from 'react-hook-form';
@@ -62,17 +62,13 @@ const BookingConfirm: React.FC = () => {
       staleTime: 0,
    });
 
-   const { baseAmount, taxAmount, totalAmount } = useMemo(() => {
-      const rooms = roomIds.map((roomId, index) => {
-         const room = roomData?.rooms.find((r) => r._id === roomId);
-         return {
-            price: room?.price || 0,
-            roomNumber: roomNumbers[index],
-         };
-      });
-
-      return calculateTotalAmount(numberOfDays, rooms);
-   }, [numberOfDays, roomData, roomIds, roomNumbers]);
+   const { baseAmount, taxAmount, totalAmount } = calculateTotalAmount(
+      numberOfDays,
+      roomIds.map((roomId, index) => ({
+         price: roomData?.rooms.find((r) => r._id === roomId)?.price || 0,
+         roomNumber: roomNumbers[index],
+      })),
+   );
 
    const handleCompletion = (data: CustomerBooking) => {
       setCustomerInfo({

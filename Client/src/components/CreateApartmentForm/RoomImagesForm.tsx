@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { Upload, message, Spin, Image, UploadFile } from 'antd';
-import { RcFile, UploadRequestOption } from 'rc-upload/lib/interface';
+import type { RcFile, UploadProps } from 'antd/es/upload';
+
+// antd 6 no longer hoists rc-upload — derive the request option type from UploadProps
+type UploadRequestOption = Parameters<NonNullable<UploadProps['customRequest']>>[0];
 import { apiUploadImage, apiDeleteImage } from '@/apis';
 import { BiTrash } from 'react-icons/bi';
 import { AxiosProgressEvent } from 'axios';

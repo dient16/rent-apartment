@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { message } from 'antd';
 import { Footer, Header } from '@/components';
-import { useAuth } from '@/hooks';
+import { useAuth, useIsHydrated } from '@/hooks';
 import { Navigate } from '@/lib/router-compat';
 import { path } from '@/utils/constant';
 
@@ -14,16 +14,22 @@ export default function HostLayout({
    children: React.ReactNode;
 }) {
    const { user } = useAuth();
+   const router = useRouter();
    const pathname = usePathname() || '';
 
-   // Token guard (client only — no localStorage during SSR)
-   const hasToken =
-      typeof window !== 'undefined' && !!localStorage.getItem('ACCESS_TOKEN');
+   // Token guard runs after hydration so the first client render matches the
+   // server HTML (localStorage is unavailable during SSR / prerender).
+   const checked = useIsHydrated();
+   const hasToken = checked ? !!localStorage.getItem('ACCESS_TOKEN') : true;
 
-   if (typeof window !== 'undefined' && !hasToken) {
-      message.info('Please sign in to access the host panel');
-      return <Navigate to={`/${path.HOME}`} replace />;
-   }
+   useEffect(() => {
+      if (checked && !hasToken) {
+         message.info('Please sign in to access the host panel');
+         router.replace(`/${path.HOME}`);
+      }
+   }, [checked, hasToken, router]);
+
+   if (checked && !hasToken) return null;
 
    // First switch to host mode -> welcome page (server-side flag)
    const isWelcomePage = pathname.includes(

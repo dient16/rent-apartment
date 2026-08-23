@@ -5,13 +5,12 @@ import { stripe } from '@/services/stripe.service';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 
 export const paymentService = {
-  async createPaymentIntent(amount: number, description: string, source: string) {
+  async createPaymentIntent(amount: number, description: string) {
     const [err, paymentIntent] = await to(
       stripe.paymentIntents.create({
         amount: amount,
         currency: 'VND',
         description: description,
-        source: source,
         automatic_payment_methods: { enabled: true },
       })
     );

@@ -1,24 +1,21 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
    reactStrictMode: false,
-   eslint: {
-      // Dung eslint rieng cua project, khong chan build
-      ignoreDuringBuilds: true,
-   },
+   // A stray lockfile at the repo root confuses tracing — pin the root to the client dir
+   outputFileTracingRoot: path.dirname(fileURLToPath(import.meta.url)),
    typescript: {
       ignoreBuildErrors: false,
    },
    images: {
-      // Tra ve URL string khi import anh (giong Vite) de giu nguyen code <img src={logo}>
+      // Image imports resolve to URL strings (Vite parity) so <img src={logo}> keeps working
       disableStaticImages: true,
    },
-   webpack: (config) => {
-      config.module.rules.push({
-         test: /\.(png|jpe?g|gif|webp|avif|svg)$/i,
-         type: 'asset/resource',
-      });
-      return config;
-   },
+   // Next 16 bundles with Turbopack, which already emits static assets as URLs —
+   // the previous custom webpack `asset/resource` rule is no longer needed.
+   turbopack: {},
 };
 
 export default nextConfig;

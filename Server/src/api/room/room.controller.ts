@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from '@/types/http';
 
 import { handleServiceResponse } from '@/utils/httpHandlers';
 
@@ -8,9 +8,8 @@ export const addRoomToApartment = async (req: Request, res: Response, next: Next
   try {
     const { apartmentId } = req.params;
     const room = req.body;
-    const files = req.files as Express.Multer.File[];
 
-    const serviceResponse = await roomService.addRoomToApartment(apartmentId, room, files);
+    const serviceResponse = await roomService.addRoomToApartment(apartmentId, room);
 
     handleServiceResponse(serviceResponse, res);
   } catch (error) {

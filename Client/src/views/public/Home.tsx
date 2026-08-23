@@ -1,6 +1,7 @@
+'use client';
+
 import React from 'react';
 import { motion } from 'framer-motion';
-import background from '@/assets/background.avif';
 import { ApartmentPopular, Search } from '@/components';
 import datlat from '@/assets/dalat.jpg';
 import danang from '@/assets/danang.png';
@@ -42,7 +43,7 @@ const Home: React.FC = () => {
          <div className="max-w-main w-full px-3">
             <motion.div
                className="md:h-[300px] sm:h-[210px] h-[180px] w-full flex justify-center items-center rounded-3xl relative md:mt-3 bg-cover bg-center"
-               style={{ backgroundImage: `url(${background})` }}
+               style={{ backgroundImage: "url('/background.avif')" }}
                initial="hidden"
                animate="visible"
                variants={fadeInVariants}
@@ -68,7 +69,7 @@ const Home: React.FC = () => {
                <div className="lg:grid lg:h-[390px] lg:grid-cols-4 lg:grid-rows-5 lg:gap-5 sm:grid sm:grid-cols-2 sm:grid-rows-6 flex flex-col gap-5">
                   <div
                      className="lg:col-span-1 lg:row-span-5 sm:col-span-1 sm:row-span-4 relative cursor-pointer overflow-hidden rounded-2xl"
-                     onClick={() => navigateToListing('Quy nhơn, Bình Định')}
+                     onClick={() => navigateToListing('Quy nhơn')}
                   >
                      <img
                         src={quynhon}
@@ -81,7 +82,7 @@ const Home: React.FC = () => {
 
                   <div
                      className="lg:col-span-1 lg:row-span-3 sm:col-span-1 sm:row-span-2 relative cursor-pointer overflow-hidden rounded-2xl"
-                     onClick={() => navigateToListing('Đà Lạt, Lâm Đồng')}
+                     onClick={() => navigateToListing('Đà Lạt')}
                   >
                      <img
                         src={datlat}
@@ -155,25 +156,29 @@ const Home: React.FC = () => {
                      {
                         icon: <DollarOutlined />,
                         title: 'Best price guarantee',
-                        description: 'Daily rates set by hosts — no hidden markup.',
+                        description:
+                           'Daily rates set by hosts — no hidden markup.',
                         tone: 'text-green-600 bg-green-50',
                      },
                      {
                         icon: <ThunderboltOutlined />,
                         title: 'Instant booking',
-                        description: 'Real-time availability, confirmed in minutes.',
+                        description:
+                           'Real-time availability, confirmed in minutes.',
                         tone: 'text-blue-600 bg-blue-50',
                      },
                      {
                         icon: <SafetyCertificateOutlined />,
                         title: 'Secure payment',
-                        description: 'Pay safely with Stripe, refunds protected.',
+                        description:
+                           'Pay safely with Stripe, refunds protected.',
                         tone: 'text-purple-600 bg-purple-50',
                      },
                      {
                         icon: <CustomerServiceOutlined />,
                         title: '24/7 support',
-                        description: 'We are here before, during and after your stay.',
+                        description:
+                           'We are here before, during and after your stay.',
                         tone: 'text-amber-600 bg-amber-50',
                      },
                   ].map((perk) => (

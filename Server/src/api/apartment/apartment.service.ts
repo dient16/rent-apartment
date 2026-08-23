@@ -312,7 +312,7 @@ export const apartmentService = {
               cancellationPolicy,
               discounts,
             },
-          ],
+          ] as any[], // the model type comes from the request DTO, which has no `owner` field
           { session }
         )
       );
@@ -331,7 +331,7 @@ export const apartmentService = {
       const roomIds: Types.ObjectId[] = [];
 
       for (const room of rooms) {
-        const roomResponse = await roomService.addRoomToApartment(apartmentId, room, session);
+        const roomResponse = await roomService.addRoomToApartment(apartmentId.toString(), room, session);
 
         if (!roomResponse.success) {
           await session.abortTransaction();

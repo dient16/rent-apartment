@@ -3,12 +3,17 @@ import { z } from 'zod';
 
 extendZodWithOpenApi(z);
 
+export const BookingRoomSchema = z.object({
+  roomId: z.string(),
+  roomNumber: z.number(),
+});
+
 export const BookingSchema = z.object({
   email: z.string().email(),
   firstname: z.string(),
   lastname: z.string(),
   phone: z.string(),
-  room: z.string(),
+  rooms: z.array(BookingRoomSchema),
   arrivalTime: z.string(),
   checkInTime: z.date(),
   checkOutTime: z.date(),

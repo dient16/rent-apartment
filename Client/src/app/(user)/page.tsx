@@ -1,11 +1,28 @@
-'use client';
+import type { Metadata } from 'next';
+import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
+import Home from '@/views/public/Home';
+import { fetchPopularRooms } from '@/lib/server-api';
 
-import dynamic from 'next/dynamic';
-import PageLoader from '@/components/PageLoader/PageLoader';
+export const metadata: Metadata = {
+   title: 'Find House — Book apartments & homestays across Vietnam',
+   description:
+      'Hand-picked apartments and homestays in Da Nang, Nha Trang, Da Lat, Hoi An, Hanoi, Ho Chi Minh City and more — transparent pricing, instant booking.',
+   alternates: { canonical: '/' },
+};
 
-// CSR like the old SPA (phase 1) — avoids SSR issues with browser-only libs
-const Home = dynamic(() => import('@/views/public/Home'), { ssr: false, loading: () => <PageLoader /> });
+// Popular rooms are prefetched on the server and revalidated every minute (ISR)
+export const revalidate = 60;
 
-export default function Page() {
-   return <Home />;
+export default async function Page() {
+   const queryClient = new QueryClient();
+   const popular = await fetchPopularRooms();
+   if (popular) {
+      queryClient.setQueryData(['apartment-popular'], popular);
+   }
+
+   return (
+      <HydrationBoundary state={dehydrate(queryClient)}>
+         <Home />
+      </HydrationBoundary>
+   );
 }

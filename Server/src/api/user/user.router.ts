@@ -8,7 +8,6 @@ import { UserSchema } from '@/api/user/user.dto';
 import { createApiResponse } from '@/api-docs/openAPIResponseBuilders';
 import upload from '@/middlewares/uploadFile';
 import { verifyAccessToken } from '@/middlewares/verifyToken';
-import { validateRequest } from '@/utils/httpHandlers';
 
 import { commonValidations } from '@/utils/commonValidation';
 

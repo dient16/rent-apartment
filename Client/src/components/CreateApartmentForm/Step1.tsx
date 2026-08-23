@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
+import type { FieldValues, UseFormSetValue } from 'react-hook-form';
 import {
    MapContainer,
    TileLayer,
@@ -33,8 +34,69 @@ L.Icon.Default.mergeOptions({
 
 const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org/search?';
 
+type LatLng = { lat: number; lng: number };
+
+/**
+ * Declared at module scope: defining these inside Step1's render creates a brand new
+ * component type on every render, which remounts the map layers each time.
+ */
+const LocationMarker: React.FC<{ position: LatLng | null }> = ({ position }) => {
+   const map = useMap();
+
+   useEffect(() => {
+      if (position) {
+         map.setView(position, map.getZoom());
+      }
+   }, [position, map]);
+
+   return position === null ? null : <Marker position={position} />;
+};
+
+const LocationMarker1: React.FC<{
+   position: LatLng | null;
+   setPosition: (value: LatLng) => void;
+   setValue: UseFormSetValue<FieldValues>;
+}> = ({ position, setPosition, setValue }) => {
+   useMapEvents({
+      async click(e) {
+         setPosition(e.latlng);
+         setValue('location.lat', e.latlng.lat);
+         setValue('location.long', e.latlng.lng);
+
+         try {
+            const response = await apiGetAddress(e.latlng.lat, e.latlng.lng);
+            const address = response.data;
+            setValue(
+               'location.province',
+               address.address?.state ?? address.address?.city,
+            );
+            setValue(
+               'location.district',
+               address.address?.county ??
+                  address.address?.city ??
+                  address.address?.suburb ??
+                  address.address?.city_district ??
+                  address.address?.town,
+            );
+            setValue(
+               'location.ward',
+
+               address.address?.quarter ??
+                  address.address?.suburb ??
+                  address.address?.village ??
+                  address.address?.town,
+            );
+         } catch (error) {
+            console.error(error);
+         }
+      },
+   });
+
+   return position === null ? null : <Marker position={position} />;
+};
+
 const Step1: React.FC = () => {
-   const { setValue, clearErrors } = useFormContext();
+   const { setValue } = useFormContext();
    const [position, setPosition] = useState<{
       lat: number;
       lng: number;
@@ -133,55 +195,6 @@ const Step1: React.FC = () => {
       );
    };
 
-   const LocationMarker = () => {
-      const map = useMap();
-
-      useEffect(() => {
-         if (position) {
-            map.setView(position, map.getZoom());
-         }
-      }, [position, map]);
-
-      return position === null ? null : <Marker position={position} />;
-   };
-   const LocationMarker1 = () => {
-      useMapEvents({
-         async click(e) {
-            setPosition(e.latlng);
-            setValue('location.lat', e.latlng.lat);
-            setValue('location.long', e.latlng.lng);
-
-            try {
-               const response = await apiGetAddress(e.latlng.lat, e.latlng.lng);
-               const address = response.data;
-               setValue(
-                  'location.province',
-                  address.address?.state ?? address.address?.city,
-               );
-               setValue(
-                  'location.district',
-                  address.address?.county ??
-                     address.address?.city ??
-                     address.address?.suburb ??
-                     address.address?.city_district ??
-                     address.address?.town,
-               );
-               setValue(
-                  'location.ward',
-
-                  address.address?.quarter ??
-                     address.address?.suburb ??
-                     address.address?.village ??
-                     address.address?.town,
-               );
-            } catch (error) {
-               console.error(error);
-            }
-         },
-      });
-
-      return position === null ? null : <Marker position={position} />;
-   };
    return (
       <motion.div
          initial={{ opacity: 0, y: 20 }}
@@ -296,8 +309,12 @@ const Step1: React.FC = () => {
                      className="w-full h-full rounded-md shadow-sm"
                   >
                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                     <LocationMarker />
-                     <LocationMarker1 />
+                     <LocationMarker position={position} />
+                     <LocationMarker1
+                        position={position}
+                        setPosition={setPosition}
+                        setValue={setValue}
+                     />
                   </MapContainer>
                </div>
             </div>

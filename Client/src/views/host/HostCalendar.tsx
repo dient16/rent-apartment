@@ -101,14 +101,10 @@ const HostCalendar: React.FC = () => {
    );
 
    // Auto-select the first room once data is ready
-   React.useEffect(() => {
-      if (!selectedRoom) {
-         const first = groups.find((group) => group.rooms.length > 0)
-            ?.rooms[0]?._id;
-         if (first) setSelectedRoom(first);
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [groups]);
+   if (!selectedRoom) {
+      const first = groups.find((group) => group.rooms.length > 0)?.rooms[0]?._id;
+      if (first) setSelectedRoom(first);
+   }
 
    const { data: pricingData, isLoading: isLoadingPricing } = useQuery({
       queryKey: ['pricing', selectedRoom],
@@ -597,7 +593,9 @@ const HostCalendar: React.FC = () => {
                            </Button>
                            <Button
                               type="primary"
-                              className="flex-1 h-10 bg-blue-500 rounded-full"
+                              className={`flex-1 h-10 rounded-full ${
+                                 draftPrice ? 'bg-blue-500' : '!bg-gray-100 !text-gray-400'
+                              }`}
                               loading={updatePricingMutation.isPending}
                               disabled={!draftPrice}
                               onClick={saveDraftPrice}

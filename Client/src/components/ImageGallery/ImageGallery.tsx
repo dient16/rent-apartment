@@ -35,7 +35,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
                            style={COVER}
                            preview={
                               index === 3 && extraCount > 0
-                                 ? { mask: <span className="text-base font-semibold">+{extraCount} photos</span> }
+                                 ? { cover: <span className="text-base font-semibold">+{extraCount} photos</span> }
                                  : undefined
                            }
                         />
@@ -87,7 +87,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
             placement="bottom"
             onClose={() => setDrawerVisible(false)}
             open={drawerVisible}
-            height="100%"
+            size="100%"
             styles={{ body: { background: '#fff' } }}
          >
             <div className="mx-auto max-w-6xl">

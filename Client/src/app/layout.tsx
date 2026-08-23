@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Providers from './providers';
 import TopProgress from '@/components/TopProgress/TopProgress';
+import AntdRegistry from '@/lib/AntdRegistry';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -17,9 +18,12 @@ export default function RootLayout({
 }) {
    return (
       <html lang="en">
-         <body>
-            <TopProgress />
-            <Providers>{children}</Providers>
+         {/* Browser extensions (e.g. Grammarly) inject attributes into <body> — ignore that mismatch */}
+         <body suppressHydrationWarning>
+            <AntdRegistry>
+               <TopProgress />
+               <Providers>{children}</Providers>
+            </AntdRegistry>
          </body>
       </html>
    );

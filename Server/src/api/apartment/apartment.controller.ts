@@ -1,4 +1,4 @@
-import { type NextFunction, type Request, type Response } from 'express';
+import type { NextFunction, Request, Response } from '@/types/http';
 import { StatusCodes } from 'http-status-codes';
 
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
@@ -17,7 +17,7 @@ export const getAllApartment = async (_req: Request, res: Response, next: NextFu
 };
 export const getUserApartments = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const serviceResponse = await apartmentService.getUserApartments(req.user._id);
+    const serviceResponse = await apartmentService.getUserApartments((req.user as UserDecode)._id);
     handleServiceResponse(serviceResponse, res);
   } catch (error) {
     next(error);

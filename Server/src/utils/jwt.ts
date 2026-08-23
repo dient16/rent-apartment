@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-import jwt from 'jsonwebtoken';
+import jwt, { type SignOptions } from 'jsonwebtoken';
 
 import { env } from '@/config/env.config';
 
@@ -18,12 +18,12 @@ export const generateToken = (): string => {
 
 export const generateAccessToken = (uid: string, isAdmin: boolean): string => {
   return jwt.sign({ _id: uid, isAdmin } as JwtPayload, JWT_ACCESS_KEY, {
-    expiresIn: ACCESS_TOKEN_TTL,
+    expiresIn: ACCESS_TOKEN_TTL as SignOptions['expiresIn'],
   });
 };
 
 export const generateRefreshToken = (uid: string): string => {
   return jwt.sign({ _id: uid } as JwtPayload, JWT_REFRESH_KEY, {
-    expiresIn: REFRESH_TOKEN_TTL,
+    expiresIn: REFRESH_TOKEN_TTL as SignOptions['expiresIn'],
   });
 };

@@ -232,7 +232,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                placement="bottom"
                onClose={() => setDrawerVisible(false)}
                open={drawerVisible}
-               height="100%"
+               size="100%"
                zIndex={1000}
             >
                {dateRangePicker}

@@ -17,7 +17,7 @@ const dbConnect = async (): Promise<void> => {
     }
   } catch (error) {
     logger.error('Mongoose connection failed');
-    throw new Error(error as string);
+    throw new Error('Mongoose connection failed', { cause: error });
   }
 };
 

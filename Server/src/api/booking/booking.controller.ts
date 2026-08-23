@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from '@/types/http';
 import { bookingService } from './booking.service';
 import { handleServiceResponse } from '@/utils/httpHandlers';
 
@@ -13,7 +13,7 @@ export const createBooking = async (req: Request, res: Response, next: NextFunct
 
 export const getBookings = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { _id: userId } = req.user;
+    const { _id: userId } = req.user as UserDecode;
     const serviceResponse = await bookingService.getBookings(userId);
     handleServiceResponse(serviceResponse, res);
   } catch (error) {
@@ -33,7 +33,7 @@ export const getBooking = async (req: Request, res: Response, next: NextFunction
 
 export const getUserBookings = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { _id: userId } = req.user;
+    const { _id: userId } = req.user as UserDecode;
     const serviceResponse = await bookingService.getUserBookings(userId);
     handleServiceResponse(serviceResponse, res);
   } catch (error) {

@@ -1,6 +1,8 @@
+'use client';
+
 import React, { useState } from 'react';
 import {
-   Map,
+   GoogleMapEmbed,
    NavigationBarRoom,
    Reviews,
    RoomList,
@@ -11,7 +13,7 @@ import {
    FavoriteButton,
    UserAvatar,
 } from '@/components';
-import { Button, Rate, Result, Spin, message } from 'antd';
+import { Button, Result, Spin, message } from 'antd';
 import { Controller, useForm, FormProvider } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from '@/lib/router-compat';
@@ -52,7 +54,8 @@ const ApartmentDetail: React.FC = () => {
       }
    };
 
-   const { data: { data: apartment } = {}, isFetching } = useQuery({
+   // isLoading (no data yet) — not isFetching — so server-hydrated data renders on SSR
+   const { data: { data: apartment } = {}, isLoading } = useQuery({
       queryKey: ['apartment', apartmentId, searchParams.toString()],
       queryFn: () => apiApartmentDetail(apartmentId, searchParams.toString()),
       staleTime: 0,
@@ -116,12 +119,21 @@ const ApartmentDetail: React.FC = () => {
       document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' });
    };
 
+   // Gallery shows every photo of every room (deduped, first room first)
+   const galleryImages: string[] = Array.from(
+      new Set(
+         ((apartment?.rooms || []) as { images?: string[] }[]).flatMap(
+            (room) => room.images || [],
+         ),
+      ),
+   );
+
    const description: string = apartment?.description || '';
    const isLongDescription = description.length > 420;
 
-   return isFetching ? (
+   return isLoading ? (
       <div className="min-h-screen">
-         <Spin spinning={isFetching} size="large" fullscreen={isFetching} />
+         <Spin spinning={isLoading} size="large" fullscreen={isLoading} />
       </div>
    ) : !apartment ? (
       <div className="flex justify-center items-center min-h-screen">
@@ -159,7 +171,7 @@ const ApartmentDetail: React.FC = () => {
                onSubmit={methods.handleSubmit(handleBooking)}
                className="flex flex-col gap-5 justify-center w-full max-w-main mx-auto px-5 lg:px-7"
             >
-               <ImageGallery images={apartment?.rooms[0]?.images || []} />
+               <ImageGallery images={galleryImages} />
                <div className="flex gap-8 items-start lg:mt-5">
                   <div className="flex flex-col w-full min-w-0">
                      {/* ===== Title + meta ===== */}
@@ -198,7 +210,7 @@ const ApartmentDetail: React.FC = () => {
                            )}
                            <span className="flex gap-1 items-center">
                               <FaLocationDot color="#1640D6" size={14} />
-                              {`${apartment.location.street}, ${apartment.location.ward}, ${apartment.location.district}, ${apartment.location.province}`}
+                              {[apartment.location.street, apartment.location.ward, apartment.location.district, apartment.location.province].filter(Boolean).join(', ')}
                            </span>
                         </div>
                      </div>
@@ -319,19 +331,16 @@ const ApartmentDetail: React.FC = () => {
                {/* ===== Location ===== */}
                <div className="pt-6 mt-2 border-t border-gray-100">
                   <h3 id="location" className="mb-4 text-xl font-semibold text-gray-900">
-                     Where you'll be
+                     Where you&apos;ll be
                   </h3>
                   <p className="mb-4 text-sm text-gray-600">
-                     {`${apartment.location.street}, ${apartment.location.ward}, ${apartment.location.district}, ${apartment.location.province}`}
+                     {[apartment.location.street, apartment.location.ward, apartment.location.district, apartment.location.province].filter(Boolean).join(', ')}
                   </p>
                   <div className="relative z-0 w-full overflow-hidden rounded-2xl border border-gray-100 shadow-sm lg:h-[480px] h-[300px]">
-                     <Map
-                        selectPosition={{
-                           lat: apartment?.location.lat,
-                           lon: apartment?.location.long,
-                        }}
+                     <GoogleMapEmbed
+                        lat={apartment.location.lat}
+                        lng={apartment.location.long}
                         label={apartment?.title}
-                        description={`${apartment.location.street}, ${apartment.location.district}, ${apartment.location.province}`}
                      />
                   </div>
                </div>

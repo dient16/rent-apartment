@@ -7,8 +7,13 @@ declare global {
     isAdmin: boolean;
   }
   namespace Express {
+    // @types/passport declares `Request.user?: Express.User`, so the decoded JWT
+    // payload has to be attached to `User` rather than to `Request` directly.
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    interface User extends UserDecode {}
+
     interface Request {
-      user?: UserDecode | JwtPayload;
+      user?: User;
     }
   }
   declare module 'mongoose' {

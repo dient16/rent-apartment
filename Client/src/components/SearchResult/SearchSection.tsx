@@ -102,7 +102,7 @@ const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
                      zIndex={5}
                   >
                      <Dropdown
-                        dropdownRender={() => (
+                        popupRender={() => (
                            <DropDownItem
                               value={field.value}
                               onChange={(value) => field.onChange(value)}

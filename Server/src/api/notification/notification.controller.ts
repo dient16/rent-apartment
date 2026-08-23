@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from '@/types/http';
 
 import { handleServiceResponse } from '@/utils/httpHandlers';
 

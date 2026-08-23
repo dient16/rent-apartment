@@ -121,7 +121,11 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
             </div>
 
             <Button
-               className="mt-4 w-full !h-11 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl border-none"
+               className={`mt-4 w-full !h-11 text-base font-semibold rounded-xl border-none ${
+                  isValid
+                     ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white'
+                     : '!bg-gray-100 !text-gray-400 cursor-not-allowed'
+               }`}
                htmlType="submit"
                type="primary"
                size="large"
@@ -191,7 +195,7 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
                      <FaChevronUp color="#000" />
                   </span>
                   <Button
-                     className="bg-blue-500 h-[38px] font-main"
+                     className={`h-[38px] font-main ${isValid ? 'bg-blue-500' : '!bg-gray-100 !text-gray-400'}`}
                      id="book-room-btn"
                      htmlType="submit"
                      type="primary"
@@ -206,7 +210,7 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
             placement="bottom"
             onClose={() => setDrawerVisible(false)}
             open={drawerVisible}
-            height="60%"
+            size="60%"
          >
             <div className="flex flex-col gap-3 justify-center items-center w-full">
                <div className="text-xl font-medium">
@@ -280,7 +284,7 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
                      </div>
                   </div>
                   <Button
-                     className="mt-3 bg-blue-500 font-main"
+                     className={`mt-3 font-main ${isValid ? 'bg-blue-500' : '!bg-gray-100 !text-gray-400'}`}
                      htmlType="submit"
                      type="primary"
                      disabled={!isValid}

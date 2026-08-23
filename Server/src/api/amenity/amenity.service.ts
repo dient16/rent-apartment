@@ -108,7 +108,7 @@ export const amenityService = {
       return new ServiceResponse(ResponseStatus.Failed, 'Amenity does not exist', null, StatusCodes.NOT_FOUND);
     }
 
-    const [errDeleteAmenity] = await to(AmenityModel.findByIdAndRemove(aid).exec());
+    const [errDeleteAmenity] = await to(AmenityModel.findByIdAndDelete(aid).exec());
 
     if (errDeleteAmenity) {
       const errorMessage = 'Error deleting amenity';

@@ -21,8 +21,7 @@ import {
    type NotificationItem,
 } from '@/components/NotificationBell/NotificationBell';
 
-const FILTERS = ['all', 'unread', 'read'] as const;
-type Filter = (typeof FILTERS)[number];
+type Filter = 'all' | 'unread' | 'read';
 const PAGE_SIZE = 10;
 
 const Notifications: React.FC = () => {

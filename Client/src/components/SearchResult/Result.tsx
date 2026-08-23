@@ -1,7 +1,8 @@
 import React from 'react';
-import { Button, Pagination, Select, Skeleton } from 'antd';
+import { Button, Select, Skeleton } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import ResultItem from './ResultItem';
+import PaginationBar from './PaginationBar';
 
 interface ResultsProps {
    data: any;
@@ -27,7 +28,7 @@ const Results: React.FC<ResultsProps> = ({
 
    return (
       <div className="flex flex-col gap-3 w-full">
-         {/* Header: so ket qua + sap xep */}
+         {/* Header: result count + sort */}
          <div className="flex flex-wrap gap-3 justify-between items-center px-5 py-3.5 bg-white rounded-2xl border border-gray-100 shadow-card-sm">
             <div className="text-sm font-semibold text-gray-900 md:text-base">
                {isFetching
@@ -46,7 +47,7 @@ const Results: React.FC<ResultsProps> = ({
             />
          </div>
 
-         <div className="flex flex-col gap-4 w-full min-h-[50vh]">
+         <div className="flex flex-col gap-4 w-full">
             {isFetching ? (
                [1, 2, 3, 4].map((index) => (
                   <div
@@ -95,35 +96,13 @@ const Results: React.FC<ResultsProps> = ({
          </div>
 
          {totalResults > 0 && (
-            (() => {
-               const page = +(searchParams.get('page') || 1);
-               const limit = +(searchParams.get('limit') || 15);
-               const from = (page - 1) * limit + 1;
-               const to = Math.min(page * limit, totalResults);
-               return (
-                  <div className="flex flex-col gap-3 items-center px-1 py-5 mt-2 border-t border-gray-100 sm:flex-row sm:justify-between">
-                     <span className="text-sm text-gray-500">
-                        Showing{' '}
-                        <span className="font-semibold text-gray-900">
-                           {from}–{to}
-                        </span>{' '}
-                        of{' '}
-                        <span className="font-semibold text-gray-900">{totalResults}</span>{' '}
-                        stay{totalResults > 1 ? 's' : ''}
-                     </span>
-                     {totalResults > limit && (
-                        <Pagination
-                           className="listing-pagination"
-                           current={page}
-                           total={totalResults}
-                           pageSize={limit}
-                           showSizeChanger={false}
-                           onChange={handleChangePage}
-                        />
-                     )}
-                  </div>
-               );
-            })()
+            <PaginationBar
+               page={+(searchParams.get('page') || 1)}
+               pageSize={+(searchParams.get('limit') || 15)}
+               total={totalResults}
+               onChange={handleChangePage}
+               itemLabel="stay"
+            />
          )}
       </div>
    );

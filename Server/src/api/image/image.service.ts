@@ -13,7 +13,7 @@ const conn: Connection = mongoose.createConnection(MONGODB_URL);
 
 const gfsPromise = new Promise<GridFSBucket>((resolve, reject) => {
   conn.once('open', () => {
-    const gfs = new mongoose.mongo.GridFSBucket(conn.db, {
+    const gfs = new mongoose.mongo.GridFSBucket(conn.db!, {
       bucketName: 'images',
     });
     resolve(gfs);

@@ -9,7 +9,7 @@ import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 import { env } from '@/config/env.config';
 const { SERVER_URL } = env;
 export const roomService = {
-  async addRoomToApartment(apartmentId: string, room: CreateRoom, session: mongoose.ClientSession) {
+  async addRoomToApartment(apartmentId: string, room: CreateRoom, session?: mongoose.ClientSession) {
     try {
       const amenities = room.amenities.map((amenity: any) => new Types.ObjectId(amenity));
 
@@ -21,13 +21,13 @@ export const roomService = {
               amenities,
               apartmentId: new Types.ObjectId(apartmentId),
             },
-          ],
+          ] as any[], // the model type comes from the request DTO, where ids are strings
           { session }
         )
       );
 
       if (err || !newRoom || newRoom.length === 0) {
-        await session.abortTransaction();
+        await session?.abortTransaction();
         return new ServiceResponse(
           ResponseStatus.Failed,
           'Failed to create room',
@@ -43,7 +43,7 @@ export const roomService = {
         StatusCodes.OK
       );
     } catch (error) {
-      await session.abortTransaction();
+      await session?.abortTransaction();
       return new ServiceResponse(
         ResponseStatus.Failed,
         'Error adding room to apartment',

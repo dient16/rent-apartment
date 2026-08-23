@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FaBed, FaCheck, FaMinus, FaPlus, FaRulerCombined, FaUsers } from 'react-icons/fa';
 import { Modal } from 'antd';
 import { RoomInfo } from '@/components';
@@ -36,9 +36,12 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({
    const [count, setCount] = useState<number>(selectedCount);
    const [isModalVisible, setIsModalVisible] = useState(false);
 
-   useEffect(() => {
+   // Re-sync when the parent changes the selection, without an extra effect pass.
+   const [lastSelectedCount, setLastSelectedCount] = useState(selectedCount);
+   if (lastSelectedCount !== selectedCount) {
+      setLastSelectedCount(selectedCount);
       setCount(selectedCount);
-   }, [selectedCount]);
+   }
 
    const handleCountChange = (value: number) => {
       setCount(value);

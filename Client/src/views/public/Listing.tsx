@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from '@/lib/router-compat';
@@ -28,7 +30,8 @@ const Listing: React.FC = () => {
       return params.toString();
    }, [searchParams]);
 
-   const { data, isFetching } = useQuery({
+   // isLoading (no data yet) so server-hydrated results render on SSR; a key change still shows the skeleton
+   const { data, isLoading } = useQuery({
       queryKey: ['listing', queryString],
       queryFn: () => apiSearchRoom(queryString),
       staleTime: 0,
@@ -137,7 +140,7 @@ const Listing: React.FC = () => {
                onClose={() => setDrawerVisible(false)}
                open={drawerVisible}
                className="lg:hidden"
-               height="100%"
+               size="100%"
                zIndex={800}
             >
                <FormProvider {...methods}>{searchAndFilterForm}</FormProvider>
@@ -148,7 +151,7 @@ const Listing: React.FC = () => {
                placement="bottom"
                onClose={() => setFilterDrawerVisible(false)}
                open={filterDrawerVisible}
-               height="100%"
+               size="100%"
             >
                <FormProvider {...methods}>{searchAndFilterForm}</FormProvider>
             </Drawer>
@@ -165,7 +168,7 @@ const Listing: React.FC = () => {
             <div className="w-full min-w-0">
                <Results
                   data={data}
-                  isFetching={isFetching}
+                  isFetching={isLoading}
                   numberOfGuest={numberOfGuest}
                   roomNumber={roomNumber}
                   searchParams={searchParams}
