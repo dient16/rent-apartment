@@ -25,13 +25,10 @@ import { path } from '@/utils/constant';
 const HostDashboard: React.FC = () => {
    const queryClient = useQueryClient();
 
-   // Preview list only — `stats` in the same response covers every booking, so the
-   // figures below stay correct even though this fetches a single page.
    const { data: bookingsData, isLoading: bookingsLoading } = useQuery({
       queryKey: ['bookings-host', 1, 'all', ''],
       queryFn: () => apiGetUserBookings({ page: 1, limit: 5, status: 'all', search: '' }),
    });
-   // Preview panel only — it links out to /host/listings for the full, paginated list.
    const { data: apartmentsData, isLoading: apartmentsLoading } = useQuery({
       queryKey: ['apartments-host', 1, ''],
       queryFn: () => apiGetApartmentByUser({ page: 1, limit: 5, search: '' }),
@@ -51,10 +48,8 @@ const HostDashboard: React.FC = () => {
 
    const bookings = useMemo(() => bookingsData?.data?.bookings || [], [bookingsData]);
    const apartments = apartmentsData?.data?.apartments || [];
-   // The stat must count everything, not just the previewed page.
    const apartmentTotal: number = apartmentsData?.data?.pagination?.total ?? 0;
 
-   // Aggregated server-side across all bookings, not just the page fetched above.
    const stats = bookingsData?.data?.stats ?? {
       revenue: 0,
       pending: 0,

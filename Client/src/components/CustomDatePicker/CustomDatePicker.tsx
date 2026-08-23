@@ -22,7 +22,6 @@ interface CustomDatePickerProps {
    format?: string;
    /** Where the desktop popover anchors relative to the trigger */
    popoverPlacement?: 'bottom' | 'bottomLeft' | 'bottomRight';
-   /** Controlled desktop popover — omit to let the picker manage its own state. */
    open?: boolean;
    onOpenChange?: (open: boolean) => void;
 }
@@ -45,7 +44,6 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
 }) => {
    const [drawerVisible, setDrawerVisible] = useState(false);
    const [uncontrolledPopoverVisible, setUncontrolledPopoverVisible] = useState(false);
-   // Controlled when the parent passes `open` (the search bar closes sibling popups).
    const popoverVisible = open ?? uncontrolledPopoverVisible;
    const setPopoverVisible = (next: boolean) => {
       setUncontrolledPopoverVisible(next);
@@ -145,8 +143,6 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
          {variant === 'button' && (
             <Btn
                className={`my-2 flex gap-1 ${
-                  // With the chevron shown it belongs on the far edge, so the dates
-                  // start from the left instead of the whole row being centred.
                   isShowRightIcon ? 'justify-start' : 'justify-center'
                } items-center w-full bg-white rounded-xl font-main h-[48px] ${className} cursor-pointer lg:hover:text-gray-400`}
                onClick={() => {

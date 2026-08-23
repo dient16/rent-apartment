@@ -36,10 +36,7 @@ const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org/search?';
 
 type LatLng = { lat: number; lng: number };
 
-/**
- * Declared at module scope: defining these inside Step1's render creates a brand new
- * component type on every render, which remounts the map layers each time.
- */
+// Module scope: defining these in Step1's render remounts the map layers every time.
 const LocationMarker: React.FC<{ position: LatLng | null }> = ({ position }) => {
    const map = useMap();
 

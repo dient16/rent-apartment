@@ -56,8 +56,6 @@ const Payment: React.FC<PaymentProps> = ({
       enabled: selectTypePayment === 'before' && amount > 0,
       retry: false,
       staleTime: Infinity,
-      // A failed intent must not be re-requested every time the tab regains focus —
-      // the user retries explicitly with the button in the error card.
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchOnMount: false,

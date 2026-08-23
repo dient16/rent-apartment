@@ -75,8 +75,7 @@ export const openImageBrowserService = async (filename: string): Promise<Service
     {
       // Stream by _id: openDownloadStreamByName would repeat the lookup we just did.
       stream: gfs.openDownloadStream(file._id),
-      // `contentType` is a legacy GridFS field kept by older uploads; newer ones carry the
-      // mime type in metadata, and anything older than both falls back to the extension.
+      // Legacy uploads used GridFS `contentType`; newer ones store it in metadata.
       contentType:
         file.metadata?.contentType ??
         (file as { contentType?: string }).contentType ??

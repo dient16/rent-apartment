@@ -20,8 +20,7 @@ export const uploadImage = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
-// Uploaded filenames are random hex, so a given URL always maps to the same bytes —
-// they can be cached forever by the browser and any proxy in front of the API.
+// Filenames are random hex, so a URL always maps to the same bytes — cache forever.
 const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable';
 
 export const openImageBrowser = async (req: Request, res: Response, next: NextFunction) => {

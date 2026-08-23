@@ -28,7 +28,6 @@ export const apiCreateStripePayment = (data: {
       url: `/payment/create-payment-intent`,
       method: 'post',
       data,
-      // The checkout screen shows its own error card with retry / fallback options.
       skipErrorToast: true,
    });
 export const apiGetRoomCheckout = ({

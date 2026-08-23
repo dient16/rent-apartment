@@ -36,7 +36,6 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({
    const [count, setCount] = useState<number>(selectedCount);
    const [isModalVisible, setIsModalVisible] = useState(false);
 
-   // Re-sync when the parent changes the selection, without an extra effect pass.
    const [lastSelectedCount, setLastSelectedCount] = useState(selectedCount);
    if (lastSelectedCount !== selectedCount) {
       setLastSelectedCount(selectedCount);

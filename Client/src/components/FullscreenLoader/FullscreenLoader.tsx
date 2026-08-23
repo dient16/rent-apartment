@@ -9,11 +9,7 @@ interface FullscreenLoaderProps {
    children?: React.ReactNode;
 }
 
-/**
- * antd's `Spin fullscreen` paints an overlay but — unlike Modal/Drawer — leaves the
- * page scrollable behind it. This pairs the spinner with a body scroll lock so the
- * page actually stays put while something is loading.
- */
+/** antd's `Spin fullscreen` leaves the page scrollable, so pair it with a scroll lock. */
 const FullscreenLoader: React.FC<FullscreenLoaderProps> = ({
    spinning,
    children,

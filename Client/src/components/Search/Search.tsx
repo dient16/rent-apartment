@@ -20,7 +20,6 @@ const Search: React.FC = () => {
    // Mobile/tablet: the Where field opens a full-screen sheet instead of an inline popup
    const [whereOpen, setWhereOpen] = useState(false);
    const [whoOpen, setWhoOpen] = useState(false);
-   // Desktop: Where / When / Who share one slot, so opening one closes the others.
    const [activePanel, setActivePanel] = useState<'where' | 'when' | 'who' | null>(
       null,
    );

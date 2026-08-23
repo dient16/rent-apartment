@@ -21,7 +21,6 @@ import ApartmentModel from './apartment.model';
 import type { Apartment, GetApartmentQuery, GetOwnerApartmentsQuery } from './apartment.dto';
 const { SERVER_URL } = env;
 
-/** Escape user input before embedding it in a RegExp. */
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 interface PaginatedResult<T> {
@@ -111,19 +110,13 @@ export const apartmentService = {
     );
   },
   /**
-   * Apartments guests actually liked.
-   *
-   * Ranking uses a Bayesian average rather than the raw mean, so a place with a single
-   * 5-star review does not outrank one with fifty 4.8s: each apartment is padded with
-   * PRIOR_WEIGHT imaginary reviews at the site-wide average, and only accumulates real
-   * weight as genuine reviews come in.
+   * Bayesian average, not the raw mean: one 5-star review must not outrank fifty 4.8s.
    */
   async getPopularRooms(limit: number = 10) {
     const PRIOR_WEIGHT = 5;
     const FALLBACK_RATING = 4;
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
-    // Site-wide mean, used as the prior every apartment starts from.
     const [errAvg, globalRows] = await to(
       ReviewModel.aggregate([{ $group: { _id: null, avg: { $avg: '$rating' } } }]).exec()
     );
@@ -140,7 +133,6 @@ export const apartmentService = {
     const [err, apartments] = await to(
       ApartmentModel.aggregate([
         {
-          // Cheapest room doubles as the "from" price and the image fallback.
           $lookup: {
             from: 'rooms',
             let: { apartmentId: '$_id' },
@@ -186,7 +178,6 @@ export const apartmentService = {
             },
           },
         },
-        // Nothing to show without a photo, so drop those before ranking.
         {
           $addFields: {
             gallery: {
@@ -923,7 +914,6 @@ export const apartmentService = {
     const filter: Record<string, any> = { owner: userId };
 
     if (search.trim()) {
-      // Reuse the shared escaper so a stray "(" from the search box cannot break the regex.
       const keyword = new RegExp(escapeRegex(search.trim()), 'i');
       filter.$or = [{ title: keyword }, { 'location.province': keyword }, { 'location.district': keyword }];
     }

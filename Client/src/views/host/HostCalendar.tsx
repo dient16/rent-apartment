@@ -36,7 +36,6 @@ const MONTHS = Array.from({ length: 12 }, (_, index) =>
    dayjs().month(index).format('MMM'),
 );
 
-/** Apartments per page in the left rail — it is a thumbnail strip, not a grid. */
 const RAIL_PAGE_SIZE = 5;
 
 interface RoomItem {

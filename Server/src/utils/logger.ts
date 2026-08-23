@@ -1,9 +1,6 @@
 import { pino } from 'pino';
 
-/**
- * Lives outside server.ts so services can log without importing the Express app
- * (which would close an import cycle: server -> routes -> service -> server).
- */
+/** Outside server.ts: importing the app into a service closes an import cycle. */
 export const logger = pino({ name: 'server start' });
 
 export default logger;

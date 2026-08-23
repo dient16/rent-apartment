@@ -13,9 +13,7 @@ interface AutoCompleteAddressProps {
    /** Render the list in flow (for the mobile full-screen sheet) instead of an absolute popup */
    inline?: boolean;
    onSelect?: () => void;
-   /** Controlled visibility — the search bar uses it to keep one popup open at a time. */
    open?: boolean;
-   /** Match the trigger's width instead of the wider hero-search popup. */
    matchWidth?: boolean;
 }
 
@@ -54,8 +52,6 @@ const AutoCompleteAddress: React.FC<AutoCompleteAddressProps> = ({
 
    const hasContent = (options.length > 0 || isFetching) && !!value;
    const isOpen = open === undefined ? hasContent : open && hasContent;
-   // The hero search bar centres a wider popup over a narrow column; sidebars just
-   // want it flush with the field.
    const centred = !inline && !matchWidth;
 
    return (
@@ -63,10 +59,7 @@ const AutoCompleteAddress: React.FC<AutoCompleteAddressProps> = ({
          <AnimatePresence>
             {isOpen && (
                <motion.div
-                  // The popup is wider than the Where column (min-w-320px), so it is
-                  // centred on the field via left-1/2 + a -50% x shift. The shift lives
-                  // here rather than in a `-translate-x-1/2` class because framer-motion
-                  // writes its own inline `transform`, which would drop the class.
+                  // The x shift lives here, not in a class: framer-motion overwrites `transform`.
                   initial={{ opacity: 0, y: -6, ...(centred ? { x: '-50%' } : {}) }}
                   animate={{ opacity: 1, y: 0, ...(centred ? { x: '-50%' } : {}) }}
                   exit={{ opacity: 0, y: -6, ...(centred ? { x: '-50%' } : {}) }}
@@ -80,8 +73,6 @@ const AutoCompleteAddress: React.FC<AutoCompleteAddressProps> = ({
                   )}
                >
                   {isFetching ? (
-                     // Skeleton rows shaped like real suggestions — the list keeps its
-                     // height instead of collapsing to a spinner and jumping back.
                      <div className="animate-pulse">
                         {[0, 1, 2].map((row) => (
                            <div key={row} className="flex gap-3 items-center px-4 py-2.5">

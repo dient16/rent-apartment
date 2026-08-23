@@ -21,7 +21,6 @@ const { SERVER_URL } = env;
 /** Dates go straight into emails, so render them readably instead of Date.toString(). */
 const formatMailDate = (value: Date | string) => moment(value).format('ddd, DD MMM YYYY');
 
-/** Deep-link a booking in the client app. */
 const bookingUrl = (bookingId: string) => `${env.CLIENT_URL}/my-booking/${bookingId}`;
 
 
@@ -53,7 +52,6 @@ const getUserBookings = async (userId: string, { page = 1, limit = 10, status = 
 
     if (search.trim()) {
       const keyword = new RegExp(escapeRegex(search.trim()), 'i');
-      // Listing titles live on Apartment, so resolve matching apartments to their rooms first.
       const matchedRoomIds = rooms
         .filter((room: any) =>
           apartments.some((apartment: any) => apartment._id.equals(room.apartmentId) && keyword.test(apartment.title))
@@ -68,7 +66,6 @@ const getUserBookings = async (userId: string, { page = 1, limit = 10, status = 
       ];
     }
 
-    // Status tabs count across the whole (unpaginated) result set.
     const filter = status === 'all' ? baseFilter : { ...baseFilter, status };
 
     const [countRows, statRows, total, bookings] = await Promise.all([
@@ -135,7 +132,6 @@ const getUserBookings = async (userId: string, { page = 1, limit = 10, status = 
       {
         bookings: hostBookings,
         counts,
-        // The dashboard needs figures over every booking, not just the page it shows.
         stats: statRows[0]
           ? {
               revenue: statRows[0].revenue,

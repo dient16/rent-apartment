@@ -33,8 +33,6 @@ const Step2: React.FC<Step2Props> = ({
    });
    const [activeIndex, setActiveIndex] = useState(0);
 
-   // Seed the form with one empty room. The remove handler below already clamps
-   // activeIndex, so it is 0 by the time the list can become empty.
    useEffect(() => {
       if (fields.length === 0) {
          append(emptyRoom);

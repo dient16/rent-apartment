@@ -20,6 +20,10 @@ export const env = cleanEnv(process.env, {
   // Comma-separated DNS servers used only for geocoder lookups. Set this when the
   // network's own resolver blackholes nominatim.openstreetmap.org; empty = OS resolver.
   GEOCODER_DNS: str({ default: '' }),
+  // How many reverse-proxy hops to trust for the client IP. '0' = trust nothing (the
+  // safe default); '1' behind a single nginx/CDN; or an explicit IP/subnet list.
+  // Never 'true': that lets any caller spoof X-Forwarded-For and skip rate limiting.
+  TRUST_PROXY: str({ default: '0' }),
   JWT_ACCESS_KEY: str(),
   EMAIL_NAME: str(),
   EMAIL_APP_PASSWORD: str(),

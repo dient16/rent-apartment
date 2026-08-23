@@ -66,7 +66,6 @@ const MyBooking: React.FC = () => {
    const [filter, setFilter] = useState<'all' | BookingStatus>('all');
    const [page, setPage] = useState(1);
 
-   // Switching tab restarts paging.
    const [lastFilter, setLastFilter] = useState(filter);
    if (lastFilter !== filter) {
       setLastFilter(filter);
@@ -83,7 +82,6 @@ const MyBooking: React.FC = () => {
       () => data?.data?.bookings || [],
       [data],
    );
-   // Tab badges count the whole result set, not the page on screen.
    const counts: Record<string, number> = data?.data?.counts || {};
    const total: number = data?.data?.pagination?.total ?? 0;
 

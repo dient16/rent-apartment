@@ -15,14 +15,11 @@ interface SearchSectionProps {
 const plural = (count: number, noun: string) =>
    `${count} ${noun}${count === 1 ? '' : 's'}`;
 
-/** One boxed row — keeps the three fields visually identical. */
 const fieldBox =
    'flex items-center gap-2.5 w-full min-h-[52px] px-3.5 bg-white border-[1.5px] border-gray-300 rounded-xl transition-colors hover:border-gray-500 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100';
 
 const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
    const { control, setValue } = useFormContext();
-   // The field is prefilled from the URL, so the suggestion list must stay shut
-   // until the user actually focuses or types in it.
    const [suggestOpen, setSuggestOpen] = useState(false);
 
    // These are the names the search form actually writes to the URL — the old

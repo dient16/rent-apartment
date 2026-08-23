@@ -10,7 +10,6 @@ interface InputFieldProps {
    label: string;
    className?: string;
    rows?: number;
-   /** Unit label shown inside the field, e.g. "VND". */
    suffix?: string;
    formatter?: (value: string) => string;
    parser?: (value: string) => string;

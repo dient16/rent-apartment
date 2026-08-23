@@ -1,11 +1,8 @@
 import { useEffect } from 'react';
 
 /**
- * Freezes page scrolling while `locked` is true.
- *
- * antd's `Spin fullscreen` paints an overlay but — unlike Modal/Drawer — does not
- * lock the body, so the page still scrolls behind the spinner. Hiding the scrollbar
- * would shift the layout sideways, so its width is added back as padding.
+ * antd's `Spin fullscreen` does not lock the body the way Modal/Drawer do, so the page
+ * scrolls behind the spinner. The scrollbar width is re-added as padding to avoid a shift.
  */
 const useLockBodyScroll = (locked: boolean) => {
    useEffect(() => {

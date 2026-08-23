@@ -51,10 +51,8 @@ const HostBookings: React.FC = () => {
    const [filter, setFilter] = useState<'all' | BookingStatus>('all');
    const [search, setSearch] = useState('');
    const [page, setPage] = useState(1);
-   // Filtering and paging run server-side, so debounce before hitting the API.
    const debouncedSearch = useDebounce(search, 350);
 
-   // Changing tab or keyword invalidates the current page number.
    const [lastQuery, setLastQuery] = useState(`${filter}|${debouncedSearch}`);
    if (lastQuery !== `${filter}|${debouncedSearch}`) {
       setLastQuery(`${filter}|${debouncedSearch}`);
@@ -98,7 +96,6 @@ const HostBookings: React.FC = () => {
    });
 
    const visible: HostBooking[] = useMemo(() => data?.data?.bookings || [], [data]);
-   // Tab badges count the whole result set, not the page on screen.
    const counts: Record<string, number> = data?.data?.counts || {};
    const total: number = data?.data?.pagination?.total ?? 0;
 

@@ -21,9 +21,7 @@ interface Suggestion {
 
 const cache = new Map<string, { data: Suggestion[]; expires: number }>();
 
-// The search box fires a suggest per keystroke. When the upstream is down (DNS block,
-// rate limit, outage) that means one failed round-trip and one error dump per key, so
-// back off for a while after a failure instead of hammering it.
+// One suggest per keystroke, so back off after a failure instead of hammering the upstream.
 const BREAKER_COOLDOWN_MS = 60 * 1000;
 const breaker = { openUntil: 0, reported: false };
 

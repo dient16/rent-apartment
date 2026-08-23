@@ -27,8 +27,6 @@ const BookingCompletion: React.FC = () => {
    const navigate = useNavigate();
    const { bookingId } = useParams();
 
-   // The page used to ignore the id in the URL entirely and show a bare success card,
-   // so the guest never saw what had actually been booked.
    const { data: { data: booking } = {}, isFetching } = useQuery({
       queryKey: ['booking-detail', bookingId],
       queryFn: () => apiGetBooking(bookingId as string),

@@ -2,11 +2,7 @@ import type { Server } from 'node:http';
 
 import { logger } from '@/utils/logger';
 
-/**
- * Anything that escapes Express (a throw in a timer/stream callback, a promise nobody
- * awaited, a listen() failure) never reaches the error middleware. Without these hooks
- * Node prints a bare stack trace to stderr and exits, so nothing lands in the pino logs.
- */
+/** Failures outside Express never reach the error middleware — catch them here. */
 const registerProcessHandlers = (server: Server, shutdown: (code: number) => void) => {
   server.on('error', (error: NodeJS.ErrnoException) => {
     if (error.code === 'EADDRINUSE') {

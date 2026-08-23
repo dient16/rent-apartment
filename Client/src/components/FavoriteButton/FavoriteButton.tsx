@@ -12,11 +12,7 @@ interface FavoriteButtonProps {
    className?: string;
 }
 
-/**
- * Shared heart button. The toggle is optimistic: the `currentUser` cache flips
- * immediately so the heart responds on click, and the request settles in the
- * background. A failure rolls the cache back.
- */
+/** Optimistic: the cache flips on click and the request settles in the background. */
 const FavoriteButton: React.FC<FavoriteButtonProps> = ({
    apartmentId,
    size = 20,
@@ -31,7 +27,6 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({
       mutationFn: () => apiToggleFavorite(apartmentId),
 
       onMutate: async () => {
-         // Stop an in-flight refetch from overwriting the optimistic value.
          await queryClient.cancelQueries({ queryKey: ['currentUser'] });
          const previousUser = queryClient.getQueryData(['currentUser']);
          const previousFavorites = queryClient.getQueriesData({
@@ -52,7 +47,6 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({
             };
          });
 
-         // On the favorites page, un-hearting should drop the card right away.
          if (isFavorited) {
             queryClient.setQueriesData({ queryKey: ['favorites'] }, (old: any) => {
                if (!old?.data?.favorites) return old;
@@ -82,8 +76,7 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({
       },
 
       onSettled: () => {
-         // Reconcile only after the last click lands — otherwise a quick
-         // double-toggle gets clobbered by the first response's refetch.
+         // Only after the last click lands, or a double-toggle refetches stale state.
          const stillRunning = queryClient.isMutating({
             mutationKey: ['toggle-favorite', apartmentId],
          });

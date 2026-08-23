@@ -35,10 +35,8 @@ const HostListings: React.FC = () => {
    const navigate = useNavigate();
    const [search, setSearch] = useState('');
    const [page, setPage] = useState(1);
-   // Search and paging both run server-side, so debounce before hitting the API.
    const debouncedSearch = useDebounce(search, 350);
 
-   // A new keyword invalidates the current page number.
    const [lastSearch, setLastSearch] = useState(debouncedSearch);
    if (lastSearch !== debouncedSearch) {
       setLastSearch(debouncedSearch);
@@ -49,7 +47,6 @@ const HostListings: React.FC = () => {
       queryKey: ['apartments-host', page, debouncedSearch],
       queryFn: () =>
          apiGetApartmentByUser({ page, limit: PAGE_SIZE, search: debouncedSearch }),
-      // Keep the previous page on screen while the next one loads, no layout flash.
       placeholderData: keepPreviousData,
    });
 
