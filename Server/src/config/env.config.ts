@@ -16,6 +16,9 @@ export const env = cleanEnv(process.env, {
   SERVER_URL: str({ devDefault: testOnly('http://localhost:9009') }),
   CLIENT_URL: str({ devDefault: testOnly('http://localhost:8000') }),
   MONGODB_URL: str(),
+  // 'atlas' = Atlas Search ($search on the cluster itself, no sync needed);
+  // 'elasticsearch' = external ES. Either falls back to Mongo regex when down.
+  SEARCH_PROVIDER: str({ choices: ['atlas', 'elasticsearch'], default: 'atlas' }),
   ELASTICSEARCH_URL: str({ default: 'http://localhost:9200' }),
   // Elastic Cloud API key; empty = unsecured cluster (local docker).
   ELASTICSEARCH_API_KEY: str({ default: '' }),

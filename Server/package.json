@@ -21,7 +21,8 @@
     "release": "semantic-release",
     "typecheck": "tsc --noEmit",
     "es:up": "docker compose up -d elasticsearch",
-    "es:reindex": "tsx scripts/reindexApartments.ts"
+    "search:reindex": "tsx src/scripts/reindexApartments.ts",
+    "search:reindex:prod": "node dist/scripts/reindexApartments.js"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",

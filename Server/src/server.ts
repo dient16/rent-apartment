@@ -13,7 +13,7 @@ import errorHandler from '@/middlewares/errorHandler';
 import rateLimiter from '@/middlewares/rateLimiter';
 import requestLogger from '@/middlewares/requestLogger';
 import initRoutes from '@/routes';
-import { initApartmentIndex } from '@/services/apartmentSearch.service';
+import { initSearch } from '@/services/search';
 
 const app: Express = express();
 app.use(express.json());
@@ -36,7 +36,7 @@ app.use(
 );
 // Fire-and-forget startup work; catch keeps failures readable.
 dbConnect().catch((error) => logger.fatal({ err: error }, 'Database connection failed'));
-initApartmentIndex().catch((error) => logger.error({ err: error }, 'Elasticsearch index init failed'));
+initSearch().catch((error) => logger.error({ err: error }, 'Search init failed'));
 app.use(passport.initialize());
 app.use(rateLimiter);
 app.use(requestLogger);

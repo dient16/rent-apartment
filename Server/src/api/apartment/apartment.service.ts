@@ -14,7 +14,7 @@ import {
   indexApartment,
   removeApartmentFromIndex,
   searchApartmentIds,
-} from '@/services/apartmentSearch.service';
+} from '@/services/search';
 
 import { roomService } from '../room/room.service';
 import ApartmentModel from './apartment.model';
@@ -507,7 +507,7 @@ export const apartmentService = {
         );
       }
       // Narrow the first stage on the apartmentId index.
-      (roomMatch as any).apartmentId = { $in: esApartmentIds.map((id) => new mongoose.Types.ObjectId(id)) };
+      (roomMatch as any).apartmentId = { $in: esApartmentIds.map((id: string) => new mongoose.Types.ObjectId(id)) };
     }
 
     // Fallback: substring match, since Mongo $text matches per word and over-hits.
@@ -792,7 +792,7 @@ export const apartmentService = {
   async getRoomsCheckout(roomIds: string[], roomNumbers: string[], query: any) {
     const { startDate, endDate } = query;
 
-    const roomIdsObj = roomIds.map((id) => new mongoose.Types.ObjectId(id));
+    const roomIdsObj = roomIds.map((id: string) => new mongoose.Types.ObjectId(id));
 
     const roomNumbersInt = roomNumbers.map((num) => parseInt(num, 10));
 
