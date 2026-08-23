@@ -74,7 +74,7 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
    }, [selectedRooms, apartment]);
    return (
       <>
-         <div className="hidden xl:block sticky p-6 mt-5 bg-white rounded-2xl border border-gray-100 shadow-lg shadow-gray-200/70 min-w-[370px] top-[140px] font-main">
+         <div className="hidden xl:block sticky p-6 mt-8 bg-white rounded-2xl border border-gray-100 shadow-lg shadow-gray-200/70 min-w-[370px] top-[164px] font-main">
             {/* Price headline */}
             <div className="flex gap-1 items-baseline">
                <span className="text-2xl font-bold text-gray-900">
