@@ -502,7 +502,7 @@ export const apartmentService = {
         return new ServiceResponse(
           ResponseStatus.Success,
           'Apartments retrieved successfully',
-          { page: page || 1, pageResults: 0, totalResults: 0, apartments: [] },
+          { page: Math.max(1, page || 1), pageResults: 0, totalResults: 0, apartments: [] },
           StatusCodes.OK
         );
       }

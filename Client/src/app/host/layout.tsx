@@ -44,7 +44,7 @@ export default function HostLayout({
       <div className="flex flex-col justify-center items-center w-full font-main">
          <Header isHost={true} />
          <div className="w-full min-h-screen bg-gray-50">{children}</div>
-         <Footer />
+         {!pathname.includes('/host/messages') && <Footer />}
       </div>
    );
 }

@@ -15,11 +15,14 @@ export default function UserLayout({
       window.scrollTo(0, 0);
    }, [pathname]);
 
+   // The messenger fills the viewport — a footer below it only adds scroll
+   const hideFooter = pathname?.startsWith('/messages');
+
    return (
       <div className="flex z-50 flex-col justify-center items-center w-full font-main">
          <Header />
          <div className="w-full min-h-[calc(100vh-60px)] lg:min-h-[calc(100vh-80px)]">{children}</div>
-         <Footer />
+         {!hideFooter && <Footer />}
       </div>
    );
 }

@@ -7,7 +7,12 @@ import {
    SmileOutlined,
 } from '@ant-design/icons';
 import EmojiPicker, { type EmojiClickData } from 'emoji-picker-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+   useInfiniteQuery,
+   useMutation,
+   useQuery,
+   useQueryClient,
+} from '@tanstack/react-query';
 import { useSearchParams } from '@/lib/router-compat';
 import moment from 'moment';
 import clsx from 'clsx';
@@ -18,6 +23,7 @@ import {
    apiSendMessage,
 } from '@/apis';
 import { UserAvatar } from '@/components';
+import { connectSocket, getSocket } from '@/lib/socket';
 
 interface Partner {
    _id: string;
@@ -63,6 +69,19 @@ const Messenger: React.FC = () => {
    const [emojiOpen, setEmojiOpen] = useState(false);
    const listRef = useRef<HTMLDivElement>(null);
 
+   // Realtime presence + typing (socket.io)
+   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
+   const [typingConversations, setTypingConversations] = useState<Set<string>>(
+      new Set(),
+   );
+   const typingTimeoutsRef = useRef<
+      Map<string, ReturnType<typeof setTimeout>>
+   >(new Map());
+   const lastTypingSentRef = useRef(0);
+   const stopTypingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null,
+   );
+
    const { data: conversationsData, isLoading: isLoadingConversations } =
       useQuery({
          queryKey: ['conversations'],
@@ -84,20 +103,38 @@ const Messenger: React.FC = () => {
       );
    }, [conversations, search]);
 
-   const { data: messagesData, isLoading: isLoadingMessages } = useQuery({
+   // Newest page first; scrolling to the top loads older pages via `before` cursor.
+   // Socket `message:new` delivers realtime updates; polling is only a fallback.
+   const {
+      data: messagesData,
+      isLoading: isLoadingMessages,
+      fetchNextPage: fetchOlderMessages,
+      hasNextPage: hasOlderMessages,
+      isFetchingNextPage: isFetchingOlder,
+   } = useInfiniteQuery({
       queryKey: ['messages', selectedId],
-      queryFn: () => apiGetMessages(selectedId as string),
+      queryFn: ({ pageParam }) =>
+         apiGetMessages(selectedId as string, pageParam),
+      initialPageParam: undefined as string | undefined,
+      getNextPageParam: (lastPage) =>
+         lastPage?.data?.hasMore
+            ? lastPage.data.messages?.[0]?._id
+            : undefined,
       enabled: !!selectedId,
-      refetchInterval: 3_000,
+      refetchInterval: 15_000,
       staleTime: 0, // refetch when a thread opens, never show stale messages
    });
 
    const messages: ChatMessage[] = useMemo(
-      () => messagesData?.data?.messages || [],
+      () =>
+         // pages[0] is the newest batch -> older pages go in front
+         [...(messagesData?.pages || [])]
+            .reverse()
+            .flatMap((page) => page?.data?.messages || []),
       [messagesData],
    );
    const activePartner: Partner | undefined =
-      messagesData?.data?.partner ||
+      messagesData?.pages?.[0]?.data?.partner ||
       conversations.find((conversation) => conversation._id === selectedId)
          ?.partner;
 
@@ -128,12 +165,115 @@ const Messenger: React.FC = () => {
       },
    });
 
-   // Scroll the CHAT PANE to the bottom on new messages (scrollIntoView
-   // would drag the whole page down as well)
+   // Socket listeners: presence updates, partner typing, instant new messages
+   useEffect(() => {
+      const socket = connectSocket();
+      if (!socket) return;
+
+      const setTyping = (conversationId: string, isTyping: boolean) => {
+         setTypingConversations((prev) => {
+            const next = new Set(prev);
+            if (isTyping) next.add(conversationId);
+            else next.delete(conversationId);
+            return next;
+         });
+         const timers = typingTimeoutsRef.current;
+         const existing = timers.get(conversationId);
+         if (existing) clearTimeout(existing);
+         timers.delete(conversationId);
+         if (isTyping) {
+            // Safety net: hide the indicator if a typing:false never arrives
+            timers.set(
+               conversationId,
+               setTimeout(() => setTyping(conversationId, false), 5000),
+            );
+         }
+      };
+
+      const onPresence = ({
+         userId,
+         online,
+      }: {
+         userId: string;
+         online: boolean;
+      }) => {
+         setOnlineIds((prev) => {
+            const next = new Set(prev);
+            if (online) next.add(userId);
+            else next.delete(userId);
+            return next;
+         });
+      };
+      const onTyping = ({
+         conversationId,
+         isTyping,
+      }: {
+         conversationId: string;
+         isTyping: boolean;
+      }) => setTyping(conversationId, isTyping);
+      const onNewMessage = ({
+         conversationId,
+      }: {
+         conversationId: string;
+      }) => {
+         setTyping(conversationId, false);
+         queryClient.invalidateQueries({
+            queryKey: ['messages', conversationId],
+         });
+         queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      };
+
+      socket.on('presence:update', onPresence);
+      socket.on('typing', onTyping);
+      socket.on('message:new', onNewMessage);
+      return () => {
+         socket.off('presence:update', onPresence);
+         socket.off('typing', onTyping);
+         socket.off('message:new', onNewMessage);
+      };
+   }, [queryClient]);
+
+   // Ask the server who is online whenever the partner list changes
+   useEffect(() => {
+      const socket = getSocket();
+      const partnerIds = conversations
+         .map((conversation) => conversation.partner?._id)
+         .filter(Boolean) as string[];
+      if (activePartner?._id) partnerIds.push(activePartner._id);
+      if (!socket || partnerIds.length === 0) return;
+      socket.emit('presence:query', partnerIds, (online: string[]) =>
+         setOnlineIds(new Set(online)),
+      );
+   }, [conversations, activePartner?._id]);
+
+   const newestMessageId = messages[messages.length - 1]?._id;
+
+   // Anchor the viewport when an older page is prepended (stores distance-from-bottom)
+   const prevBottomOffsetRef = useRef<number | null>(null);
    useEffect(() => {
       const list = listRef.current;
+      if (!list || prevBottomOffsetRef.current === null) return;
+      list.scrollTop = list.scrollHeight - prevBottomOffsetRef.current;
+      prevBottomOffsetRef.current = null;
+   }, [messages.length]);
+
+   // Scroll the CHAT PANE to the bottom on thread open / new message / typing
+   // (scrollIntoView would drag the whole page down as well)
+   useEffect(() => {
+      if (prevBottomOffsetRef.current !== null) return; // older page load, keep anchor
+      const list = listRef.current;
       if (list) list.scrollTop = list.scrollHeight;
-   }, [messages.length, selectedId]);
+   }, [newestMessageId, selectedId, typingConversations]);
+
+   // Near the top -> load the previous (older) page
+   const handleListScroll = () => {
+      const list = listRef.current;
+      if (!list || !hasOlderMessages || isFetchingOlder) return;
+      if (list.scrollTop < 80) {
+         prevBottomOffsetRef.current = list.scrollHeight - list.scrollTop;
+         fetchOlderMessages();
+      }
+   };
 
    // After reading a thread, refresh the unread badges in the list
    useEffect(() => {
@@ -141,13 +281,43 @@ const Messenger: React.FC = () => {
          queryClient.invalidateQueries({ queryKey: ['conversations'] });
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [selectedId, messagesData?.data?.messages?.length]);
+   }, [selectedId, messages.length]);
+
+   const emitTyping = (isTyping: boolean) => {
+      const socket = getSocket();
+      if (!socket || !selectedId || !activePartner?._id) return;
+      socket.emit('typing', {
+         to: activePartner._id,
+         conversationId: selectedId,
+         isTyping,
+      });
+   };
+
+   const handleDraftChange = (value: string) => {
+      setDraft(value);
+      const now = Date.now();
+      // Throttled typing:true while the user keeps typing...
+      if (now - lastTypingSentRef.current > 1500) {
+         lastTypingSentRef.current = now;
+         emitTyping(true);
+      }
+      // ...and typing:false shortly after they stop
+      if (stopTypingTimerRef.current) clearTimeout(stopTypingTimerRef.current);
+      stopTypingTimerRef.current = setTimeout(() => emitTyping(false), 2000);
+   };
 
    const handleSend = () => {
       const content = draft.trim();
       if (!content || !selectedId || sendMutation.isPending) return;
+      if (stopTypingTimerRef.current) clearTimeout(stopTypingTimerRef.current);
+      emitTyping(false);
       sendMutation.mutate(content);
    };
+
+   const partnerOnline =
+      !!activePartner?._id && onlineIds.has(activePartner._id);
+   const partnerTyping =
+      !!selectedId && typingConversations.has(selectedId);
 
    const totalUnread: number = conversationsData?.data?.totalUnread || 0;
 
@@ -197,8 +367,19 @@ const Messenger: React.FC = () => {
                                  {partnerName(activePartner)}
                               </p>
                               <p className="flex gap-1.5 items-center text-xs text-gray-400">
-                                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                                 Usually replies within a day
+                                 <span
+                                    className={clsx(
+                                       'w-1.5 h-1.5 rounded-full',
+                                       partnerOnline
+                                          ? 'bg-green-500'
+                                          : 'bg-gray-300',
+                                    )}
+                                 />
+                                 {partnerTyping
+                                    ? 'Typing...'
+                                    : partnerOnline
+                                      ? 'Active now'
+                                      : 'Offline'}
                               </p>
                            </div>
                         </div>
@@ -269,12 +450,18 @@ const Messenger: React.FC = () => {
                                     {isActive && (
                                        <span className="absolute left-0 top-1/2 w-1 h-8 bg-blue-500 rounded-full -translate-y-1/2" />
                                     )}
-                                    <UserAvatar
-                                       size={46}
-                                       src={conversation.partner.avatar}
-                                       name={conversation.partner.firstname}
-                                       className="flex-shrink-0"
-                                    />
+                                    <span className="relative flex-shrink-0">
+                                       <UserAvatar
+                                          size={46}
+                                          src={conversation.partner.avatar}
+                                          name={conversation.partner.firstname}
+                                       />
+                                       {onlineIds.has(
+                                          conversation.partner._id,
+                                       ) && (
+                                          <span className="absolute right-0.5 bottom-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                                       )}
+                                    </span>
                                     <span className="flex-1 min-w-0">
                                        <span className="flex justify-between items-center">
                                           <span
@@ -349,10 +536,60 @@ const Messenger: React.FC = () => {
                            {/* Messages */}
                            <div
                               ref={listRef}
+                              onScroll={handleListScroll}
                               className="overflow-y-auto flex-1 px-5 py-4 bg-white"
                            >
+                              {isFetchingOlder && (
+                                 <div className="flex justify-center py-2">
+                                    <span className="flex gap-1 items-center px-3 h-7 bg-gray-100 rounded-full">
+                                       {[0, 1, 2].map((dot) => (
+                                          <span
+                                             key={dot}
+                                             className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                                             style={{
+                                                animationDelay: `${dot * 150}ms`,
+                                             }}
+                                          />
+                                       ))}
+                                    </span>
+                                 </div>
+                              )}
                               {isLoadingMessages ? (
-                                 <Skeleton active paragraph={{ rows: 5 }} />
+                                 // Ghost conversation: alternating bubbles like real messages
+                                 <div className="flex flex-col gap-2 justify-end h-full animate-pulse">
+                                    {[
+                                       { mine: false, width: 'w-52' },
+                                       { mine: false, width: 'w-36' },
+                                       { mine: true, width: 'w-44' },
+                                       { mine: true, width: 'w-64' },
+                                       { mine: false, width: 'w-56' },
+                                       { mine: true, width: 'w-40' },
+                                       { mine: false, width: 'w-48' },
+                                    ].map((bubble, index) => (
+                                       <div
+                                          key={index}
+                                          className={clsx(
+                                             'flex items-end gap-2',
+                                             bubble.mine
+                                                ? 'justify-end'
+                                                : 'justify-start',
+                                          )}
+                                       >
+                                          {!bubble.mine && (
+                                             <span className="flex-shrink-0 w-7 h-7 bg-gray-200 rounded-full" />
+                                          )}
+                                          <span
+                                             className={clsx(
+                                                'h-9 max-w-[72%] rounded-2xl',
+                                                bubble.width,
+                                                bubble.mine
+                                                   ? 'bg-blue-100'
+                                                   : 'bg-gray-100',
+                                             )}
+                                          />
+                                       </div>
+                                    ))}
+                                 </div>
                               ) : messages.length === 0 ? (
                                  <div className="flex flex-col justify-center items-center h-full text-center">
                                     <UserAvatar
@@ -542,6 +779,28 @@ const Messenger: React.FC = () => {
                                     );
                                  })
                               )}
+                              {/* Partner is typing... */}
+                              {partnerTyping && (
+                                 <div className="flex gap-2 items-end mt-1">
+                                    <UserAvatar
+                                       size={28}
+                                       src={activePartner?.avatar}
+                                       name={activePartner?.firstname}
+                                       className="flex-shrink-0"
+                                    />
+                                    <div className="flex gap-1 items-center px-4 py-3 bg-gray-100 rounded-2xl rounded-bl-md">
+                                       {[0, 1, 2].map((dot) => (
+                                          <span
+                                             key={dot}
+                                             className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                                             style={{
+                                                animationDelay: `${dot * 150}ms`,
+                                             }}
+                                          />
+                                       ))}
+                                    </div>
+                                 </div>
+                              )}
                            </div>
 
                            {/* Composer */}
@@ -582,7 +841,7 @@ const Messenger: React.FC = () => {
                                  value={draft}
                                  autoSize={{ minRows: 1, maxRows: 5 }}
                                  onChange={(event) =>
-                                    setDraft(event.target.value)
+                                    handleDraftChange(event.target.value)
                                  }
                                  onPressEnter={(event) => {
                                     // Enter = gui, Shift+Enter = xuong hang

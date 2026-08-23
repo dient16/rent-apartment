@@ -93,6 +93,8 @@ const Listing: React.FC = () => {
       const newSearchParams = new URLSearchParams(searchParams.toString());
       newSearchParams.set('page', page.toString());
       setSearchParams(newSearchParams);
+      // Back to the top of the results so the new page is visible
+      window.scrollTo({ top: 0, behavior: 'smooth' });
    };
 
    const handleSortChange = (sortBy: string) => {

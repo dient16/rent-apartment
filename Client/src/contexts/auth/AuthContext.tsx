@@ -12,6 +12,7 @@ import { AuthActionType } from './types';
 import { initialize, reducer, signOut } from './reduces';
 import { apiGetCurrentUser } from '@/apis';
 import { AUTH_SESSION_EXPIRED_EVENT } from '@/apis/axiosConfig';
+import { connectSocket, disconnectSocket } from '@/lib/socket';
 import { useQuery } from '@tanstack/react-query';
 import { message, Spin } from 'antd';
 
@@ -102,6 +103,12 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
          );
       }
    }, [data, isError, isLoading, state.accessToken]);
+
+   // Keep the realtime socket (presence/typing/messages) in sync with login state
+   useEffect(() => {
+      if (state.isAuthenticated) connectSocket();
+      else disconnectSocket();
+   }, [state.isAuthenticated]);
 
    const showLoader = mounted && isLoading;
    useLockBodyScroll(showLoader);

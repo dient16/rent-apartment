@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import { notificationService } from '@/api/notification/notification.service';
 import UserModel from '@/api/user/user.model';
 import { env } from '@/config/env.config';
+import { emitToUser } from '@/socket';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 
 import { ConversationModel, MessageModel } from './message.model';
@@ -150,8 +151,11 @@ export const messageService = {
     );
   },
 
-  /** Messages of one conversation; also marks incoming ones as read */
-  async getMessages(userId: string, conversationId: string, limit: number) {
+  /**
+   * Messages of one conversation, newest page first (cursor = oldest loaded _id).
+   * Opening the thread (no cursor) also marks incoming ones as read.
+   */
+  async getMessages(userId: string, conversationId: string, limit: number, before?: string) {
     const [errConversation, conversation] = await to(
       ConversationModel.findOne({ _id: conversationId, participants: userId })
         .populate({ path: 'participants', select: 'firstname lastname avatar' })
@@ -162,8 +166,17 @@ export const messageService = {
       return new ServiceResponse(ResponseStatus.Failed, 'Conversation not found', null, StatusCodes.NOT_FOUND);
     }
 
+    const messageFilter: Record<string, unknown> = { conversation: conversationId };
+    if (before && mongoose.Types.ObjectId.isValid(before)) {
+      messageFilter._id = { $lt: new mongoose.Types.ObjectId(before) };
+    }
+    // limit+1: the extra doc only tells us whether an older page exists
     const [err, messages] = await to(
-      MessageModel.find({ conversation: conversationId }).sort({ createdAt: -1 }).limit(limit).lean().exec()
+      MessageModel.find(messageFilter)
+        .sort({ _id: -1 })
+        .limit(limit + 1)
+        .lean()
+        .exec()
     );
     if (err) {
       return new ServiceResponse(
@@ -173,22 +186,27 @@ export const messageService = {
         StatusCodes.INTERNAL_SERVER_ERROR
       );
     }
+    const hasMore = messages.length > limit;
+    const pageMessages = hasMore ? messages.slice(0, limit) : messages;
 
-    // Opening the thread marks partner messages and this conversation's message notification read
-    await to(
-      MessageModel.updateMany(
-        { conversation: conversationId, sender: { $ne: userId }, isRead: false },
-        { isRead: true }
-      ).exec()
-    );
-    notificationService.markMessageNotificationsRead(userId, conversationId).catch(() => {});
+    // Opening the thread (first page only) marks partner messages and notifications read
+    if (!before) {
+      await to(
+        MessageModel.updateMany(
+          { conversation: conversationId, sender: { $ne: userId }, isRead: false },
+          { isRead: true }
+        ).exec()
+      );
+      notificationService.markMessageNotificationsRead(userId, conversationId).catch(() => {});
+    }
 
     return new ServiceResponse(
       ResponseStatus.Success,
       'Messages retrieved successfully',
       {
         partner: pickPartner(conversation, userId),
-        messages: messages.reverse().map((message) => ({
+        hasMore,
+        messages: pageMessages.reverse().map((message) => ({
           _id: message._id,
           content: message.content,
           isMine: String(message.sender) === String(userId),
@@ -279,6 +297,8 @@ export const messageService = {
         (participant) => String(participant) !== String(userId)
       );
       if (!recipientId) return;
+      // Realtime push so the recipient's open chat updates instantly
+      emitToUser(String(recipientId), 'message:new', { conversationId: String(conversationId) });
       const sender = await UserModel.findById(userId).select('firstname lastname').lean();
       const senderName =
         [(sender as any)?.firstname, (sender as any)?.lastname].filter(Boolean).join(' ') || 'Someone';

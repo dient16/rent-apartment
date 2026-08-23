@@ -1,0 +1,72 @@
+import type http from 'http';
+import jwt from 'jsonwebtoken';
+import { Server } from 'socket.io';
+
+import { env } from '@/config/env.config';
+
+let io: Server | null = null;
+
+// userId -> number of open sockets (multiple tabs count as one online user)
+const onlineCounts = new Map<string, number>();
+
+export const isUserOnline = (userId: string) => (onlineCounts.get(String(userId)) || 0) > 0;
+
+export const getIO = () => io;
+
+export const initSocket = (server: http.Server) => {
+  io = new Server(server, {
+    cors: { origin: env.CORS_ORIGIN, credentials: true },
+  });
+
+  // Same JWT as the REST API; the client passes it via `auth.token`.
+  io.use((socket, next) => {
+    const token = socket.handshake.auth?.token as string | undefined;
+    if (!token) return next(new Error('Unauthorized'));
+    jwt.verify(token, env.JWT_ACCESS_KEY, (err, decoded) => {
+      if (err || !decoded) return next(new Error('Unauthorized'));
+      socket.data.userId = String((decoded as UserDecode)._id);
+      next();
+    });
+  });
+
+  io.on('connection', (socket) => {
+    const userId = socket.data.userId as string;
+    socket.join(`user:${userId}`);
+
+    const count = (onlineCounts.get(userId) || 0) + 1;
+    onlineCounts.set(userId, count);
+    if (count === 1) io?.emit('presence:update', { userId, online: true });
+
+    // Ack with the subset of the given users that are currently online
+    socket.on('presence:query', (userIds: unknown, ack?: (online: string[]) => void) => {
+      if (typeof ack !== 'function' || !Array.isArray(userIds)) return;
+      ack(userIds.filter((id): id is string => typeof id === 'string' && isUserOnline(id)));
+    });
+
+    socket.on('typing', (payload: { to?: string; conversationId?: string; isTyping?: boolean }) => {
+      if (!payload?.to || !payload?.conversationId) return;
+      socket.to(`user:${payload.to}`).emit('typing', {
+        conversationId: String(payload.conversationId),
+        from: userId,
+        isTyping: !!payload.isTyping,
+      });
+    });
+
+    socket.on('disconnect', () => {
+      const remaining = (onlineCounts.get(userId) || 1) - 1;
+      if (remaining <= 0) {
+        onlineCounts.delete(userId);
+        io?.emit('presence:update', { userId, online: false });
+      } else {
+        onlineCounts.set(userId, remaining);
+      }
+    });
+  });
+
+  return io;
+};
+
+/** Push a realtime event to one user (all their tabs). No-op before initSocket. */
+export const emitToUser = (userId: string, event: string, payload: unknown) => {
+  io?.to(`user:${String(userId)}`).emit(event, payload);
+};

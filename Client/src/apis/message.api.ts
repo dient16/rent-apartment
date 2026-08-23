@@ -13,10 +13,14 @@ export const apiStartConversation = (recipientId: string): Promise<Res> =>
       data: { recipientId },
    });
 
-export const apiGetMessages = (conversationId: string): Promise<Res> =>
+export const apiGetMessages = (
+   conversationId: string,
+   before?: string,
+): Promise<Res> =>
    axios({
       url: `/message/conversations/${conversationId}`,
       method: 'get',
+      params: { limit: 30, ...(before ? { before } : {}) },
    });
 
 export const apiSendMessage = (

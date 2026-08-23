@@ -31,9 +31,10 @@ export const getMessages = async (req: Request, res: Response, next: NextFunctio
   try {
     const { _id: userId } = req.user as UserDecode;
     const { conversationId } = req.params;
-    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const limit = Math.min(parseInt(req.query.limit as string) || 30, 200);
+    const before = typeof req.query.before === 'string' ? req.query.before : undefined;
 
-    const serviceResponse = await messageService.getMessages(userId, conversationId, limit);
+    const serviceResponse = await messageService.getMessages(userId, conversationId, limit, before);
     handleServiceResponse(serviceResponse, res);
   } catch (error) {
     next(error);
