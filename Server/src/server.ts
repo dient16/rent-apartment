@@ -18,15 +18,12 @@ import { initApartmentIndex } from '@/services/apartmentSearch.service';
 const app: Express = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// `true` would trust any X-Forwarded-For header, so a client could hand us whatever IP
-// it liked and bypass the rate limiter entirely. Configure the real topology instead.
+// Never `true`: a spoofed X-Forwarded-For would bypass the rate limiter.
 const trustProxy = /^\d+$/.test(env.TRUST_PROXY)
   ? Number(env.TRUST_PROXY) || false
   : env.TRUST_PROXY;
 app.set('trust proxy', trustProxy);
-// Express 5 switched the default query parser to 'simple', which no longer turns
-// `roomIds[]=a&roomIds[]=b` into an array. This codebase was written against the
-// Express 4 default, so keep qs semantics.
+// Keep Express 4 query semantics: `roomIds[]=a&roomIds[]=b` -> array.
 app.set('query parser', 'extended');
 
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
@@ -37,8 +34,7 @@ app.use(
     crossOriginResourcePolicy: false,
   })
 );
-// Fire-and-forget startup work: without a catch a failure here surfaces as an
-// unhandled rejection instead of a readable log line.
+// Fire-and-forget startup work; catch keeps failures readable.
 dbConnect().catch((error) => logger.fatal({ err: error }, 'Database connection failed'));
 initApartmentIndex().catch((error) => logger.error({ err: error }, 'Elasticsearch index init failed'));
 app.use(passport.initialize());

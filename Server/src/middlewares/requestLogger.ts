@@ -27,8 +27,7 @@ type PinoCustomProps = {
 };
 
 const requestLogger = (options?: Options): RequestHandler[] => {
-  // Dev: log gon mot dong kieu morgan (GET /url 200 12ms).
-  // Production: dinh kem day du request/response/responseBody nhu truoc.
+  // Dev: one-line morgan style. Production: full request/response payloads.
   const devOptions: Options = {
     serializers: {
       request: () => undefined,
@@ -37,8 +36,7 @@ const requestLogger = (options?: Options): RequestHandler[] => {
     customSuccessMessage: (req, res, responseTime) =>
       `${req.method} ${(req as Request).originalUrl ?? req.url} ${res.statusCode} ${Math.round(responseTime)}ms`,
     customErrorMessage: (req, res) => `${req.method} ${(req as Request).originalUrl ?? req.url} ${res.statusCode}`,
-    // The message already ends in "745ms"; drop the attribute so pino-pretty stops
-    // printing a redundant `timeTaken: 745` line underneath it.
+    // Message already ends in "745ms" - drop the redundant attribute.
     redact: { paths: ['timeTaken'], remove: true },
   };
 

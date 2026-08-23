@@ -108,7 +108,6 @@ export const roomService = {
     return new ServiceResponse(ResponseStatus.Success, 'Room deleted successfully', deletedRoom, StatusCodes.OK);
   },
   async getRoomsByApartmentId(apartmentId: string) {
-    // Fetch apartment details (address and description)
     const [apartmentErr, apartment] = await to(ApartmentModel.findById(apartmentId).lean().exec());
 
     if (apartmentErr || !apartment) {
@@ -120,7 +119,6 @@ export const roomService = {
       );
     }
 
-    // Fetch rooms for the apartment
     const [err, rooms] = await to(Room.find({ apartmentId }).populate('amenities').lean().exec());
 
     if (err) {
@@ -136,13 +134,11 @@ export const roomService = {
       );
     }
 
-    // Update room images with full URLs
     const updatedRooms = rooms.map((room) => ({
       ...room,
       images: room.images.map((image) => `${SERVER_URL}/api/image/${image}`),
     }));
 
-    // Return the combined data: apartment details and rooms
     return new ServiceResponse(
       ResponseStatus.Success,
       'Rooms retrieved successfully',

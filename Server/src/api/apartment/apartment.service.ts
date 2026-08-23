@@ -109,9 +109,7 @@ export const apartmentService = {
       StatusCodes.OK
     );
   },
-  /**
-   * Bayesian average, not the raw mean: one 5-star review must not outrank fifty 4.8s.
-   */
+  /** Bayesian average: one 5-star review must not outrank fifty 4.8s. */
   async getPopularRooms(limit: number = 10) {
     const PRIOR_WEIGHT = 5;
     const FALLBACK_RATING = 4;
@@ -234,7 +232,7 @@ export const apartmentService = {
   },
   async getApartmentDetail(apartmentId: string, query: GetApartmentQuery['query']) {
     const { numberOfGuest, roomNumber, minPrice, maxPrice } = query;
-    // No dates provided => default to today -> tomorrow
+    // Default range: today -> tomorrow.
     const startDate = query.startDate ? moment(query.startDate).toDate() : moment().startOf('day').toDate();
     const endDate =
       query.endDate && moment(query.endDate).isAfter(startDate)
@@ -466,7 +464,7 @@ export const apartmentService = {
       .map((amenity: string) => amenity.trim())
       .filter(Boolean);
 
-    // No dates => default today -> tomorrow (scan all availability)
+    // Default range: today -> tomorrow.
     const start = startDate ? moment(startDate).toDate() : moment().startOf('day').toDate();
     const end =
       endDate && moment(endDate).isAfter(start) ? moment(endDate).toDate() : moment(start).add(1, 'day').toDate();
@@ -474,8 +472,7 @@ export const apartmentService = {
     const nights = moment(end).diff(moment(start), 'days');
     const totalNights = nights > 0 ? nights : 1;
 
-    // Filter rooms up front (uses the {price, numberOfGuest, quantity} index):
-    // enough capacity, free in the date range, within the price range
+    // Filter rooms up front, on the {price, numberOfGuest, quantity} index.
     const roomMatch: Record<string, unknown> = {
       numberOfGuest: { $gte: numberOfGuest },
       quantity: { $gte: roomNumber },
@@ -493,9 +490,7 @@ export const apartmentService = {
       roomMatch.bedType = new RegExp(String(bedType).trim(), 'i');
     }
 
-    // Full-text via Elasticsearch: tolerates unaccented input ("da nang" -> "Đà Nẵng")
-    // and small typos (fuzziness AUTO). Returns null when ES is down
-    // -> falls back to Mongo regex so search never dies.
+    // Elasticsearch handles unaccented input and typos; null = fall back to regex.
     const searchText = [province, district, name]
       .filter(Boolean)
       .map((value) => String(value).trim())
@@ -511,12 +506,11 @@ export const apartmentService = {
           StatusCodes.OK
         );
       }
-      // Narrow the first stage using the apartmentId index
+      // Narrow the first stage on the apartmentId index.
       (roomMatch as any).apartmentId = { $in: esApartmentIds.map((id) => new mongoose.Types.ObjectId(id)) };
     }
 
-    // Fallback (ES off): case-insensitive substring match on address + name.
-    // (Mongo $text matches PER WORD, so "Thanh pho Ho Chi Minh" would hit other provinces too)
+    // Fallback: substring match, since Mongo $text matches per word and over-hits.
     const apartmentMatch: Record<string, unknown>[] = [];
     if (esApartmentIds === null) {
       if (province) {
@@ -539,9 +533,7 @@ export const apartmentService = {
       }
     }
 
-    // Single pipeline starting from rooms: filter -> group by apartment -> join.
-    // Sort by price before $group so $first is always the CHEAPEST available room,
-    // keeping the returned roomId/price/image consistent.
+    // rooms: filter -> group -> join. Sort before $group so $first is the cheapest room.
     const aggregation: any[] = [
       { $match: roomMatch },
       { $sort: { price: 1, _id: 1 } },
@@ -582,7 +574,7 @@ export const apartmentService = {
           as: 'amenities',
         },
       },
-      // Amenities filter (the representative room must have every selected amenity)
+      // Amenities: the representative room must have all of them.
       ...(amenityList.length
         ? [{ $match: { 'amenities.name': { $all: amenityList.map((amenity) => new RegExp(`^${amenity}$`, 'i')) } } }]
         : []),
@@ -627,9 +619,9 @@ export const apartmentService = {
           totalPrice: { $multiply: ['$price', totalNights] },
         },
       },
-      // Minimum-rating filter (applied after rating is projected)
+      // Minimum rating, after rating is projected.
       ...(minRating ? [{ $match: { 'rating.ratingAvg': { $gte: minRating } } }] : []),
-      // Stable order so pagination never duplicates or skips items
+      // Stable order so pagination never duplicates or skips.
       {
         $sort:
           sortBy === 'price_desc'
@@ -924,8 +916,7 @@ export const apartmentService = {
       Promise.all([
         ApartmentModel.find(filter)
           .select('title location rooms images')
-          // Rooms come back with the apartment so the host calendar does not need one
-          // extra request per apartment to build its room rail.
+          // Rooms ship with the apartment so the host calendar needs one request.
           .populate({ path: 'rooms', select: 'images price roomType' })
           .sort({ createdAt: -1 })
           .skip(skip)
@@ -944,13 +935,13 @@ export const apartmentService = {
 
     const toImageUrl = (image: string) => (image.startsWith('http') ? image : `${SERVER_URL}/api/image/${image}`);
 
-    // No apartments is still a success with an empty list (a 404 would make the FE toast an error)
+    // Empty list is a success; a 404 would make the FE toast an error.
     const withImageUrls = (apartments || []).map((apartment: any) => {
       const rooms = (apartment.rooms || []).map((room: any) => ({
         ...room,
         images: (room.images || []).map(toImageUrl),
       }));
-      // Apartment has no own images -> borrow the first room image as thumbnail
+      // No apartment image -> use the first room image as thumbnail.
       const rawImages: string[] = apartment.images?.length ? apartment.images : apartment.rooms?.[0]?.images || [];
       const prices = rooms.map((room: any) => room.price).filter((price: number) => typeof price === 'number');
       return {

@@ -8,24 +8,17 @@ const logger = pino({ name: 'elasticsearch' });
 
 export const APARTMENT_INDEX = 'apartments';
 
-const esAuth = env.ELASTICSEARCH_API_KEY
-  ? { apiKey: env.ELASTICSEARCH_API_KEY }
-  : env.ELASTICSEARCH_USERNAME && env.ELASTICSEARCH_PASSWORD
-    ? { username: env.ELASTICSEARCH_USERNAME, password: env.ELASTICSEARCH_PASSWORD }
-    : undefined;
+export const esClient = new Client({
+  node: env.ELASTICSEARCH_URL,
+  ...(env.ELASTICSEARCH_API_KEY ? { auth: { apiKey: env.ELASTICSEARCH_API_KEY } } : {}),
+});
 
-export const esClient = new Client({ node: env.ELASTICSEARCH_URL, ...(esAuth ? { auth: esAuth } : {}) });
-
-// ES may be down or disabled (dev without docker):
-// every function fails soft so the search API falls back to Mongo regex.
+// Every call fails soft: search falls back to Mongo regex when ES is down.
 let esAvailable = false;
 
 export const isEsAvailable = () => esAvailable;
 
-/**
- * Mapping: custom analyzer `vi_folding` = lowercase + asciifolding
- * -> "Đà Nẵng" is indexed as "da nang", so unaccented queries still match.
- */
+/** Analyzer `vi_folding` indexes "Đà Nẵng" as "da nang" for unaccented queries. */
 const INDEX_SETTINGS = {
   settings: {
     number_of_shards: 1,
@@ -71,7 +64,7 @@ const toEsDocument = (apartment: any) => ({
   },
 });
 
-/** Called once at boot: creates the index if missing. Never blocks the app when ES is down. */
+/** Boot hook: creates the index if missing, never blocks on ES being down. */
 export const initApartmentIndex = async (): Promise<void> => {
   try {
     const exists = await esClient.indices.exists({ index: APARTMENT_INDEX });
@@ -84,7 +77,7 @@ export const initApartmentIndex = async (): Promise<void> => {
   } catch (error) {
     esAvailable = false;
     logger.warn(`Elasticsearch unavailable, search falls back to MongoDB regex: ${(error as Error).message}`);
-    // Auto-retry: ES may come up after the server started
+    // ES may come up after boot.
     setTimeout(() => initApartmentIndex(), 30_000).unref();
   }
 };
@@ -115,11 +108,7 @@ export const removeApartmentFromIndex = async (apartmentId: string): Promise<voi
   }
 };
 
-/**
- * Full-text search -> returns apartmentIds sorted by relevance.
- * fuzziness AUTO: tolerates 1-2 wrong characters ("danag" still finds "Da Nang").
- * Returns null when ES is unavailable so the caller falls back to regex.
- */
+/** Full-text search -> apartmentIds by relevance; null when ES is unavailable. */
 export const searchApartmentIds = async (searchText: string, maxResults = 500): Promise<string[] | null> => {
   if (!esAvailable) return null;
   try {

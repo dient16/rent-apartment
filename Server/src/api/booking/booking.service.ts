@@ -18,7 +18,7 @@ import { env } from '@/config/env.config';
 import ApartmentModel from '@/api/apartment/apartment.model';
 const { SERVER_URL } = env;
 
-/** Dates go straight into emails, so render them readably instead of Date.toString(). */
+/** Readable dates for emails. */
 const formatMailDate = (value: Date | string) => moment(value).format('ddd, DD MMM YYYY');
 
 const bookingUrl = (bookingId: string) => `${env.CLIENT_URL}/my-booking/${bookingId}`;
@@ -29,7 +29,7 @@ type BookingListQuery = { page?: number; limit?: number; status?: string; search
 
 const getUserBookings = async (userId: string, { page = 1, limit = 10, status = 'all', search = '' }: BookingListQuery = {}) => {
   try {
-    // Step 1: Find all apartments owned by the user
+    // Apartments owned by the user.
     const apartments = await ApartmentModel.find({ owner: userId }).select('_id title').lean().exec();
     if (!apartments.length) {
       return new ServiceResponse(
@@ -40,7 +40,7 @@ const getUserBookings = async (userId: string, { page = 1, limit = 10, status = 
       );
     }
 
-    // Step 2: Find all rooms in those apartments
+    // Rooms in those apartments.
     const rooms = await RoomModel.find({
       apartmentId: { $in: apartments.map((apartment) => apartment._id) },
     } as any)
@@ -183,8 +183,7 @@ const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceRes
       );
     }
 
-    // Atomic $push: skips re-validating existing fields (legacy docs may lack newly
-    // required ones like bedType) and avoids races between concurrent bookings
+    // Atomic $push: skips revalidating legacy docs and avoids booking races.
     const [updateError] = await to(
       RoomModel.findByIdAndUpdate(roomId, {
         $push: { unavailableDateRanges: { startDay: checkInTime, endDay: checkOutTime } },
@@ -245,7 +244,7 @@ const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceRes
     return new ServiceResponse(ResponseStatus.Failed, 'Error sending email', null, StatusCodes.INTERNAL_SERVER_ERROR);
   }
 
-  // Notify the owning host(s) about the new booking (never blocks the flow)
+  // Notify the host(s); never blocks the flow.
   (async () => {
     const roomIds = (newBooking as any).rooms.map((room: any) => room.roomId);
     const bookedRooms = await RoomModel.find({ _id: { $in: roomIds } })
@@ -469,7 +468,7 @@ const confirmBooking = async (bookingId: string): Promise<ServiceResponse<IBooki
     return new ServiceResponse(ResponseStatus.Failed, 'Error sending email', null, StatusCodes.INTERNAL_SERVER_ERROR);
   }
 
-  // Notify the guest (if the booking email has an account)
+  // Notify the guest, if the booking email has an account.
   (async () => {
     const guest = await User.findOne({ email: booking.email }).select('_id').lean();
     if (guest) {
@@ -497,7 +496,7 @@ const cancelBooking = async (bookingId: string, userId: string): Promise<Service
     return new ServiceResponse(ResponseStatus.Failed, 'Booking not found', null, StatusCodes.NOT_FOUND);
   }
 
-  // Only the booking owner (this email) or the host owning the apartment may cancel
+  // Only the booking owner or the apartment's host may cancel.
   if (booking.email !== user.email) {
     const roomIds = (booking as any).rooms.map((room: any) => room.roomId);
     const [findRoomsError, bookedRooms] = await to(
@@ -548,7 +547,7 @@ const cancelBooking = async (bookingId: string, userId: string): Promise<Service
     );
   }
 
-  // Guest cancels -> notify host; host declines -> notify guest (if they have an account)
+  // Guest cancels -> notify host; host declines -> notify guest.
   (async () => {
     const dates = `${new Date(booking.checkInTime).toLocaleDateString('en-GB')} - ${new Date(booking.checkOutTime).toLocaleDateString('en-GB')}`;
     if (canceledByGuest) {

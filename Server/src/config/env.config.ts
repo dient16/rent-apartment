@@ -17,17 +17,11 @@ export const env = cleanEnv(process.env, {
   CLIENT_URL: str({ devDefault: testOnly('http://localhost:8000') }),
   MONGODB_URL: str(),
   ELASTICSEARCH_URL: str({ default: 'http://localhost:9200' }),
-  // Auth for a secured cluster (xpack.security enabled). Leave both empty in dev:
-  // docker-compose runs ES with security off. Prefer the API key over basic auth.
+  // Elastic Cloud API key; empty = unsecured cluster (local docker).
   ELASTICSEARCH_API_KEY: str({ default: '' }),
-  ELASTICSEARCH_USERNAME: str({ default: '' }),
-  ELASTICSEARCH_PASSWORD: str({ default: '' }),
-  // Comma-separated DNS servers used only for geocoder lookups. Set this when the
-  // network's own resolver blackholes nominatim.openstreetmap.org; empty = OS resolver.
+  // DNS servers for geocoder lookups only; empty = OS resolver.
   GEOCODER_DNS: str({ default: '' }),
-  // How many reverse-proxy hops to trust for the client IP. '0' = trust nothing (the
-  // safe default); '1' behind a single nginx/CDN; or an explicit IP/subnet list.
-  // Never 'true': that lets any caller spoof X-Forwarded-For and skip rate limiting.
+  // Reverse-proxy hops to trust for the client IP. Never 'true' (spoofable).
   TRUST_PROXY: str({ default: '0' }),
   JWT_ACCESS_KEY: str(),
   EMAIL_NAME: str(),

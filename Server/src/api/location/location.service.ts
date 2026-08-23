@@ -21,18 +21,13 @@ interface Suggestion {
 
 const cache = new Map<string, { data: Suggestion[]; expires: number }>();
 
-// One suggest per keystroke, so back off after a failure instead of hammering the upstream.
+// One suggest per keystroke: back off after a failure.
 const BREAKER_COOLDOWN_MS = 60 * 1000;
 const breaker = { openUntil: 0, reported: false };
 
 const REQUEST_TIMEOUT_MS = 5000;
 
-/**
- * Some networks blackhole nominatim.openstreetmap.org at the DNS level — it resolves to
- * 127.0.0.1 and the request dies with ECONNREFUSED. Setting GEOCODER_DNS routes just this
- * host's lookups through the given resolvers, leaving the rest of the process on the OS
- * resolver. Unset (the default) keeps normal behaviour.
- */
+/** Routes only geocoder lookups through GEOCODER_DNS, for networks that blackhole nominatim. */
 const geocoderResolver = (() => {
   const servers = env.GEOCODER_DNS.split(',')
     .map((server) => server.trim())
@@ -49,13 +44,11 @@ const lookup: LookupFunction | undefined = geocoderResolver
   ? (hostname, options, callback) => {
       geocoderResolver.resolve4(hostname, (error, addresses) => {
         if (error || !addresses?.length) {
-          // Custom resolver unreachable — fall back to the OS one rather than hard-failing.
+          // Custom resolver unreachable - fall back to the OS one.
           dns.lookup(hostname, options as dns.LookupOptions, callback as never);
           return;
         }
-        // Node enables autoSelectFamily by default, which calls lookup with `all: true`
-        // and expects an array of entries; returning a bare address yields
-        // ERR_INVALID_IP_ADDRESS.
+        // autoSelectFamily expects an array of entries, not a bare address.
         if ((options as dns.LookupOptions).all) {
           (callback as unknown as (err: null, result: dns.LookupAddress[]) => void)(
             null,
@@ -85,8 +78,7 @@ const fetchJson = (url: string): Promise<any> =>
         let body = '';
         response.on('data', (chunk) => (body += chunk));
         response.on('end', () => {
-          // Nominatim answers rate limiting with an HTML page, so a bare JSON.parse
-          // failure here would report a syntax error instead of the real cause.
+          // Rate limiting answers with HTML; report that, not a JSON syntax error.
           if (response.statusCode && response.statusCode >= 400) {
             reject(new Error(`Nominatim responded ${response.statusCode}: ${body.slice(0, 120)}`));
             return;
@@ -100,7 +92,7 @@ const fetchJson = (url: string): Promise<any> =>
       }
     );
 
-    // Without this a hung upstream would keep the suggest request open indefinitely.
+    // A hung upstream would otherwise keep the request open forever.
     request.on('timeout', () => {
       request.destroy(new Error(`Nominatim timed out after ${REQUEST_TIMEOUT_MS}ms`));
     });
@@ -123,7 +115,7 @@ const toSuggestion = (place: any): Suggestion => {
   return {
     label,
     description: rest.join(', '),
-    // Compact value shown in the search box: "Name, Province"
+    // Compact value for the search box: "Name, Province".
     value: [label, cityOrProvince].filter(Boolean).filter((v, i, arr) => arr.indexOf(v) === i).join(', '),
   };
 };
@@ -161,10 +153,7 @@ interface Provider {
   parse: (payload: any) => Suggestion[];
 }
 
-/**
- * Nominatim first (it has been the source of this data), Photon as a fallback — some
- * networks block openstreetmap.org outright, and Photon serves the same OSM dataset.
- */
+/** Nominatim first, Photon (same OSM dataset) as fallback when openstreetmap.org is blocked. */
 const PROVIDERS: Provider[] = [
   {
     name: 'nominatim',
@@ -228,18 +217,17 @@ export const locationService = {
       }
     }
 
-    // Every provider is down — back off before the next keystroke tries again.
+    // Every provider is down - back off before the next keystroke.
     breaker.openUntil = Date.now() + BREAKER_COOLDOWN_MS;
 
-    // Node's AggregateError (every address refused/unreachable) carries an empty
-    // `message`, so log the object itself plus the per-address causes.
+    // AggregateError has an empty `message`; log the object and its causes.
     const code = (lastError as NodeJS.ErrnoException)?.code;
     const causes = (lastError as AggregateError)?.errors?.map(
       (cause: NodeJS.ErrnoException) => `${cause.code ?? cause.name}: ${cause.message}`
     );
 
     if (breaker.reported) {
-      // Already dumped the details for this outage — keep the follow-ups to one line.
+      // Details already logged for this outage.
       logger.warn({ code, query: normalized }, 'Address suggest still failing, backing off');
     } else {
       breaker.reported = true;
