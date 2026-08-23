@@ -8,7 +8,13 @@ const logger = pino({ name: 'elasticsearch' });
 
 export const APARTMENT_INDEX = 'apartments';
 
-export const esClient = new Client({ node: env.ELASTICSEARCH_URL });
+const esAuth = env.ELASTICSEARCH_API_KEY
+  ? { apiKey: env.ELASTICSEARCH_API_KEY }
+  : env.ELASTICSEARCH_USERNAME && env.ELASTICSEARCH_PASSWORD
+    ? { username: env.ELASTICSEARCH_USERNAME, password: env.ELASTICSEARCH_PASSWORD }
+    : undefined;
+
+export const esClient = new Client({ node: env.ELASTICSEARCH_URL, ...(esAuth ? { auth: esAuth } : {}) });
 
 // ES may be down or disabled (dev without docker):
 // every function fails soft so the search API falls back to Mongo regex.
