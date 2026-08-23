@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { DateRangePicker, Range, RangeKeyDict } from 'react-date-range';
-import { Button, Drawer, Popover } from 'antd';
+import { Button, Drawer, Popover, Select } from 'antd';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import moment from 'moment';
-import { DownOutlined, CalendarOutlined } from '@ant-design/icons';
+import { DownOutlined, CalendarOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
 import { HiOutlineArrowLongRight } from 'react-icons/hi2';
 
@@ -13,6 +13,7 @@ interface CustomDatePickerProps {
    onChange: (value: [Date, Date]) => void;
    disabledDates?: Date[];
    minDate?: Date;
+   maxDate?: Date;
    className?: string;
    isShowLeftIcon?: boolean;
    isShowRightIcon?: boolean;
@@ -32,6 +33,8 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
    className,
    disabledDates = [],
    minDate,
+   // react-date-range defaults to +20 years, which fills the year dropdown with noise.
+   maxDate = moment().add(3, 'years').toDate(),
    isShowLeftIcon = true,
    isShowRightIcon = true,
    isShowNight = true,
@@ -86,6 +89,65 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
    const dateRangePicker = (
       <div className="h-full flex flex-col justify-between items-center">
          <DateRangePicker
+            navigatorRenderer={(focusedDate, changeShownDate) => {
+               const rangeStart = minDate ?? new Date();
+               const shownYear = focusedDate.getFullYear();
+               const years = Array.from(
+                  { length: maxDate.getFullYear() - rangeStart.getFullYear() + 1 },
+                  (_, i) => rangeStart.getFullYear() + i,
+               );
+               // Months outside [minDate, maxDate] stay listed but greyed out.
+               const isMonthDisabled = (month: number) =>
+                  (shownYear === rangeStart.getFullYear() &&
+                     month < rangeStart.getMonth()) ||
+                  (shownYear === maxDate.getFullYear() && month > maxDate.getMonth());
+               return (
+                  <div className="flex gap-2 justify-between items-center px-4 pt-3 pb-1">
+                     <button
+                        type="button"
+                        aria-label="Previous month"
+                        className="datepicker-nav-btn"
+                        onClick={() => changeShownDate(-1, 'monthOffset')}
+                     >
+                        <LeftOutlined />
+                     </button>
+                     <div className="flex gap-2 items-center">
+                        <Select
+                           size="small"
+                           variant="borderless"
+                           popupMatchSelectWidth={150}
+                           classNames={{ popup: { root: 'datepicker-nav-popup' } }}
+                           value={focusedDate.getMonth()}
+                           onChange={(month) => changeShownDate(month, 'setMonth')}
+                           options={moment.months().map((label, value) => ({
+                              label,
+                              value,
+                              disabled: isMonthDisabled(value),
+                           }))}
+                           className="datepicker-nav-select"
+                        />
+                        <Select
+                           size="small"
+                           variant="borderless"
+                           popupMatchSelectWidth={110}
+                           classNames={{ popup: { root: 'datepicker-nav-popup' } }}
+                           value={focusedDate.getFullYear()}
+                           onChange={(year) => changeShownDate(year, 'setYear')}
+                           options={years.map((year) => ({ label: String(year), value: year }))}
+                           className="datepicker-nav-select"
+                        />
+                     </div>
+                     <button
+                        type="button"
+                        aria-label="Next month"
+                        className="datepicker-nav-btn"
+                        onClick={() => changeShownDate(1, 'monthOffset')}
+                     >
+                        <RightOutlined />
+                     </button>
+                  </div>
+               );
+            }}
             ranges={[
                {
                   startDate: dates[0],
@@ -104,6 +166,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
             rangeColors={['#3b82f6']}
             disabledDates={disabledDates}
             minDate={minDate}
+            maxDate={maxDate}
          />
          <div className="pt-4 px-4 pb-5 w-full bg-white border-t border-gray-100 lg:hidden">
             <div className="grid grid-cols-2 gap-3 mb-4">

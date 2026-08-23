@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/logo-icon.png';
 import { navigateHosts, navigates, path } from '@/utils/constant';
 import { MenuAccount, NotificationBell, SignIn, SignUp, UserAvatar } from '@/components';
 import { NavLink, useNavigate } from '@/lib/router-compat';
@@ -83,11 +83,9 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                >
                   <CgMenuLeft size={26} />
                </div>
-               <Image
-                  src={logo.src}
-                  className="cursor-pointer w-[110px] md:w-[150px]"
-                  preview={false}
-                  // Logo respects the current mode: in host mode it links to the host dashboard
+               {/* Logo respects the current mode: in host mode it links to the host dashboard */}
+               <div
+                  className="flex gap-2 items-center cursor-pointer"
                   onClick={() =>
                      navigate(
                         isHost
@@ -95,7 +93,17 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                            : `/${path.HOME}`,
                      )
                   }
-               />
+               >
+                  <Image
+                     src={logo.src}
+                     alt="Find House"
+                     className="w-[36px] md:w-[44px]"
+                     preview={false}
+                  />
+                  <span className="font-main text-lg md:text-xl font-bold tracking-tight text-gray-900 whitespace-nowrap">
+                     Find House
+                  </span>
+               </div>
             </Flex>
 
             {/* Center nav: desktop only */}
@@ -108,7 +116,7 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                            to={navigateItem.path}
                            className={({ isActive }) =>
                               clsx(
-                                 'relative font-main text-base font-medium transition duration-300 ease-in-out flex items-center gap-2 py-1',
+                                 'relative font-main text-[17px] font-medium transition duration-300 ease-in-out flex items-center gap-2 py-1',
                                  isActive
                                     ? 'navLink-active text-blue-600'
                                     : 'text-gray-700 hover:text-blue-600',

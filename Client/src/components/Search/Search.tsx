@@ -49,7 +49,7 @@ const Search: React.FC = () => {
    const segmentClass =
       'flex flex-col justify-center gap-0.5 px-5 py-2.5 rounded-full transition-colors hover:bg-gray-100 cursor-pointer min-h-[58px]';
    const labelClass =
-      'text-[11px] font-bold tracking-wide text-gray-900 uppercase pointer-events-none leading-none';
+      'text-xs font-bold tracking-wide text-gray-900 uppercase pointer-events-none leading-none';
 
    return (
       <form
@@ -67,7 +67,7 @@ const Search: React.FC = () => {
                      <span className={labelClass}>Where</span>
                      <input
                         placeholder="Search destinations"
-                        className="w-full text-sm text-gray-800 placeholder-gray-400 bg-transparent border-none outline-none"
+                        className="w-full text-[15px] text-gray-800 placeholder-gray-400 bg-transparent border-none outline-none"
                         value={field.value}
                         onChange={(event) => {
                            setActivePanel('where');
@@ -173,7 +173,7 @@ const Search: React.FC = () => {
                   <CustomDatePicker
                      value={field.value}
                      onChange={(dates) => field.onChange(dates)}
-                     className="text-sm hit-area-full"
+                     className="text-[15px] hit-area-full"
                      format="DD MMM"
                      variant="compact"
                      isBorder={false}
@@ -196,7 +196,7 @@ const Search: React.FC = () => {
                const summary = (
                   <>
                      <span className={labelClass}>Who</span>
-                     <span className="text-sm text-gray-800 whitespace-nowrap">
+                     <span className="text-[15px] text-gray-800 whitespace-nowrap">
                         {field.value?.guests || 1} guest
                         {(field.value?.guests || 1) > 1 ? 's' : ''} ·{' '}
                         {field.value?.rooms || 1} room

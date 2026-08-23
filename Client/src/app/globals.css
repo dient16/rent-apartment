@@ -73,14 +73,88 @@
    padding-top: 4px;
    height: 48px;
 }
-.custom-datepicker .rdrMonthAndYearPickers select {
-   font-weight: 600;
-   color: #111827;
-   border-radius: 9999px;
-   padding: 6px 26px 6px 12px;
+/* Month/year use antd Select (navigatorRenderer): the native popup cannot be styled.
+   Styled as plain text + chevron so the header reads as a title, not two input boxes. */
+.datepicker-nav-select .ant-select-selector {
+   height: 32px !important;
+   padding: 0 6px 0 10px !important;
+   border: none !important;
+   border-radius: 8px !important;
+   background-color: transparent !important;
+   box-shadow: none !important;
+   transition: background-color 0.15s ease;
 }
-.custom-datepicker .rdrMonthAndYearPickers select:hover {
+.datepicker-nav-select .ant-select-selection-item {
+   padding-inline-end: 16px !important;
+   font-size: 14px;
+   font-weight: 600;
+   line-height: 32px;
+   color: #0f172a !important;
+   opacity: 1 !important;
+}
+/* antd greys the label and rings the box while the popup is open. */
+.datepicker-nav-select.ant-select-open .ant-select-selection-item,
+.datepicker-nav-select.ant-select-focused .ant-select-selection-item {
+   color: #0f172a !important;
+   opacity: 1 !important;
+}
+.datepicker-nav-select.ant-select-open .ant-select-selector,
+.datepicker-nav-select.ant-select-focused .ant-select-selector {
+   border-color: transparent !important;
+   outline: none !important;
+   box-shadow: none !important;
+   background-color: #f3f4f6 !important;
+}
+.datepicker-nav-select .ant-select-arrow {
+   inset-inline-end: 8px;
+   font-size: 10px;
+   color: #9ca3af;
+   transition: color 0.15s ease;
+}
+.datepicker-nav-select:hover .ant-select-selector {
    background-color: #f3f4f6;
+}
+.datepicker-nav-select:hover .ant-select-arrow {
+   color: #4b5563;
+}
+.datepicker-nav-popup {
+   padding: 6px;
+   border-radius: 10px;
+   box-shadow: 0 12px 32px rgb(0 0 0 / 12%);
+}
+/* Without this the page keeps scrolling once an option list hits its end. */
+.ant-select-dropdown,
+.ant-select-dropdown .rc-virtual-list,
+.ant-select-dropdown .rc-virtual-list-holder,
+.ant-dropdown-menu,
+.ant-picker-dropdown {
+   overscroll-behavior: contain;
+}
+.datepicker-nav-popup .ant-select-item {
+   min-height: 32px;
+   padding: 5px 12px;
+   border-radius: 6px;
+   font-size: 13px;
+}
+.datepicker-nav-popup .ant-select-item-option-selected {
+   font-weight: 600;
+}
+.datepicker-nav-btn {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 32px;
+   height: 32px;
+   font-size: 12px;
+   color: #374151;
+   background-color: #fff;
+   border: 1px solid #e5e7eb;
+   border-radius: 9999px;
+   transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.datepicker-nav-btn:hover {
+   border-color: #111827;
+   background-color: #f9fafb;
 }
 .custom-datepicker .rdrNextPrevButton {
    width: 32px;
