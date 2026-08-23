@@ -46,6 +46,12 @@ const INDEX_DEFINITION = {
   ],
 };
 
+const SEARCH_PATHS = ['title', 'location.province', 'location.district', 'location.ward', 'location.street'];
+
+/** ES `fuzziness: AUTO` thresholds: <=2 chars exact, 3-5 one edit, longer two. */
+const fuzzyFor = (token: string) =>
+  token.length <= 2 ? undefined : { fuzzy: { maxEdits: token.length > 5 ? 2 : 1, prefixLength: 1 } };
+
 let available = false;
 
 /**
@@ -86,6 +92,10 @@ export const atlasSearchProvider: SearchProvider = {
 
   async search(text, maxResults) {
     if (!available) return null;
+
+    const tokens = text.trim().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return null;
+
     try {
       const hits = await collection()
         .aggregate([
@@ -93,21 +103,27 @@ export const atlasSearchProvider: SearchProvider = {
             $search: {
               index: ATLAS_SEARCH_INDEX,
               compound: {
-                should: [
-                  // Whole-word match with typo tolerance, mirroring ES fuzziness AUTO.
-                  {
-                    text: {
-                      query: text,
-                      path: ['title', 'location.province', 'location.district', 'location.ward', 'location.street'],
-                      fuzzy: { maxEdits: 2, prefixLength: 1 },
-                    },
+                // One `must` per token = ES `operator: and`: every word has to land
+                // somewhere, otherwise "da nang" also returns every "Da Lat".
+                must: tokens.map((token) => ({
+                  compound: {
+                    should: [
+                      // Whole word with typo tolerance, mirroring ES fuzziness AUTO.
+                      { text: { query: token, path: SEARCH_PATHS, ...fuzzyFor(token) } },
+                      // Prefix match so a half-typed last word still counts.
+                      { autocomplete: { query: token, path: 'title' } },
+                      { autocomplete: { query: token, path: 'location.province' } },
+                      { autocomplete: { query: token, path: 'location.district' } },
+                    ],
+                    minimumShouldMatch: 1,
                   },
-                  // Prefix match so partial input ("da nan") already ranks well.
-                  { autocomplete: { query: text, path: 'title' } },
-                  { autocomplete: { query: text, path: 'location.province', score: { boost: { value: 3 } } } },
-                  { autocomplete: { query: text, path: 'location.district', score: { boost: { value: 2 } } } },
+                })),
+                // Ranking only: exact location wins over a fuzzy hit in the description.
+                should: [
+                  { text: { query: text, path: 'location.province', score: { boost: { value: 5 } } } },
+                  { text: { query: text, path: 'location.district', score: { boost: { value: 3 } } } },
+                  { text: { query: text, path: 'title', score: { boost: { value: 2 } } } },
                 ],
-                minimumShouldMatch: 1,
               },
             },
           },
