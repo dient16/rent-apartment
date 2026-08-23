@@ -1,6 +1,7 @@
 import { useAuth } from '@/hooks';
 import icons from '@/utils/icons';
-import { Avatar, Button, Input, Select } from 'antd';
+import UserAvatar from '@/components/UserAvatar/UserAvatar';
+import { Button, Input, Select } from 'antd';
 import React from 'react';
 import { Control, Controller } from 'react-hook-form';
 
@@ -15,8 +16,9 @@ const CustomerInfo: React.FC<CustomerInfoProps> = ({ control }) => {
          <div className="w-full space-y-5">
             {isAuthenticated ? (
                <div className="w-full flex items-center gap-3 p-5 bg-white rounded-lg">
-                  <Avatar
-                     src={currentUser.avatar}
+                  <UserAvatar
+                     src={currentUser?.avatar}
+                     name={currentUser?.firstname || currentUser?.email}
                      className="border border-blue-600"
                      size={45}
                   />
