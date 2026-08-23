@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Spin } from 'antd';
+import clsx from 'clsx';
 import { EnvironmentOutlined } from '@ant-design/icons';
 import { useDebounce } from '@/hooks';
 import { apiSuggestAddress, type AddressSuggestion } from '@/apis/location.api';
@@ -13,6 +13,10 @@ interface AutoCompleteAddressProps {
    /** Render the list in flow (for the mobile full-screen sheet) instead of an absolute popup */
    inline?: boolean;
    onSelect?: () => void;
+   /** Controlled visibility — the search bar uses it to keep one popup open at a time. */
+   open?: boolean;
+   /** Match the trigger's width instead of the wider hero-search popup. */
+   matchWidth?: boolean;
 }
 
 /** Address suggestions — served by the BE (/api/location/suggest, cached) */
@@ -22,6 +26,8 @@ const AutoCompleteAddress: React.FC<AutoCompleteAddressProps> = ({
    setValue,
    inline = false,
    onSelect,
+   open,
+   matchWidth = false,
 }) => {
    const [selected, setSelected] = React.useState<string | null>(null);
    const debouncedSearchValue = useDebounce(value, 400);
@@ -46,32 +52,61 @@ const AutoCompleteAddress: React.FC<AutoCompleteAddressProps> = ({
       onSelect?.();
    };
 
-   const isOpen = (options.length > 0 || isFetching) && !!value;
+   const hasContent = (options.length > 0 || isFetching) && !!value;
+   const isOpen = open === undefined ? hasContent : open && hasContent;
+   // The hero search bar centres a wider popup over a narrow column; sidebars just
+   // want it flush with the field.
+   const centred = !inline && !matchWidth;
 
    return (
       <div className="relative w-full">
          <AnimatePresence>
             {isOpen && (
                <motion.div
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
+                  // The popup is wider than the Where column (min-w-320px), so it is
+                  // centred on the field via left-1/2 + a -50% x shift. The shift lives
+                  // here rather than in a `-translate-x-1/2` class because framer-motion
+                  // writes its own inline `transform`, which would drop the class.
+                  initial={{ opacity: 0, y: -6, ...(centred ? { x: '-50%' } : {}) }}
+                  animate={{ opacity: 1, y: 0, ...(centred ? { x: '-50%' } : {}) }}
+                  exit={{ opacity: 0, y: -6, ...(centred ? { x: '-50%' } : {}) }}
                   transition={{ duration: 0.15 }}
-                  className={
+                  className={clsx(
                      inline
                         ? 'overflow-y-auto py-2 w-full'
-                        : 'overflow-hidden absolute left-0 top-3 z-20 py-2 w-full bg-white rounded-2xl border border-gray-100 shadow-card-md min-w-[320px]'
-                  }
+                        : 'overflow-hidden absolute top-2 z-20 py-2 w-full bg-white rounded-2xl border border-gray-100 shadow-card-md',
+                     centred && 'left-1/2 min-w-[320px]',
+                     !inline && matchWidth && 'left-0',
+                  )}
                >
                   {isFetching ? (
-                     <div className="flex gap-2 justify-center items-center py-5 text-sm text-gray-400">
-                        <Spin size="small" /> Searching places...
+                     // Skeleton rows shaped like real suggestions — the list keeps its
+                     // height instead of collapsing to a spinner and jumping back.
+                     <div className="animate-pulse">
+                        {[0, 1, 2].map((row) => (
+                           <div key={row} className="flex gap-3 items-center px-4 py-2.5">
+                              <span className="flex-shrink-0 w-9 h-9 bg-gray-100 rounded-xl" />
+                              <span className="flex-1 min-w-0">
+                                 <span
+                                    className="block h-3 bg-gray-100 rounded"
+                                    style={{ width: `${70 - row * 12}%` }}
+                                 />
+                                 <span
+                                    className="block mt-1.5 h-2.5 bg-gray-50 rounded"
+                                    style={{ width: `${45 - row * 8}%` }}
+                                 />
+                              </span>
+                           </div>
+                        ))}
                      </div>
                   ) : (
                      options.map((suggestion, index) => (
                         <button
                            key={`${suggestion.value}-${index}`}
                            type="button"
+                           // Keep focus on the input: a blur would close the popup
+                           // before the click could land.
+                           onMouseDown={(event) => event.preventDefault()}
                            onClick={() => handleSelect(suggestion)}
                            className="flex gap-3 items-center px-4 py-2.5 w-full text-left bg-transparent border-none transition-colors cursor-pointer hover:bg-gray-50"
                         >

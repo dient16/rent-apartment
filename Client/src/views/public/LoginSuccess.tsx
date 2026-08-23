@@ -2,9 +2,10 @@ import { apiLoginGoogleSuccess } from '@/apis';
 import { signIn } from '@/contexts/auth/reduces';
 import { useAuth } from '@/hooks';
 import { path } from '@/utils/constant';
-import { Spin } from 'antd';
+
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from '@/lib/router-compat';
+import FullscreenLoader from '@/components/FullscreenLoader/FullscreenLoader';
 
 const LoginSuccess: React.FC = () => {
     const { userId } = useParams();
@@ -22,7 +23,7 @@ const LoginSuccess: React.FC = () => {
     }, [navigate, dispatch, userId]);
     return (
         <div className="min-h-screen">
-            <Spin spinning={true} fullscreen={true} size="large" />
+            <FullscreenLoader spinning />
         </div>
     );
 };

@@ -59,7 +59,7 @@ const RoomDetailsForm: React.FC<RoomDetailsFormProps> = ({ index }) => {
                label="Size"
                type="number"
                rules={{ required: 'Size is required' }}
-               addonAfter="m²"
+               suffix="m²"
             />
             <InputField
                name={`rooms.${index}.price`}
@@ -71,10 +71,12 @@ const RoomDetailsForm: React.FC<RoomDetailsFormProps> = ({ index }) => {
                   return `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
                }}
                parser={(value) => {
+                  // Strip every separator, not just commas: Vietnamese keyboards type
+                  // "299.824", which used to survive as the float 299.824.
                   if (!value) return '';
-                  return value.replace(/,/g, '');
+                  return value.replace(/[^\d]/g, '');
                }}
-               addonAfter="VND"
+               suffix="VND"
             />
             <SelectField
                name={`rooms.${index}.bedType`}
@@ -103,13 +105,13 @@ const RoomDetailsForm: React.FC<RoomDetailsFormProps> = ({ index }) => {
                      Number.isInteger(Number(value)) ||
                      'Number of guests must be an integer',
                }}
-               addonAfter="persons"
+               suffix="persons"
             />
             <InputField
                name={`rooms.${index}.quantity`}
                label="Number of Rooms for This Type"
                type="number"
-               addonAfter="rooms"
+               suffix="rooms"
                rules={{
                   required: 'Quantity is required',
                   min: 0,

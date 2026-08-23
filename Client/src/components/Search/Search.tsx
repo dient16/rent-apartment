@@ -20,6 +20,10 @@ const Search: React.FC = () => {
    // Mobile/tablet: the Where field opens a full-screen sheet instead of an inline popup
    const [whereOpen, setWhereOpen] = useState(false);
    const [whoOpen, setWhoOpen] = useState(false);
+   // Desktop: Where / When / Who share one slot, so opening one closes the others.
+   const [activePanel, setActivePanel] = useState<'where' | 'when' | 'who' | null>(
+      null,
+   );
    const isCompactScreen = () =>
       typeof window !== 'undefined' && window.innerWidth < 1024;
 
@@ -44,9 +48,9 @@ const Search: React.FC = () => {
    };
 
    const segmentClass =
-      'flex flex-col justify-center px-6 py-3 rounded-full transition-colors hover:bg-gray-100 cursor-pointer min-h-[64px]';
+      'flex flex-col justify-center gap-0.5 px-5 py-2.5 rounded-full transition-colors hover:bg-gray-100 cursor-pointer min-h-[58px]';
    const labelClass =
-      'text-xs font-bold tracking-wide text-gray-900 uppercase pointer-events-none';
+      'text-[11px] font-bold tracking-wide text-gray-900 uppercase pointer-events-none leading-none';
 
    return (
       <form
@@ -60,25 +64,39 @@ const Search: React.FC = () => {
             defaultValue=""
             render={({ field }) => (
                <>
-                  <label className={`${segmentClass} relative flex-[1.2] min-w-0`}>
+                  <label className={`${segmentClass} relative flex-[1.15] min-w-0`}>
                      <span className={labelClass}>Where</span>
                      <input
                         placeholder="Search destinations"
                         className="w-full text-sm text-gray-800 placeholder-gray-400 bg-transparent border-none outline-none"
                         value={field.value}
-                        onChange={(event) => field.onChange(event.target.value)}
+                        onChange={(event) => {
+                           setActivePanel('where');
+                           field.onChange(event.target.value);
+                        }}
                         onFocus={(event) => {
                            if (isCompactScreen()) {
                               event.target.blur();
                               setWhereOpen(true);
+                              return;
                            }
+                           setActivePanel('where');
                         }}
+                        // Clicking away should dismiss the list; the options call
+                        // preventDefault on mousedown so selecting one still works.
+                        onBlur={() =>
+                           setActivePanel((panel) =>
+                              panel === 'where' ? null : panel,
+                           )
+                        }
                      />
                      <span className="hidden lg:block">
                         <AutoCompleteAddress
+                           open={activePanel === 'where'}
                            value={field.value}
                            onChange={field.onChange}
                            setValue={setValue}
+                           onSelect={() => setActivePanel(null)}
                         />
                      </span>
                   </label>
@@ -143,7 +161,7 @@ const Search: React.FC = () => {
             )}
          />
 
-         <span className="hidden self-center w-px h-9 bg-gray-200 md:block" />
+         <span className="hidden self-center w-px h-8 bg-gray-200 md:block" />
 
          {/* ===== When ===== */}
          <Controller
@@ -151,7 +169,7 @@ const Search: React.FC = () => {
             control={control}
             defaultValue={[moment().toDate(), moment().add(1, 'days').toDate()]}
             render={({ field }) => (
-               <div className={`${segmentClass} relative flex-[1.3]`}>
+               <div className={`${segmentClass} relative flex-[1.1]`}>
                   <span className={labelClass}>When</span>
                   <CustomDatePicker
                      value={field.value}
@@ -161,12 +179,14 @@ const Search: React.FC = () => {
                      variant="compact"
                      isBorder={false}
                      minDate={new Date()}
+                     open={activePanel === 'when'}
+                     onOpenChange={(next) => setActivePanel(next ? 'when' : null)}
                   />
                </div>
             )}
          />
 
-         <span className="hidden self-center w-px h-9 bg-gray-200 md:block" />
+         <span className="hidden self-center w-px h-8 bg-gray-200 md:block" />
 
          {/* ===== Who ===== */}
          <Controller
@@ -198,6 +218,10 @@ const Search: React.FC = () => {
                            )}
                            placement="bottomLeft"
                            trigger={['click']}
+                           open={activePanel === 'who'}
+                           onOpenChange={(next) =>
+                              setActivePanel(next ? 'who' : null)
+                           }
                         >
                            <div className={segmentClass}>{summary}</div>
                         </Dropdown>

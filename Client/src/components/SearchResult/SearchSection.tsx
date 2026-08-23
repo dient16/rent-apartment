@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
-import { Input, Tooltip, Dropdown, Button } from 'antd';
+import { Dropdown, Tooltip } from 'antd';
 import { FaMapMarkerAlt } from 'react-icons/fa';
-import { CustomDatePicker, DropDownItem } from '@/components';
+import { AutoCompleteAddress, CustomDatePicker, DropDownItem } from '@/components';
 import moment from 'moment';
 import icons from '@/utils/icons';
 
@@ -12,12 +12,23 @@ interface SearchSectionProps {
    searchParams: URLSearchParams;
 }
 
-const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
-   const { control, getValues } = useFormContext();
+const plural = (count: number, noun: string) =>
+   `${count} ${noun}${count === 1 ? '' : 's'}`;
 
-   // "|| 1" also covers NaN/0 from a missing or malformed query param
-   const numberOfGuests: number = Number(searchParams.get('numberOfGuests')) || 1;
-   const numberOfRooms: number = Number(searchParams.get('numberOfRooms')) || 1;
+/** One boxed row — keeps the three fields visually identical. */
+const fieldBox =
+   'flex items-center gap-2.5 w-full min-h-[52px] px-3.5 bg-white border-[1.5px] border-gray-300 rounded-xl transition-colors hover:border-gray-500 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100';
+
+const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
+   const { control, setValue } = useFormContext();
+   // The field is prefilled from the URL, so the suggestion list must stay shut
+   // until the user actually focuses or types in it.
+   const [suggestOpen, setSuggestOpen] = useState(false);
+
+   // These are the names the search form actually writes to the URL — the old
+   // `numberOfGuests` / `numberOfRooms` never matched, so the panel always showed 1.
+   const numberOfGuests: number = Number(searchParams.get('numberOfGuest')) || 1;
+   const numberOfRooms: number = Number(searchParams.get('roomNumber')) || 1;
    const startDate: string | null = searchParams.get('startDate');
    const endDate: string | null = searchParams.get('endDate');
 
@@ -29,20 +40,21 @@ const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
    });
 
    const handleDateChange = (dates: [Date, Date]) => {
-      setState({
-         startDate: dates[0],
-         endDate: dates[1],
-      });
+      setState({ startDate: dates[0], endDate: dates[1] });
    };
 
    return (
-      <div className="w-full rounded-lg">
-         <div className="flex flex-col gap-2">
-            <div className="mx-2 text-lg">Search</div>
+      <div className="w-full">
+         <div className="flex flex-col gap-2.5">
+            <div className="px-1 text-base font-semibold text-gray-900">
+               Search
+            </div>
+
+            {/* ===== Destination ===== */}
             <Controller
                name="searchText"
                control={control}
-               defaultValue={searchParams.get('province')}
+               defaultValue={searchParams.get('province') ?? ''}
                render={({ field, fieldState: { error } }) => (
                   <Tooltip
                      title={error?.message}
@@ -51,19 +63,41 @@ const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
                      placement="right"
                      zIndex={5}
                   >
-                     <Input
-                        size="large"
-                        placeholder="Anywhere — city, district..."
-                        className="py-3 pl-10 pr-5 w-full rounded-xl border"
-                        status={error ? 'error' : ''}
-                        prefix={
-                           <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        }
-                        {...field}
-                     />
+                     <div className="relative">
+                        <div
+                           className={
+                              error
+                                 ? `${fieldBox} border-red-400! focus-within:border-red-400!`
+                                 : fieldBox
+                           }
+                        >
+                           <FaMapMarkerAlt className="flex-shrink-0 text-gray-400" />
+                           <input
+                              placeholder="Anywhere — city, district..."
+                              className="flex-1 min-w-0 text-sm text-gray-800 placeholder-gray-400 bg-transparent border-none outline-none"
+                              value={field.value ?? ''}
+                              onFocus={() => setSuggestOpen(true)}
+                              onBlur={() => setSuggestOpen(false)}
+                              onChange={(event) => {
+                                 setSuggestOpen(true);
+                                 field.onChange(event.target.value);
+                              }}
+                           />
+                        </div>
+                        <AutoCompleteAddress
+                           matchWidth
+                           open={suggestOpen}
+                           value={field.value ?? ''}
+                           onChange={field.onChange}
+                           setValue={setValue}
+                           onSelect={() => setSuggestOpen(false)}
+                        />
+                     </div>
                   </Tooltip>
                )}
             />
+
+            {/* ===== Dates ===== */}
             <Controller
                name="searchDate"
                control={control}
@@ -77,22 +111,31 @@ const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
                      placement="right"
                      zIndex={5}
                   >
-                     <CustomDatePicker
-                        value={[state.startDate, state.endDate]}
-                        onChange={(dates) => {
-                           handleDateChange(dates);
-                           field.onChange(dates);
-                        }}
-                        className="mt-2"
-                     />
+                     <div className={fieldBox}>
+                        {/* flex-1 so the picker's own wrapper stretches — otherwise it
+                            shrinks to its text and the chevron cannot dock right. */}
+                        <div className="flex-1 min-w-0">
+                           <CustomDatePicker
+                              value={[state.startDate, state.endDate]}
+                              onChange={(dates) => {
+                                 handleDateChange(dates);
+                                 field.onChange(dates);
+                              }}
+                              isBorder={false}
+                              className="my-0! h-full! w-full text-sm"
+                           />
+                        </div>
+                     </div>
                   </Tooltip>
                )}
             />
+
+            {/* ===== Guests ===== */}
             <Controller
                name="searchGuest"
                control={control}
                rules={{ required: 'Number of guests is required' }}
-               defaultValue={{ guests: +numberOfGuests, rooms: +numberOfRooms }}
+               defaultValue={{ guests: numberOfGuests, rooms: numberOfRooms }}
                render={({ field, fieldState: { error } }) => (
                   <Tooltip
                      title={error?.message}
@@ -112,14 +155,18 @@ const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
                         trigger={['click']}
                         getPopupContainer={(trigger) => trigger.parentElement!}
                      >
-                        <Button className="mb-4 flex gap-1 justify-center items-center w-full bg-white rounded-xl font-main h-[48px]">
-                           <PiUserThin size={25} />
-                           <span className="">{`${
-                              getValues('searchGuest')?.guests ?? 1
-                           } adult · ${
-                              getValues('searchGuest')?.rooms ?? 1
-                           } rooms`}</span>
-                        </Button>
+                        <button
+                           type="button"
+                           className={`${fieldBox} cursor-pointer text-left`}
+                        >
+                           <PiUserThin size={20} className="flex-shrink-0 text-gray-400" />
+                           {/* Read from `field.value` so the label updates immediately —
+                               getValues() does not re-render on change. */}
+                           <span className="flex-1 text-sm text-gray-800 truncate">
+                              {plural(field.value?.guests ?? 1, 'adult')} ·{' '}
+                              {plural(field.value?.rooms ?? 1, 'room')}
+                           </span>
+                        </button>
                      </Dropdown>
                   </Tooltip>
                )}

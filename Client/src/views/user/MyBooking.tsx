@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Button, Skeleton, Tooltip } from 'antd';
 import {
    CalendarOutlined,
@@ -12,6 +12,7 @@ import moment from 'moment';
 import { useNavigate } from '@/lib/router-compat';
 import clsx from 'clsx';
 import { apiGetMyBookings } from '@/apis';
+import PaginationBar from '@/components/SearchResult/PaginationBar';
 import { path } from '@/utils/constant';
 
 type BookingStatus = 'pending' | 'confirmed' | 'canceled' | 'completed';
@@ -58,29 +59,33 @@ const FILTERS: { key: 'all' | BookingStatus; label: string }[] = [
    { key: 'canceled', label: 'Canceled' },
 ];
 
+const PAGE_SIZE = 10;
+
 const MyBooking: React.FC = () => {
    const navigate = useNavigate();
    const [filter, setFilter] = useState<'all' | BookingStatus>('all');
+   const [page, setPage] = useState(1);
+
+   // Switching tab restarts paging.
+   const [lastFilter, setLastFilter] = useState(filter);
+   if (lastFilter !== filter) {
+      setLastFilter(filter);
+      setPage(1);
+   }
 
    const { data, isFetching } = useQuery({
-      queryKey: ['my-booking'],
-      queryFn: apiGetMyBookings,
+      queryKey: ['my-booking', page, filter],
+      queryFn: () => apiGetMyBookings({ page, limit: PAGE_SIZE, status: filter }),
+      placeholderData: keepPreviousData,
    });
 
-   const bookings: MyBookingItem[] = useMemo(() => data?.data || [], [data]);
-
-   const counts = useMemo(() => {
-      const result: Record<string, number> = { all: bookings.length };
-      bookings.forEach((booking) => {
-         result[booking.status] = (result[booking.status] || 0) + 1;
-      });
-      return result;
-   }, [bookings]);
-
-   const visibleBookings =
-      filter === 'all'
-         ? bookings
-         : bookings.filter((booking) => booking.status === filter);
+   const visibleBookings: MyBookingItem[] = useMemo(
+      () => data?.data?.bookings || [],
+      [data],
+   );
+   // Tab badges count the whole result set, not the page on screen.
+   const counts: Record<string, number> = data?.data?.counts || {};
+   const total: number = data?.data?.pagination?.total ?? 0;
 
    return (
       <div className="min-h-screen bg-gray-50 font-main">
@@ -128,7 +133,7 @@ const MyBooking: React.FC = () => {
                      >
                         <Skeleton.Image
                            active
-                           className="!w-56 !h-36 !rounded-xl hidden md:block"
+                           className="w-56! h-36! rounded-xl! hidden md:block"
                         />
                         <Skeleton active paragraph={{ rows: 3 }} />
                      </div>
@@ -271,6 +276,19 @@ const MyBooking: React.FC = () => {
                      );
                   })}
                </div>
+            )}
+
+            {!isFetching && total > 0 && (
+               <PaginationBar
+                  page={page}
+                  pageSize={PAGE_SIZE}
+                  total={total}
+                  onChange={(next) => {
+                     setPage(next);
+                     window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  itemLabel="booking"
+               />
             )}
          </div>
       </div>

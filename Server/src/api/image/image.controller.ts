@@ -20,10 +20,36 @@ export const uploadImage = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+// Uploaded filenames are random hex, so a given URL always maps to the same bytes —
+// they can be cached forever by the browser and any proxy in front of the API.
+const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable';
+
 export const openImageBrowser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const stream = await openImageBrowserService(req.params.filename);
-    stream.data?.pipe(res);
+    const response = await openImageBrowserService(req.params.filename);
+
+    if (!response.data) {
+      // Previously this fell through without writing anything and the request hung.
+      return handleServiceResponse(response, res);
+    }
+
+    const { stream, contentType, length, uploadDate, etag } = response.data;
+
+    res.setHeader('Cache-Control', IMMUTABLE_CACHE);
+    res.setHeader('ETag', etag);
+    res.setHeader('Last-Modified', uploadDate.toUTCString());
+    // Also stops the compression middleware from trying to gzip already-compressed bytes.
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Length', length);
+
+    if (req.headers['if-none-match'] === etag) {
+      stream.destroy();
+      return res.status(304).end();
+    }
+
+    stream.on('error', next);
+    res.on('close', () => stream.destroy());
+    stream.pipe(res);
   } catch (error) {
     next(error);
   }

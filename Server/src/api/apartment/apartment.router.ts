@@ -7,6 +7,7 @@ import {
   apartmentSchema,
   createApartmentSchema,
   getApartmentQuerySchema,
+  getOwnerApartmentsSchema,
   searchRoomSchema,
 } from '@/api/apartment/apartment.dto';
 import { createApiResponse } from '@/api-docs/openAPIResponseBuilders';
@@ -66,7 +67,7 @@ apartmentRegistry.registerPath({
   tags: ['Apartment'],
   responses: createApiResponse(apartmentSchema, 'Success'),
 });
-router.get('/by-user', verifyAccessToken, controller.getApartmentsByUserId);
+router.get('/by-user', verifyAccessToken, validateRequest(getOwnerApartmentsSchema), controller.getApartmentsByUserId);
 apartmentRegistry.registerPath({
   method: 'get',
   path: '/api/apartment/popular-rooms',

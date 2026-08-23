@@ -37,7 +37,7 @@ const SignUp: React.FC = () => {
         <form onSubmit={handleSubmit(handleRegister)}>
             <div className="w-full flex gap-5">
                 <div className="flex-1 pb-10 hidden lg:block">
-                    <img src={registerImage} />
+                    <img src={registerImage.src} />
                 </div>
                 <div className="flex-1 pt-10 flex gap-6 flex-col">
                     <ButtonSignIn />

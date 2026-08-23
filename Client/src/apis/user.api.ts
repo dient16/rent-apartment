@@ -12,10 +12,11 @@ export const apiEditUser = (data: FormData): Promise<Res> =>
       method: 'put',
       data,
    });
-export const apiGetFavorites = (): Promise<Res> =>
+export const apiGetFavorites = (params?: { page?: number; limit?: number }): Promise<Res> =>
    axios({
       url: '/user/favorites',
       method: 'get',
+      params,
    });
 export const apiToggleFavorite = (apartmentId: string): Promise<Res> =>
    axios({

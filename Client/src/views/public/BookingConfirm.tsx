@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Result, Spin, Steps, Tabs } from 'antd';
-import { CustomerInfo, Payment } from '@/components';
+import { Button, Result, Steps, Tabs } from 'antd';
+import { CustomerInfo, FullscreenLoader, Payment } from '@/components';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from '@/lib/router-compat';
 import { useQuery } from '@tanstack/react-query';
@@ -70,6 +70,8 @@ const BookingConfirm: React.FC = () => {
       })),
    );
 
+   const totalRooms = roomNumbers.reduce((sum, count) => sum + count, 0);
+
    const handleCompletion = (data: CustomerBooking) => {
       setCustomerInfo({
          ...data,
@@ -83,7 +85,7 @@ const BookingConfirm: React.FC = () => {
 
    return isFetching ? (
       <div className="min-h-screen">
-         <Spin fullscreen size="large" spinning={true} />
+         <FullscreenLoader spinning />
       </div>
    ) : !roomData ? (
       <div className="min-h-screen flex items-center justify-center">
@@ -104,7 +106,7 @@ const BookingConfirm: React.FC = () => {
          />
       </div>
    ) : (
-      <div className="w-full flex items-center justify-center pt-3 mb-10 px-4 md:px-6 lg:px-10 bg-gray-100">
+      <div className="flex justify-center px-4 pt-3 pb-10 w-full bg-gray-50 md:px-6 lg:px-10 min-h-screen">
          <div className="max-w-main w-full mt-5">
             <Steps
                size="small"
@@ -117,126 +119,118 @@ const BookingConfirm: React.FC = () => {
                ]}
             />
             <div className="grid grid-cols-1 lg:grid-cols-10 gap-7 mt-7 font-light">
-               <div className="lg:col-span-4 flex flex-col items-center justify-center gap-5">
-                  <div className="w-full flex flex-col items-start gap-3 bg-white rounded-lg p-4">
-                     <div className="font-semibold text-lg">
+               <div className="flex flex-col gap-5 lg:col-span-4">
+                  <div className="p-5 w-full bg-white rounded-2xl border border-gray-100 shadow-card-sm">
+                     <div className="text-lg font-semibold text-gray-900">
                         {roomData.title}
                      </div>
-                     <div>
-                        {`${roomData.location.street} ${roomData.location.ward} ${roomData.location.district} ${roomData.location.province}`}
-                     </div>
-
-                     <div className="flex items-center gap-2">
-                        <span className="px-4 py-1.5 bg-green-200 rounded-full text-sm uppercase text-center tracking-normal leading-4 whitespace-nowrap text-green-700 font-medium">
-                           9.3
-                        </span>
-                        <span>10 reviews</span>
+                     <div className="mt-1 text-sm text-gray-500">
+                        {[
+                           roomData.location.street,
+                           roomData.location.ward,
+                           roomData.location.district,
+                           roomData.location.province,
+                        ]
+                           .filter(Boolean)
+                           .join(', ')}
                      </div>
                   </div>
-                  <div className="p-4 w-full bg-white rounded-lg space-y-5">
-                     <h3 className="font-semibold text-lg">
+
+                  <div className="p-5 space-y-5 w-full bg-white rounded-2xl border border-gray-100 shadow-card-sm">
+                     <h3 className="text-lg font-semibold text-gray-900">
                         Your booking details
                      </h3>
-                     <div className="flex items-center gap-2 justify-center">
-                        <div className="border rounded-lg p-3">
-                           <div className="text-sm">Check-in</div>
-                           <div className="font-semibold text-md">
+
+                     <div className="flex gap-2 items-center">
+                        <div className="flex-1 p-3 rounded-xl border border-gray-200">
+                           <div className="text-xs tracking-wide text-gray-400 uppercase">
+                              Check-in
+                           </div>
+                           <div className="font-semibold text-gray-900">
                               {moment(startDate).format('ddd, DD MMM YYYY')}
                            </div>
-                           <div className="text-sm">14:00 - 20:00</div>
+                           <div className="text-xs text-gray-500">14:00 - 20:00</div>
                         </div>
-                        <div className="relative flex items-center">
-                           <span className="md:w-[50px] w-[30px] h-[1px] bg-gray-400 inline-block"></span>
-                           <span className="absolute left-0 w-1 h-1 bg-gray-400 rounded-full"></span>
-                           <span className="absolute right-0 w-1 h-1 bg-gray-400 rounded-full"></span>
+                        <div className="flex relative flex-shrink-0 items-center">
+                           <span className="md:w-[40px] w-[24px] h-px bg-gray-300 inline-block" />
+                           <span className="absolute left-0 w-1 h-1 bg-gray-300 rounded-full" />
+                           <span className="absolute right-0 w-1 h-1 bg-gray-300 rounded-full" />
                         </div>
-                        <div className="border rounded-lg p-3">
-                           <div className="text-sm">Check-out</div>
-                           <div className="font-semibold text-md">
+                        <div className="flex-1 p-3 rounded-xl border border-gray-200">
+                           <div className="text-xs tracking-wide text-gray-400 uppercase">
+                              Check-out
+                           </div>
+                           <div className="font-semibold text-gray-900">
                               {moment(endDate).format('ddd, DD MMM YYYY')}
                            </div>
-                           <div className="text-sm">8:00 - 12:00</div>
+                           <div className="text-xs text-gray-500">8:00 - 12:00</div>
                         </div>
                      </div>
-                     <div>
-                        <div>Total length of stay:</div>
-                        <div className="font-semibold">{`${numberOfDays} night`}</div>
+
+                     <div className="flex justify-between items-baseline">
+                        <span className="text-sm text-gray-500">
+                           Total length of stay
+                        </span>
+                        <span className="font-semibold text-gray-900">
+                           {numberOfDays} night{numberOfDays > 1 ? 's' : ''}
+                        </span>
                      </div>
-                     <div className="border-t border-gray-400"></div>
-                     <div>
-                        <div>You selected</div>
-                        <div className="font-semibold">{`${
-                           roomNumbers.length
-                        } room(s) ${roomNumbers.reduce(
-                           (a, b) => a + b,
-                           0,
-                        )} adults`}</div>
+
+                     <div className="flex justify-between items-baseline">
+                        <span className="text-sm text-gray-500">You selected</span>
+                        <span className="font-semibold text-gray-900">
+                           {totalRooms} room{totalRooms > 1 ? 's' : ''}
+                        </span>
                      </div>
-                     <div className="border-t border-gray-400 my-2"></div>
-                     <div>
+
+                     <div className="pt-4 space-y-4 border-t border-gray-100">
                         {roomData.rooms.map((room, index) => (
-                           <div key={index} className="mb-4">
-                              <div className="flex items-center text-sm text-gray-600 mb-1">
-                                 <span className="text-lg text-black">
-                                    {room.roomType}
+                           <div key={room._id ?? index}>
+                              <div className="mb-1.5 font-medium text-gray-900">
+                                 {room.roomType}
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
+                                 <span className="flex gap-1.5 items-center">
+                                    <FaBed /> {room.bedType}
                                  </span>
-                              </div>
-
-                              <div className="flex items-center text-sm text-gray-500 mb-1">
-                                 <FaBed className="mr-2" />
-                                 <span className="text-md">{room.bedType}</span>
-                              </div>
-
-                              <div className="flex items-center text-sm text-gray-500 mb-1">
-                                 <FaRulerCombined className="mr-2" />
-                                 <span className="text-md">{room.size} m²</span>
-                              </div>
-
-                              <div className="flex items-center text-sm text-gray-500 mb-1">
-                                 <FaUsers className="mr-2" />
-                                 <span className="text-md">
-                                    {room.numberOfGuest} guests
+                                 <span className="flex gap-1.5 items-center">
+                                    <FaRulerCombined /> {room.size} m²
+                                 </span>
+                                 <span className="flex gap-1.5 items-center">
+                                    <FaUsers /> {room.numberOfGuest} guest
+                                    {room.numberOfGuest > 1 ? 's' : ''}
                                  </span>
                               </div>
                            </div>
                         ))}
                      </div>
-
-                     <div className="border-t border-gray-400 my-2"></div>
-                     <div>
-                        <div className="text-sm text-gray-500">
-                           You selected
-                        </div>
-                        <div className="font-semibold text-md">
-                           {roomNumbers.length} room(s){' '}
-                           {roomNumbers.reduce((a, b) => a + b, 0)} adults
-                        </div>
-                     </div>
                   </div>
-                  <div className="w-full rounded-lg bg-white overflow-hidden">
-                     <div className="w-full p-5">
-                        <div className="font-semibold text-lg mb-3">
+
+                  <div className="overflow-hidden w-full bg-white rounded-2xl border border-gray-100 shadow-card-sm">
+                     <div className="p-5 space-y-2">
+                        <div className="mb-3 text-lg font-semibold text-gray-900">
                            Your price summary
                         </div>
-                        <div className="flex items-center justify-between">
-                           <span>Original price</span>
-                           <span>{`${baseAmount.toLocaleString()} VND`}</span>
+                        <div className="flex justify-between items-center text-sm">
+                           <span className="text-gray-500">Original price</span>
+                           <span className="text-gray-900">{`${baseAmount.toLocaleString()} VND`}</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                           <span>Including taxes and fees 11%</span>
-                           <span>{`+ ${taxAmount.toLocaleString()} VND`}</span>
+                        <div className="flex justify-between items-center text-sm">
+                           <span className="text-gray-500">
+                              Including taxes and fees 11%
+                           </span>
+                           <span className="text-gray-900">{`+ ${taxAmount.toLocaleString()} VND`}</span>
                         </div>
                      </div>
-                     <div className="flex items-center justify-between p-5 bg-blue-50">
-                        <div>
-                           <span className="text-3xl font-bold">Total</span>
-                        </div>
+                     <div className="flex justify-between items-center p-5 bg-blue-50">
+                        <span className="text-xl font-bold text-gray-900">Total</span>
                         <div className="flex flex-col items-end">
-                           <div className="font-semibold text-2xl">{`${totalAmount.toLocaleString()} VND`}</div>
-                           <div>Includes taxes and charges</div>
+                           <div className="text-2xl font-bold text-gray-900">{`${totalAmount.toLocaleString()} VND`}</div>
+                           <div className="text-xs text-gray-500">
+                              Includes taxes and charges
+                           </div>
                         </div>
                      </div>
-                     <div className=""></div>
                   </div>
                </div>
 

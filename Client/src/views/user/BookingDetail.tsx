@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Carousel, message, Popconfirm, Spin, Tooltip } from 'antd';
+import { Button, Carousel, message, Popconfirm, Tooltip } from 'antd';
 import {
    ArrowLeftOutlined,
    CalendarOutlined,
@@ -17,6 +17,7 @@ import { Link, useParams } from '@/lib/router-compat';
 import clsx from 'clsx';
 import { apiCancelBooking, apiGetBooking } from '@/apis';
 import { path } from '@/utils/constant';
+import FullscreenLoader from '@/components/FullscreenLoader/FullscreenLoader';
 
 type BookingStatus = 'pending' | 'confirmed' | 'canceled' | 'completed';
 
@@ -52,7 +53,7 @@ const BookingDetail: React.FC = () => {
    if (isFetching) {
       return (
          <div className="min-h-screen">
-            <Spin spinning fullscreen size="large" />
+            <FullscreenLoader spinning />
          </div>
       );
    }

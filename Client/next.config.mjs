@@ -9,12 +9,7 @@ const nextConfig = {
    typescript: {
       ignoreBuildErrors: false,
    },
-   images: {
-      // Image imports resolve to URL strings (Vite parity) so <img src={logo}> keeps working
-      disableStaticImages: true,
-   },
-   // Next 16 bundles with Turbopack, which already emits static assets as URLs —
-   // the previous custom webpack `asset/resource` rule is no longer needed.
+   // Next 16 bundles with Turbopack; static image imports are handled natively.
    turbopack: {},
 };
 

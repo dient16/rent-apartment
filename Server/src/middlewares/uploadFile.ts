@@ -20,6 +20,9 @@ const storage = new GridFsStorage({
         const fileInfo = {
           filename: filename,
           bucketName: 'images',
+          // GridFS dropped the top-level `contentType` field, so keep the mime type in
+          // metadata — the download route needs it to set Content-Type.
+          metadata: { contentType: file.mimetype },
         };
         resolve(fileInfo);
       });

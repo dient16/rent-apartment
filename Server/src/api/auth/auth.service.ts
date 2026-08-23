@@ -52,7 +52,8 @@ export const authService = {
       );
     }
 
-    const emailHtml = htmlTemplate.replace(
+    // replaceAll: the template renders the link both on the button and as copyable text.
+    const emailHtml = htmlTemplate.replaceAll(
       '{{confirmationUrl}}',
       `${SERVER_URL}/api/auth/confirm-email?token=${confirmationToken}`
     );

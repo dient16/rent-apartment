@@ -4,7 +4,7 @@ import { StatusCodes } from 'http-status-codes';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 import { handleServiceResponse } from '@/utils/httpHandlers';
 
-import type { SearchRoomType } from './apartment.dto';
+import type { GetOwnerApartmentsQuery, SearchRoomType } from './apartment.dto';
 import { apartmentService } from './apartment.service';
 
 export const getAllApartment = async (_req: Request, res: Response, next: NextFunction) => {
@@ -114,8 +114,19 @@ export const removeRoomFromApartment = async (req: Request, res: Response, next:
 
 export const getRoomsCheckout = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const roomIds: string[] = req.query.roomIds as string[];
-    const roomNumbers: string[] = req.query.roomNumbers as string[];
+    // A single `roomIds[]=x` arrives as a string, not a one-element array.
+    const toArray = (value: unknown): string[] =>
+      value === undefined ? [] : Array.isArray(value) ? (value as string[]) : [String(value)];
+
+    const roomIds = toArray(req.query.roomIds);
+    const roomNumbers = toArray(req.query.roomNumbers);
+
+    if (!roomIds.length) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: ResponseStatus.Failed,
+        message: 'roomIds is required.',
+      });
+    }
 
     if (roomIds.length !== roomNumbers.length) {
       return res.status(StatusCodes.BAD_REQUEST).json({
@@ -137,7 +148,10 @@ export const getRoomsCheckout = async (req: Request, res: Response, next: NextFu
 export const getApartmentsByUserId = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { _id: userId } = req.user as UserDecode;
-    const serviceResponse = await apartmentService.getApartmentsByUserId(userId);
+    const serviceResponse = await apartmentService.getApartmentsByUserId(
+      userId,
+      req.query as unknown as GetOwnerApartmentsQuery
+    );
     handleServiceResponse(serviceResponse, res);
   } catch (error) {
     next(error);

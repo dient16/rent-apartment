@@ -56,7 +56,7 @@ const Results: React.FC<ResultsProps> = ({
                   >
                      <Skeleton.Image
                         active
-                        className="!w-52 !h-36 !rounded-xl hidden md:block"
+                        className="w-52! h-36! rounded-xl! hidden md:block"
                      />
                      <Skeleton active paragraph={{ rows: 3 }} />
                   </div>

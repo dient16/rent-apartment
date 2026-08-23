@@ -578,7 +578,7 @@ const Messenger: React.FC = () => {
                               </Popover>
                               <Input.TextArea
                                  placeholder="Type a message..."
-                                 className="!bg-gray-100 !rounded-2xl !border !border-gray-200 !py-2.5 !px-4 !text-sm !resize-none"
+                                 className="bg-gray-100! rounded-2xl! border! border-gray-200! py-2.5! px-4! text-sm! resize-none!"
                                  value={draft}
                                  autoSize={{ minRows: 1, maxRows: 5 }}
                                  onChange={(event) =>

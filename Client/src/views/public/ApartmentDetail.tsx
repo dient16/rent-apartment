@@ -1,19 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-   GoogleMapEmbed,
-   NavigationBarRoom,
-   Reviews,
-   RoomList,
-   RoomPolices,
-   ImageGallery,
-   BookingSummary,
-   SearchInfoBar,
-   FavoriteButton,
-   UserAvatar,
-} from '@/components';
-import { Button, Result, Spin, message } from 'antd';
+import { BookingSummary, FavoriteButton, FullscreenLoader, GoogleMapEmbed, ImageGallery, NavigationBarRoom, Reviews, RoomList, RoomPolices, SearchInfoBar, UserAvatar } from '@/components';
+import { Button, Result, message } from 'antd';
 import { Controller, useForm, FormProvider } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from '@/lib/router-compat';
@@ -133,7 +122,7 @@ const ApartmentDetail: React.FC = () => {
 
    return isLoading ? (
       <div className="min-h-screen">
-         <Spin spinning={isLoading} size="large" fullscreen={isLoading} />
+         <FullscreenLoader spinning={isLoading} />
       </div>
    ) : !apartment ? (
       <div className="flex justify-center items-center min-h-screen">

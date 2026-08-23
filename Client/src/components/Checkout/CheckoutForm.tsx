@@ -3,12 +3,13 @@ import {
    useElements,
    PaymentElement,
 } from '@stripe/react-stripe-js';
-import { Button, Spin } from 'antd';
+import { Button } from 'antd';
 import icons from '@/utils/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiBooking } from '@/apis';
 import { useState } from 'react';
 import { useNavigate } from '@/lib/router-compat';
+import FullscreenLoader from '@/components/FullscreenLoader/FullscreenLoader';
 
 const { IoIosArrowBack, FaLock } = icons;
 
@@ -99,11 +100,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
 
    return (
       <span className="w-full">
-         <Spin
-            size="large"
-            spinning={bookingMutation.isPending}
-            fullscreen={bookingMutation.isPending}
-         />
+         <FullscreenLoader spinning={bookingMutation.isPending} />
          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="bg-white rounded-lg p-5 sm:p-8 space-y-5">
                <div className="text-lg font-semibold mb-5">

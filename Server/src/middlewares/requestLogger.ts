@@ -37,6 +37,9 @@ const requestLogger = (options?: Options): RequestHandler[] => {
     customSuccessMessage: (req, res, responseTime) =>
       `${req.method} ${(req as Request).originalUrl ?? req.url} ${res.statusCode} ${Math.round(responseTime)}ms`,
     customErrorMessage: (req, res) => `${req.method} ${(req as Request).originalUrl ?? req.url} ${res.statusCode}`,
+    // The message already ends in "745ms"; drop the attribute so pino-pretty stops
+    // printing a redundant `timeTaken: 745` line underneath it.
+    redact: { paths: ['timeTaken'], remove: true },
   };
 
   const pinoOptions: Options = {

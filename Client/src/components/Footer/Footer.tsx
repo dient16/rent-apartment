@@ -39,7 +39,7 @@ const Footer: React.FC = () => {
                {/* Brand */}
                <div className="lg:col-span-4">
                   <img
-                     src={logo}
+                     src={logo.src}
                      alt="Find House"
                      className="w-[140px] brightness-0 invert"
                   />

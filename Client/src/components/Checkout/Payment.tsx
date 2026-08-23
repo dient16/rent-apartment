@@ -1,13 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import CheckoutForm from './CheckoutForm';
 import { apiBooking, apiCreateStripePayment } from '@/apis';
-import { Button, Flex, Radio, Spin } from 'antd';
+import { Alert, Button, Flex, Radio, Skeleton } from 'antd';
 import icons from '@/utils/icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@/lib/router-compat';
+import FullscreenLoader from '@/components/FullscreenLoader/FullscreenLoader';
 const { IoIosArrowBack, FaLock } = icons;
+
+// Module scope: calling loadStripe on every render restarts the script load each time.
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 interface PaymentProps {
    setActiveTab: (activeTab: string) => void;
@@ -29,23 +33,35 @@ const Payment: React.FC<PaymentProps> = ({
    rooms,
    CustomerInfoData,
 }) => {
-   const [clientSecret, setClientSecret] = useState('');
    const queryClient = useQueryClient();
-   const stripePromise = loadStripe(
-      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-   );
    const [selectTypePayment, setSelectTypePayment] = useState('before');
    const navigate = useNavigate();
    const bookingMutation = useMutation({
       mutationFn: apiBooking,
    });
-   useEffect(() => {
-      const getSecret = async () => {
-         const secretKey = await apiCreateStripePayment({ amount: amount });
-         setClientSecret(secretKey.data);
-      };
-      getSecret();
-   }, [amount]);
+   const {
+      data: clientSecret,
+      isFetching: isPreparingCard,
+      isError: cardSetupFailed,
+      refetch: retryCardSetup,
+   } = useQuery({
+      queryKey: ['payment-intent', amount],
+      queryFn: async () => {
+         const response = await apiCreateStripePayment({ amount });
+         if (!response?.data) {
+            throw new Error(response?.message || 'Could not start the payment');
+         }
+         return response.data as string;
+      },
+      enabled: selectTypePayment === 'before' && amount > 0,
+      retry: false,
+      staleTime: Infinity,
+      // A failed intent must not be re-requested every time the tab regains focus —
+      // the user retries explicitly with the button in the error card.
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+   });
    const handleBooking = async () => {
       bookingMutation.mutate(
          {
@@ -67,13 +83,27 @@ const Payment: React.FC<PaymentProps> = ({
          },
       );
    };
+   const goBackToDetails = () => {
+      setActiveTab('customerInformation');
+      setStep(1);
+   };
+
+   const backButton = (
+      <Button
+         size="large"
+         shape="circle"
+         type="primary"
+         ghost
+         className="flex justify-center items-center"
+         aria-label="Back to your details"
+         onClick={goBackToDetails}
+         icon={<IoIosArrowBack size={20} />}
+      />
+   );
+
    return (
       <>
-         <Spin
-            size="large"
-            spinning={bookingMutation.isPending}
-            fullscreen={bookingMutation.isPending}
-         />
+         <FullscreenLoader spinning={bookingMutation.isPending} />
          <div className="mx-2 space-y-5">
             <div className="bg-white rounded-lg p-4 sm:p-8">
                <Radio.Group
@@ -97,7 +127,41 @@ const Payment: React.FC<PaymentProps> = ({
             </div>
             {selectTypePayment === 'before' && (
                <div>
-                  {clientSecret && (
+                  {isPreparingCard ? (
+                     <div className="p-4 bg-white rounded-lg sm:p-8">
+                        <Skeleton active paragraph={{ rows: 4 }} />
+                     </div>
+                  ) : cardSetupFailed ? (
+                     /* Without this the whole card section rendered empty and the user
+                        was stuck with no back button and no other payment option. */
+                     <div className="p-4 space-y-5 bg-white rounded-lg sm:p-8">
+                        <Alert
+                           type="error"
+                           showIcon
+                           message="Card payment is unavailable right now"
+                           description="We could not reach the payment provider. You can try again, pay when you check in, or go back and review your details."
+                        />
+                        <Flex className="flex flex-col gap-3 items-center sm:flex-row sm:justify-between sm:gap-0">
+                           {backButton}
+                           <div className="flex flex-col gap-3 sm:flex-row">
+                              <Button
+                                 size="large"
+                                 onClick={() => setSelectTypePayment('after')}
+                              >
+                                 Pay upon check-in
+                              </Button>
+                              <Button
+                                 size="large"
+                                 type="primary"
+                                 className="bg-blue-500"
+                                 onClick={() => retryCardSetup()}
+                              >
+                                 Try again
+                              </Button>
+                           </div>
+                        </Flex>
+                     </div>
+                  ) : clientSecret ? (
                      <Elements
                         stripe={stripePromise}
                         options={{ clientSecret }}
@@ -112,7 +176,7 @@ const Payment: React.FC<PaymentProps> = ({
                            CustomerInfoData={CustomerInfoData}
                         />
                      </Elements>
-                  )}
+                  ) : null}
                </div>
             )}
             {selectTypePayment === 'after' && (
@@ -126,18 +190,7 @@ const Payment: React.FC<PaymentProps> = ({
                      </div>
                   </div>
                   <Flex className="flex flex-col sm:flex-row items-center sm:justify-between gap-3 sm:gap-0">
-                     <Button
-                        size="large"
-                        shape="circle"
-                        type="primary"
-                        ghost
-                        className="flex items-center justify-center"
-                        onClick={() => {
-                           setActiveTab('customerInformation');
-                           setStep(1);
-                        }}
-                        icon={<IoIosArrowBack size={20} />}
-                     />
+                     {backButton}
 
                      <Button
                         htmlType="submit"

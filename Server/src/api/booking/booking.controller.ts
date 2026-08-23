@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from '@/types/http';
+import type { BookingListQuery } from './booking.dto';
 import { bookingService } from './booking.service';
 import { handleServiceResponse } from '@/utils/httpHandlers';
 
@@ -14,7 +15,7 @@ export const createBooking = async (req: Request, res: Response, next: NextFunct
 export const getBookings = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { _id: userId } = req.user as UserDecode;
-    const serviceResponse = await bookingService.getBookings(userId);
+    const serviceResponse = await bookingService.getBookings(userId, req.query as unknown as BookingListQuery);
     handleServiceResponse(serviceResponse, res);
   } catch (error) {
     next(error);
@@ -34,7 +35,7 @@ export const getBooking = async (req: Request, res: Response, next: NextFunction
 export const getUserBookings = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { _id: userId } = req.user as UserDecode;
-    const serviceResponse = await bookingService.getUserBookings(userId);
+    const serviceResponse = await bookingService.getUserBookings(userId, req.query as unknown as BookingListQuery);
     handleServiceResponse(serviceResponse, res);
   } catch (error) {
     next(error);

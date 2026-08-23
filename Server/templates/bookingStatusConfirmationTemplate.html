@@ -1,59 +1,211 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Booking Status Confirmation</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
-        color: #333;
-        padding: 20px;
-      }
-      .container {
-        max-width: 600px;
-        margin: 0 auto;
-        background: #fff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      }
-      h1 {
-        color: #5cb85c;
-      }
-      .content {
-        margin: 20px 0;
-      }
-      .content p {
-        line-height: 1.6;
-      }
-      .footer {
-        font-size: 0.9em;
-        color: #777;
-        margin-top: 20px;
-      }
-      .footer a {
-        color: #5cb85c;
-        text-decoration: none;
-      }
-    </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>Your stay is confirmed</title>
   </head>
-  <body>
-    <div class="container">
-      <h1>Booking Status Confirmed</h1>
-      <div class="content">
-        <p>Dear {{firstname}} {{lastname}},</p>
-        <p>Your booking with ID <strong>{{bookingId}}</strong> has been successfully confirmed.</p>
-        <p><strong>Check-in:</strong> {{checkInTime}}</p>
-        <p><strong>Check-out:</strong> {{checkOutTime}}</p>
-        <p><strong>Total Price:</strong> {{totalPrice}}</p>
-        <p>Thank you for booking with us!</p>
-      </div>
-      <div class="footer">
-        <p>If you have any questions, feel free to <a href="mailto:support@example.com">contact us</a>.</p>
-        <p>Best regards,<br />Your Booking Team</p>
-      </div>
+  <!--
+    Email clients strip <style> blocks and rarely support flex/grid, so everything here
+    is a table with inline styles. Keep it that way when editing.
+  -->
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      background-color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    "
+  >
+    <!-- Inbox preview line, shown next to the subject -->
+    <div style="display: none; max-height: 0; overflow: hidden; opacity: 0">
+      The host confirmed your reservation — you are all set.
     </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f3f4f6">
+      <tr>
+        <td align="center" style="padding: 32px 16px">
+          <table
+            role="presentation"
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="width: 600px; max-width: 100%; background-color: #ffffff; border-radius: 16px; overflow: hidden"
+          >
+            <tr>
+              <td align="center" style="padding: 28px 32px 8px 32px">
+                <div style="font-size: 20px; font-weight: 700; color: #2563eb; letter-spacing: -0.3px">Find House</div>
+              </td>
+            </tr>
+
+            <!-- Success badge -->
+            <tr>
+              <td align="center" style="padding: 12px 32px 0 32px">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td
+                      align="center"
+                      bgcolor="#dcfce7"
+                      width="56"
+                      height="56"
+                      style="
+                        width: 56px;
+                        height: 56px;
+                        border-radius: 28px;
+                        font-size: 28px;
+                        line-height: 56px;
+                        color: #15803d;
+                      "
+                    >
+                      &#10003;
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding: 18px 32px 0 32px">
+                <h1 style="margin: 0 0 10px 0; font-size: 24px; line-height: 32px; font-weight: 700; color: #111827">
+                  Your stay is confirmed
+                </h1>
+                <p style="margin: 0; font-size: 15px; line-height: 24px; color: #6b7280">
+                  Hi {{firstname}} {{lastname}}, the host has confirmed your reservation. Nothing else to do — just
+                  turn up.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding: 20px 32px 4px 32px">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td
+                      bgcolor="#f0fdf4"
+                      style="
+                        padding: 8px 18px;
+                        border-radius: 999px;
+                        font-size: 12px;
+                        font-weight: 700;
+                        letter-spacing: 1px;
+                        text-transform: uppercase;
+                        color: #15803d;
+                      "
+                    >
+                      Booking {{bookingId}}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 24px 32px 8px 32px">
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  border="0"
+                  style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden"
+                >
+                  <tr>
+                    <td style="padding: 14px 18px; font-size: 14px; color: #6b7280; border-bottom: 1px solid #f3f4f6">
+                      Check-in
+                    </td>
+                    <td
+                      align="right"
+                      style="
+                        padding: 14px 18px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: #111827;
+                        border-bottom: 1px solid #f3f4f6;
+                      "
+                    >
+                      {{checkInTime}}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 14px 18px; font-size: 14px; color: #6b7280; border-bottom: 1px solid #f3f4f6">
+                      Check-out
+                    </td>
+                    <td
+                      align="right"
+                      style="
+                        padding: 14px 18px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: #111827;
+                        border-bottom: 1px solid #f3f4f6;
+                      "
+                    >
+                      {{checkOutTime}}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#f9fafb" style="padding: 16px 18px; font-size: 15px; font-weight: 700; color: #111827">
+                      Total
+                    </td>
+                    <td
+                      align="right"
+                      bgcolor="#f9fafb"
+                      style="padding: 16px 18px; font-size: 18px; font-weight: 700; color: #111827"
+                    >
+                      {{totalPrice}}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding: 22px 32px 28px 32px">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" bgcolor="#2563eb" style="border-radius: 999px">
+                      <a
+                        href="{{bookingUrl}}"
+                        target="_blank"
+                        style="
+                          display: inline-block;
+                          padding: 14px 36px;
+                          font-size: 15px;
+                          font-weight: 600;
+                          color: #ffffff;
+                          text-decoration: none;
+                          border-radius: 999px;
+                        "
+                        >View your booking</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 0 32px">
+                <div style="height: 1px; background-color: #e5e7eb; line-height: 1px; font-size: 0">&nbsp;</div>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding: 20px 32px 28px 32px">
+                <p style="margin: 0; font-size: 12px; line-height: 20px; color: #9ca3af">
+                  Need to change or cancel? Manage this booking from your trips, or reply to this email.
+                </p>
+              </td>
+            </tr>
+          </table>
+
+          <p style="margin: 20px 0 0 0; font-size: 12px; color: #9ca3af">&copy; Find House</p>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>

@@ -84,7 +84,7 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                   <CgMenuLeft size={26} />
                </div>
                <Image
-                  src={logo}
+                  src={logo.src}
                   className="cursor-pointer w-[110px] md:w-[150px]"
                   preview={false}
                   // Logo respects the current mode: in host mode it links to the host dashboard

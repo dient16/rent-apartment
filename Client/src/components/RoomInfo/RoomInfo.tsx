@@ -20,6 +20,21 @@ interface RoomInfoProps {
    roomInfo: RoomOption;
 }
 
+// react-slick clones the arrow element and injects `currentSlide` / `slideCount`.
+// They are not valid DOM attributes, so strip them before they reach the icon's <span>.
+type SlickArrowProps = React.HTMLAttributes<HTMLSpanElement> & {
+   currentSlide?: number;
+   slideCount?: number;
+};
+
+const PrevArrow = ({ currentSlide, slideCount, ...props }: SlickArrowProps) => (
+   <LeftOutlined {...props} />
+);
+
+const NextArrow = ({ currentSlide, slideCount, ...props }: SlickArrowProps) => (
+   <RightOutlined {...props} />
+);
+
 const RoomInfo: React.FC<RoomInfoProps> = ({ roomInfo }) => {
    const { roomType, size, numberOfGuest, bedType, amenities, totalPrice, quantity, images } =
       roomInfo;
@@ -39,8 +54,8 @@ const RoomInfo: React.FC<RoomInfoProps> = ({ roomInfo }) => {
                arrows
                swipeToSlide
                draggable
-               prevArrow={<LeftOutlined />}
-               nextArrow={<RightOutlined />}
+               prevArrow={<PrevArrow />}
+               nextArrow={<NextArrow />}
                className="overflow-hidden rounded-2xl"
             >
                {images.map((image, index) => (

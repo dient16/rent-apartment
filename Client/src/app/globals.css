@@ -1,10 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
-/* Cascade layers (antd's official Tailwind setup): preflight < antd < tailwind utilities,
-   so utility classes can still override antd component styles. */
+/* Preflight is confined to a cascade layer so antd's own reset wins over it.
+   Theme + utilities are deliberately left UNLAYERED: antd injects its CSS-in-JS at
+   runtime outside any layer, and unlayered rules beat every layered rule regardless
+   of specificity — utilities in `@layer utilities` would silently lose to antd's
+   element selectors (e.g. `a { color }` overriding `text-gray-700`). Unlayered, they
+   compete on specificity and win, which is how this app behaved on Tailwind 3. */
 @layer tailwind-base, antd;
 @import 'tailwindcss/preflight' layer(tailwind-base);
-@import 'tailwindcss/theme' layer(theme);
-@import 'tailwindcss/utilities' layer(utilities);
+@import 'tailwindcss/theme';
+@import 'tailwindcss/utilities';
 @config '../../tailwind.config.js';
 
 .apartment-detail .ant-image-mask-info,

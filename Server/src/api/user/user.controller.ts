@@ -31,7 +31,7 @@ export const getFavorites = async (req: Request, res: Response, next: NextFuncti
   try {
     const { _id: uid } = req.user as UserDecode;
 
-    const serviceResponse = await userService.getFavorites(uid);
+    const serviceResponse = await userService.getFavorites(uid, req.query as unknown as { page: number; limit: number });
     handleServiceResponse(serviceResponse, res);
   } catch (error) {
     next(error);

@@ -297,7 +297,7 @@ const Reviews: React.FC<ReviewsProps> = ({ apartmentId }) => {
                               </span>
                               <Rate
                                  value={scores[key]}
-                                 className="!text-lg"
+                                 className="text-lg!"
                                  onChange={(value) =>
                                     setScores((current) => ({ ...current, [key]: value || 1 }))
                                  }
@@ -329,7 +329,7 @@ const Reviews: React.FC<ReviewsProps> = ({ apartmentId }) => {
                            type="primary"
                            className={
                               comment.trim().length < 3
-                                 ? '!bg-gray-100 !text-gray-400'
+                                 ? 'bg-gray-100! text-gray-400!'
                                  : 'bg-blue-500'
                            }
                            loading={saveMutation.isPending}

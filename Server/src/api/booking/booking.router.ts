@@ -4,7 +4,13 @@ import { Router } from 'express';
 import * as controller from '@/api/booking/booking.controller';
 import { createApiResponse } from '@/api-docs/openAPIResponseBuilders';
 import { verifyAccessToken } from '@/middlewares/verifyToken';
-import { BookingIdParamSchema, BookingSchema, GetBookingsSchema } from '@/api/booking/booking.dto';
+import {
+  BookingIdParamSchema,
+  bookingListQuerySchema,
+  BookingSchema,
+  GetBookingsSchema,
+} from '@/api/booking/booking.dto';
+import { validateRequest } from '@/utils/httpHandlers';
 
 const router = Router();
 export const bookingRegistry = new OpenAPIRegistry();
@@ -60,10 +66,10 @@ bookingRegistry.registerPath({
 });
 
 router.get('/:bookingId', verifyAccessToken, controller.getBooking);
-router.get('/', verifyAccessToken, controller.getBookings);
+router.get('/', verifyAccessToken, validateRequest(bookingListQuerySchema), controller.getBookings);
 router.post('/', controller.createBooking);
 router.post('/:bookingId/confirm', verifyAccessToken, controller.confirmBooking);
 router.post('/:bookingId/cancel', verifyAccessToken, controller.cancelBooking);
-router.get('/user/bookings', verifyAccessToken, controller.getUserBookings);
+router.get('/user/bookings', verifyAccessToken, validateRequest(bookingListQuerySchema), controller.getUserBookings);
 
 export const bookingRouter = router;

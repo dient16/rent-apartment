@@ -22,6 +22,9 @@ interface CustomDatePickerProps {
    format?: string;
    /** Where the desktop popover anchors relative to the trigger */
    popoverPlacement?: 'bottom' | 'bottomLeft' | 'bottomRight';
+   /** Controlled desktop popover — omit to let the picker manage its own state. */
+   open?: boolean;
+   onOpenChange?: (open: boolean) => void;
 }
 
 const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
@@ -37,9 +40,17 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
    format = 'DD MMM',
    variant = 'button',
    popoverPlacement = 'bottom',
+   open,
+   onOpenChange,
 }) => {
    const [drawerVisible, setDrawerVisible] = useState(false);
-   const [popoverVisible, setPopoverVisible] = useState(false);
+   const [uncontrolledPopoverVisible, setUncontrolledPopoverVisible] = useState(false);
+   // Controlled when the parent passes `open` (the search bar closes sibling popups).
+   const popoverVisible = open ?? uncontrolledPopoverVisible;
+   const setPopoverVisible = (next: boolean) => {
+      setUncontrolledPopoverVisible(next);
+      onOpenChange?.(next);
+   };
    const [dates, setDates] = useState<[Date, Date]>(value);
    const [selectingEndDate, setSelectingEndDate] = useState(false);
    const isMobileOrTablet = useMediaQuery({ query: '(max-width: 1023px)' });
@@ -120,7 +131,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                size="large"
                type="primary"
                onClick={handleConfirm}
-               className="!h-12 font-semibold bg-blue-500 rounded-xl"
+               className="h-12! font-semibold bg-blue-500 rounded-xl"
             >
                Confirm · {getNightCount(dates[0], dates[1])} night
                {getNightCount(dates[0], dates[1]) > 1 ? 's' : ''}
@@ -133,7 +144,11 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
       <>
          {variant === 'button' && (
             <Btn
-               className={`my-2 flex gap-1 justify-center items-center w-full bg-white rounded-xl font-main h-[48px] ${className} cursor-pointer lg:hover:text-gray-400`}
+               className={`my-2 flex gap-1 ${
+                  // With the chevron shown it belongs on the far edge, so the dates
+                  // start from the left instead of the whole row being centred.
+                  isShowRightIcon ? 'justify-start' : 'justify-center'
+               } items-center w-full bg-white rounded-xl font-main h-[48px] ${className} cursor-pointer lg:hover:text-gray-400`}
                onClick={() => {
                   isMobileOrTablet
                      ? setDrawerVisible(true)
@@ -141,13 +156,19 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                }}
             >
                {isShowLeftIcon && <CalendarOutlined className="mr-2" />}
-               {moment(value[0]).format(format)}
-               <HiOutlineArrowLongRight />
-               {moment(value[1]).format(format)}
-               {isShowNight
-                  ? `, ${getNightCount(value[0], value[1])} nights`
-                  : ''}
-               {isShowRightIcon && <DownOutlined className="ml-2" />}
+               <span className="flex gap-1 items-center min-w-0 truncate">
+                  {moment(value[0]).format(format)}
+                  <HiOutlineArrowLongRight className="flex-shrink-0" />
+                  {moment(value[1]).format(format)}
+                  {isShowNight
+                     ? `, ${getNightCount(value[0], value[1])} night${
+                          getNightCount(value[0], value[1]) > 1 ? 's' : ''
+                       }`
+                     : ''}
+               </span>
+               {isShowRightIcon && (
+                  <DownOutlined className="flex-shrink-0 ml-auto text-xs text-gray-400" />
+               )}
             </Btn>
          )}
          {variant === 'compact' && (

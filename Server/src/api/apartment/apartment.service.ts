@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import moment from 'moment';
 import mongoose, { Types } from 'mongoose';
 
+import ReviewModel from '@/api/review/review.model';
 import RoomModel from '@/api/room/room.model';
 import type { Room } from '@/api/room/room.dto';
 import User from '@/api/user/user.model';
@@ -17,8 +18,11 @@ import {
 
 import { roomService } from '../room/room.service';
 import ApartmentModel from './apartment.model';
-import type { Apartment, GetApartmentQuery } from './apartment.dto';
+import type { Apartment, GetApartmentQuery, GetOwnerApartmentsQuery } from './apartment.dto';
 const { SERVER_URL } = env;
+
+/** Escape user input before embedding it in a RegExp. */
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 interface PaginatedResult<T> {
   docs: T[];
@@ -106,73 +110,117 @@ export const apartmentService = {
       StatusCodes.OK
     );
   },
+  /**
+   * Apartments guests actually liked.
+   *
+   * Ranking uses a Bayesian average rather than the raw mean, so a place with a single
+   * 5-star review does not outrank one with fifty 4.8s: each apartment is padded with
+   * PRIOR_WEIGHT imaginary reviews at the site-wide average, and only accumulates real
+   * weight as genuine reviews come in.
+   */
   async getPopularRooms(limit: number = 10) {
-    const [err, rooms] = await to(
-      RoomModel.aggregate([
+    const PRIOR_WEIGHT = 5;
+    const FALLBACK_RATING = 4;
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+
+    // Site-wide mean, used as the prior every apartment starts from.
+    const [errAvg, globalRows] = await to(
+      ReviewModel.aggregate([{ $group: { _id: null, avg: { $avg: '$rating' } } }]).exec()
+    );
+    if (errAvg) {
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'Error fetching popular apartments',
+        null,
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
+    }
+    const priorRating: number = globalRows?.[0]?.avg ?? FALLBACK_RATING;
+
+    const [err, apartments] = await to(
+      ApartmentModel.aggregate([
         {
-          $sort: { price: -1, size: -1 },
-        },
-        {
+          // Cheapest room doubles as the "from" price and the image fallback.
           $lookup: {
-            from: 'apartments',
-            localField: 'apartmentId',
-            foreignField: '_id',
-            as: 'apartment',
+            from: 'rooms',
+            let: { apartmentId: '$_id' },
+            pipeline: [
+              { $match: { $expr: { $eq: ['$apartmentId', '$$apartmentId'] } } },
+              { $sort: { price: 1 } },
+              { $limit: 1 },
+              { $project: { price: 1, images: 1, roomType: 1 } },
+            ],
+            as: 'cheapestRoom',
           },
         },
-        {
-          $unwind: '$apartment',
-        },
-        {
-          $group: {
-            _id: '$apartment._id',
-            roomId: { $first: '$_id' },
-            roomType: { $first: '$roomType' },
-            price: { $first: '$price' },
-            images: { $first: '$images' },
-            title: { $first: '$apartment.title' },
-            location: { $first: '$apartment.location' },
-          },
-        },
+        { $unwind: '$cheapestRoom' },
         {
           $lookup: {
             from: 'reviews',
-            localField: '_id',
-            foreignField: 'apartment',
-            as: 'reviewDocs',
+            let: { apartmentId: '$_id' },
+            pipeline: [
+              { $match: { $expr: { $eq: ['$apartment', '$$apartmentId'] } } },
+              { $group: { _id: null, count: { $sum: 1 }, avg: { $avg: '$rating' } } },
+            ],
+            as: 'reviewStats',
           },
         },
         {
           $addFields: {
-            avgRating: {
-              $cond: {
-                if: { $gt: [{ $size: '$reviewDocs' }, 0] },
-                then: { $round: [{ $avg: '$reviewDocs.rating' }, 1] },
-                else: null,
-              },
-            },
+            reviewCount: { $ifNull: [{ $first: '$reviewStats.count' }, 0] },
+            avgRating: { $round: [{ $ifNull: [{ $first: '$reviewStats.avg' }, 0] }, 1] },
           },
         },
         {
-          $project: {
-            roomId: 1,
-            roomType: 1,
-            price: 1,
-            images: {
-              $map: {
-                input: '$images',
-                as: 'image',
-                in: { $concat: [`${SERVER_URL}/api/image/`, '$$image'] },
-              },
+          $addFields: {
+            popularity: {
+              $divide: [
+                {
+                  $add: [
+                    { $multiply: [{ $ifNull: [{ $first: '$reviewStats.avg' }, 0] }, '$reviewCount'] },
+                    priorRating * PRIOR_WEIGHT,
+                  ],
+                },
+                { $add: ['$reviewCount', PRIOR_WEIGHT] },
+              ],
             },
+          },
+        },
+        // Nothing to show without a photo, so drop those before ranking.
+        {
+          $addFields: {
+            gallery: {
+              $cond: [{ $gt: [{ $size: { $ifNull: ['$images', []] } }, 0] }, '$images', '$cheapestRoom.images'],
+            },
+          },
+        },
+        { $match: { 'gallery.0': { $exists: true } } },
+        { $sort: { popularity: -1, reviewCount: -1, price: 1, _id: 1 } },
+        { $limit: safeLimit },
+        {
+          $project: {
+            _id: 1,
             title: 1,
             'location.province': 1,
             'location.district': 1,
-            avgRating: { $ifNull: ['$avgRating', 0] },
+            price: '$cheapestRoom.price',
+            roomType: '$cheapestRoom.roomType',
+            avgRating: 1,
+            reviewCount: 1,
+            images: {
+              $map: {
+                input: { $slice: ['$gallery', 6] },
+                as: 'image',
+                in: {
+                  $cond: [
+                    { $regexMatch: { input: '$$image', regex: /^https?:\/\// } },
+                    '$$image',
+                    { $concat: [`${SERVER_URL}/api/image/`, '$$image'] },
+                  ],
+                },
+              },
+            },
           },
-        },
-        {
-          $limit: limit,
         },
       ]).exec()
     );
@@ -180,13 +228,18 @@ export const apartmentService = {
     if (err) {
       return new ServiceResponse(
         ResponseStatus.Failed,
-        'Error fetching popular rooms',
+        'Error fetching popular apartments',
         null,
         StatusCodes.INTERNAL_SERVER_ERROR
       );
     }
 
-    return new ServiceResponse(ResponseStatus.Success, 'Popular rooms retrieved successfully', rooms, StatusCodes.OK);
+    return new ServiceResponse(
+      ResponseStatus.Success,
+      'Popular apartments retrieved successfully',
+      apartments,
+      StatusCodes.OK
+    );
   },
   async getApartmentDetail(apartmentId: string, query: GetApartmentQuery['query']) {
     const { numberOfGuest, roomNumber, minPrice, maxPrice } = query;
@@ -473,7 +526,6 @@ export const apartmentService = {
 
     // Fallback (ES off): case-insensitive substring match on address + name.
     // (Mongo $text matches PER WORD, so "Thanh pho Ho Chi Minh" would hit other provinces too)
-    const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const apartmentMatch: Record<string, unknown>[] = [];
     if (esApartmentIds === null) {
       if (province) {
@@ -867,35 +919,66 @@ export const apartmentService = {
       );
     }
   },
-  async getApartmentsByUserId(userId: string) {
-    const [err, apartments] = await to(
-      ApartmentModel.find({ owner: userId })
-        .select('title location rooms images')
-        .populate({ path: 'rooms', select: 'images price' })
-        .lean()
-        .exec()
+  async getApartmentsByUserId(userId: string, { page = 1, limit = 12, search = '' }: Partial<GetOwnerApartmentsQuery> = {}) {
+    const filter: Record<string, any> = { owner: userId };
+
+    if (search.trim()) {
+      // Reuse the shared escaper so a stray "(" from the search box cannot break the regex.
+      const keyword = new RegExp(escapeRegex(search.trim()), 'i');
+      filter.$or = [{ title: keyword }, { 'location.province': keyword }, { 'location.district': keyword }];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [err, result] = await to(
+      Promise.all([
+        ApartmentModel.find(filter)
+          .select('title location rooms images')
+          // Rooms come back with the apartment so the host calendar does not need one
+          // extra request per apartment to build its room rail.
+          .populate({ path: 'rooms', select: 'images price roomType' })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean()
+          .exec(),
+        ApartmentModel.countDocuments(filter),
+      ])
     );
 
     if (err) {
       return new ServiceResponse(ResponseStatus.Failed, err.message, null, StatusCodes.INTERNAL_SERVER_ERROR);
     }
 
+    const [apartments, total] = result;
+
+    const toImageUrl = (image: string) => (image.startsWith('http') ? image : `${SERVER_URL}/api/image/${image}`);
+
     // No apartments is still a success with an empty list (a 404 would make the FE toast an error)
     const withImageUrls = (apartments || []).map((apartment: any) => {
-      const rooms = apartment.rooms || [];
+      const rooms = (apartment.rooms || []).map((room: any) => ({
+        ...room,
+        images: (room.images || []).map(toImageUrl),
+      }));
       // Apartment has no own images -> borrow the first room image as thumbnail
-      const rawImages: string[] = apartment.images?.length ? apartment.images : rooms[0]?.images || [];
+      const rawImages: string[] = apartment.images?.length ? apartment.images : apartment.rooms?.[0]?.images || [];
       const prices = rooms.map((room: any) => room.price).filter((price: number) => typeof price === 'number');
       return {
         ...apartment,
         rooms,
-        images: rawImages.map((image: string) =>
-          image.startsWith('http') ? image : `${SERVER_URL}/api/image/${image}`
-        ),
+        images: rawImages.map(toImageUrl),
         minPrice: prices.length ? Math.min(...prices) : null,
       };
     });
 
-    return new ServiceResponse(ResponseStatus.Success, 'Apartments retrieved successfully', withImageUrls, StatusCodes.OK);
+    return new ServiceResponse(
+      ResponseStatus.Success,
+      'Apartments retrieved successfully',
+      {
+        apartments: withImageUrls,
+        pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
+      },
+      StatusCodes.OK
+    );
   },
 };

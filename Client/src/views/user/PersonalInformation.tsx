@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-   Avatar,
-   Button,
-   DatePicker,
-   Input,
-   Select,
-   Spin,
-   message,
-   Upload,
-} from 'antd';
+import { Avatar, Button, DatePicker, Input, Select, message, Upload } from 'antd';
 import {
    UserOutlined,
    EditOutlined,
@@ -31,6 +22,7 @@ import moment from 'moment';
 import dayjs from 'dayjs';
 import { RcFile } from 'antd/es/upload';
 import type { UploadFile } from 'antd/es/upload/interface';
+import FullscreenLoader from '@/components/FullscreenLoader/FullscreenLoader';
 
 interface FieldTileProps {
    icon: React.ReactNode;
@@ -170,10 +162,8 @@ const PersonalInformation: React.FC = () => {
 
    return (
       <>
-         <Spin
+         <FullscreenLoader
             spinning={isLoading || editProfileMutator.isPending}
-            fullscreen
-            size="large"
          />
          <div className="pb-10 w-full font-main">
             <form onSubmit={handleSubmit(handleEditUser)} className="w-full">

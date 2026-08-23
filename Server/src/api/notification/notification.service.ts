@@ -2,7 +2,7 @@ import to from 'await-to-js';
 import { StatusCodes } from 'http-status-codes';
 import mongoose from 'mongoose';
 
-import { logger } from '@/server';
+import { logger } from '@/utils/logger';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 
 import NotificationModel, { NotificationType } from './notification.model';

@@ -23,11 +23,13 @@ export const apiCreateStripePayment = (data: {
    amount: number;
    description?: string;
    source?: string;
-}): Promise<{ data: string }> =>
+}): Promise<{ data: string; success?: boolean; message?: string }> =>
    axios({
       url: `/payment/create-payment-intent`,
       method: 'post',
       data,
+      // The checkout screen shows its own error card with retry / fallback options.
+      skipErrorToast: true,
    });
 export const apiGetRoomCheckout = ({
    roomIds,
@@ -54,10 +56,15 @@ export const apiGetRoomCheckout = ({
       method: 'get',
    });
 };
-export const apiGetApartmentByUser = (): Promise<Res> =>
+export const apiGetApartmentByUser = (params?: {
+   page?: number;
+   limit?: number;
+   search?: string;
+}): Promise<Res> =>
    axios({
       url: `/apartment/by-user`,
       method: 'get',
+      params,
    });
 export const apiGetApartmentPopular = (): Promise<Res> =>
    axios({

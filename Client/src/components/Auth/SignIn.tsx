@@ -1,6 +1,6 @@
 import React from 'react';
 import loginImage from '@/assets/login.jpg';
-import { Button, Flex, Input, Spin, message } from 'antd';
+import { Button, Flex, Input, message } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { apiLogin } from '@/apis';
@@ -8,6 +8,7 @@ import icons from '@/utils/icons';
 import { useAuth } from '@/hooks';
 import { signIn } from '@/contexts/auth/reduces';
 import ButtonSignIn from './ButtonSignIn';
+import FullscreenLoader from '@/components/FullscreenLoader/FullscreenLoader';
 
 interface SignInProps {
     setModalOpen: React.Dispatch<React.SetStateAction<{ isOpen: boolean; activeTab: string }>>;
@@ -47,11 +48,11 @@ const SignIn: React.FC<SignInProps> = ({ setModalOpen }) => {
 
     return (
         <>
-            <Spin size="large" fullscreen={true} spinning={loginMutation.isPending}></Spin>
+            <FullscreenLoader spinning={loginMutation.isPending} />
             <form onSubmit={handleSubmit(handleLogin)}>
                 <div className="w-full flex gap-5">
                     <div className="flex-1 pb-10 hidden lg:block">
-                        <img src={loginImage} />
+                        <img src={loginImage.src} />
                     </div>
                     <div className="flex-1 pt-10 flex gap-6 flex-col">
                         <ButtonSignIn />

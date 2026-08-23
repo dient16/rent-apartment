@@ -72,11 +72,12 @@ const Home: React.FC = () => {
                      onClick={() => navigateToListing('Quy nhơn')}
                   >
                      <img
-                        src={quynhon}
+                        src={quynhon.src}
+                        alt="Quy Nhon"
                         className="rounded-2xl object-cover w-full h-full transition-transform duration-500 hover:scale-125"
                      />
-                     <span className="absolute bottom-5 right-5 flex items-center justify-center box-border overflow-hidden outline-none select-none px-4 py-2 opacity-100 bg-white bg-opacity-70 rounded-full">
-                        Quy nhon
+                     <span className="absolute bottom-5 right-5 flex items-center justify-center box-border overflow-hidden outline-none select-none px-4 py-2 text-sm font-medium text-gray-900 bg-white/70 rounded-full shadow-sm backdrop-blur-sm">
+                        Quy Nhon
                      </span>
                   </div>
 
@@ -85,11 +86,12 @@ const Home: React.FC = () => {
                      onClick={() => navigateToListing('Đà Lạt')}
                   >
                      <img
-                        src={datlat}
+                        src={datlat.src}
+                        alt="Da Lat"
                         className="rounded-2xl object-cover w-full h-full transition-transform duration-500 hover:scale-125"
                      />
-                     <span className="absolute bottom-5 right-5 flex items-center justify-center box-border overflow-hidden outline-none select-none px-4 py-2 opacity-100 bg-white bg-opacity-70 rounded-full">
-                        Da lat
+                     <span className="absolute bottom-5 right-5 flex items-center justify-center box-border overflow-hidden outline-none select-none px-4 py-2 text-sm font-medium text-gray-900 bg-white/70 rounded-full shadow-sm backdrop-blur-sm">
+                        Da Lat
                      </span>
                   </div>
 
@@ -98,10 +100,11 @@ const Home: React.FC = () => {
                      onClick={() => navigateToListing('Đà Nẵng')}
                   >
                      <img
-                        src={danang}
+                        src={danang.src}
+                        alt="Da Nang"
                         className="rounded-2xl object-cover w-full h-full transition-transform duration-500 hover:scale-125"
                      />
-                     <span className="absolute bottom-5 right-5 flex items-center justify-center box-border overflow-hidden outline-none select-none px-4 py-2 opacity-100 bg-white bg-opacity-70 rounded-full">
+                     <span className="absolute bottom-5 right-5 flex items-center justify-center box-border overflow-hidden outline-none select-none px-4 py-2 text-sm font-medium text-gray-900 bg-white/70 rounded-full shadow-sm backdrop-blur-sm">
                         Da Nang
                      </span>
                   </div>
@@ -111,10 +114,11 @@ const Home: React.FC = () => {
                      onClick={() => navigateToListing('Hồ Chí Minh')}
                   >
                      <img
-                        src={hochiminh}
+                        src={hochiminh.src}
+                        alt="Ho Chi Minh"
                         className="rounded-2xl object-cover w-full h-full transition-transform duration-500 hover:scale-125"
                      />
-                     <span className="absolute bottom-5 right-5 flex items-center justify-center box-border overflow-hidden outline-none select-none px-4 py-2 opacity-100 bg-white bg-opacity-70 rounded-full">
+                     <span className="absolute bottom-5 right-5 flex items-center justify-center box-border overflow-hidden outline-none select-none px-4 py-2 text-sm font-medium text-gray-900 bg-white/70 rounded-full shadow-sm backdrop-blur-sm">
                         Ho Chi Minh
                      </span>
                   </div>
@@ -124,10 +128,11 @@ const Home: React.FC = () => {
                      onClick={() => navigateToListing('Hội An')}
                   >
                      <img
-                        src={hoian}
+                        src={hoian.src}
+                        alt="Hoi An"
                         className="rounded-2xl object-cover w-full h-full transition-transform duration-500 hover:scale-125"
                      />
-                     <span className="absolute bottom-5 right-5 flex items-center justify-center box-border overflow-hidden outline-none select-none px-4 py-2 opacity-100 bg-white bg-opacity-70 rounded-full">
+                     <span className="absolute bottom-5 right-5 flex items-center justify-center box-border overflow-hidden outline-none select-none px-4 py-2 text-sm font-medium text-gray-900 bg-white/70 rounded-full shadow-sm backdrop-blur-sm">
                         Hoi An
                      </span>
                   </div>
@@ -137,10 +142,11 @@ const Home: React.FC = () => {
                      onClick={() => navigateToListing('Nha Trang')}
                   >
                      <img
-                        src={nhatrang}
+                        src={nhatrang.src}
+                        alt="Nha Trang"
                         className="rounded-2xl object-cover w-full h-full transition-transform duration-500 hover:scale-125"
                      />
-                     <span className="absolute bottom-5 right-5 flex items-center justify-center box-border overflow-hidden outline-none select-none px-4 py-2 opacity-100 bg-white bg-opacity-70 rounded-full">
+                     <span className="absolute bottom-5 right-5 flex items-center justify-center box-border overflow-hidden outline-none select-none px-4 py-2 text-sm font-medium text-gray-900 bg-white/70 rounded-full shadow-sm backdrop-blur-sm">
                         Nha Trang
                      </span>
                   </div>

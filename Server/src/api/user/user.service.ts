@@ -1,7 +1,7 @@
 import { StatusCodes } from 'http-status-codes';
 
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
-import { logger } from '@/server';
+import { logger } from '@/utils/logger';
 
 import mongoose from 'mongoose';
 
@@ -81,13 +81,26 @@ export const userService = {
     }
   },
 
-  getFavorites: async (userId: string): Promise<ServiceResponse<any[] | null>> => {
+  getFavorites: async (
+    userId: string,
+    { page = 1, limit = 12 }: { page?: number; limit?: number } = {}
+  ): Promise<ServiceResponse<any | null>> => {
     try {
+      // The raw array lives on the user doc, so count it before populating a page of it.
+      const owner = await UserModel.findById(userId).select('favorites').lean().exec();
+
+      if (!owner) {
+        return new ServiceResponse(ResponseStatus.Failed, 'User not found', null, StatusCodes.NOT_FOUND);
+      }
+
+      const total = (owner.favorites || []).length;
+
       const user = await UserModel.findById(userId)
         .select('favorites')
         .populate({
           path: 'favorites',
           select: 'title location images rooms',
+          options: { skip: (page - 1) * limit, limit },
           populate: { path: 'rooms', select: 'price images reviews' },
         })
         .exec();
@@ -117,7 +130,15 @@ export const userService = {
         };
       });
 
-      return new ServiceResponse(ResponseStatus.Success, 'Favorites found', favorites, StatusCodes.OK);
+      return new ServiceResponse(
+        ResponseStatus.Success,
+        'Favorites found',
+        {
+          favorites,
+          pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
+        },
+        StatusCodes.OK
+      );
     } catch (ex) {
       const errorMessage = `Error getting favorites for user ${userId}: ${(ex as Error).message}`;
       logger.error(errorMessage);

@@ -19,14 +19,13 @@ import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import clsx from 'clsx';
 import {
+   keepPreviousData,
    useMutation,
-   useQueries,
    useQuery,
    useQueryClient,
 } from '@tanstack/react-query';
 import {
    apiGetApartmentByUser,
-   apiGetRoomByApartmentId,
    apiGetPricingByRoomId,
    apiUpdatePricing,
 } from '@/apis';
@@ -37,10 +36,19 @@ const MONTHS = Array.from({ length: 12 }, (_, index) =>
    dayjs().month(index).format('MMM'),
 );
 
+/** Apartments per page in the left rail — it is a thumbnail strip, not a grid. */
+const RAIL_PAGE_SIZE = 5;
+
 interface RoomItem {
    _id: string;
    roomType: string;
    images?: string[];
+}
+
+interface ApartmentWithRooms {
+   _id: string;
+   title: string;
+   rooms?: RoomItem[];
 }
 
 /** Build the 42 cells (6 weeks) of one month */
@@ -61,37 +69,30 @@ const HostCalendar: React.FC = () => {
    const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
    const [draftPrice, setDraftPrice] = useState<number | null>(null);
 
+   const [railPage, setRailPage] = useState(1);
+
+   // One request for the whole rail: /apartment/by-user now returns each apartment with
+   // its rooms populated, replacing the previous request-per-apartment fan-out.
    const { data: apartments, isLoading: isLoadingApartments } = useQuery({
-      queryKey: ['apartments-host'],
-      queryFn: apiGetApartmentByUser,
+      queryKey: ['apartments-host', railPage, ''],
+      queryFn: () =>
+         apiGetApartmentByUser({ page: railPage, limit: RAIL_PAGE_SIZE, search: '' }),
+      placeholderData: keepPreviousData,
    });
 
    const apartmentList = useMemo(
-      () => apartments?.data || [],
+      () => (apartments?.data?.apartments || []) as ApartmentWithRooms[],
       [apartments],
    );
-
-   // Load rooms of ALL apartments to build the left thumbnail rail
-   const roomQueries = useQueries({
-      queries: apartmentList.map((apartment) => ({
-         queryKey: ['rooms', apartment._id],
-         queryFn: () => apiGetRoomByApartmentId(apartment._id),
-         staleTime: 5 * 60 * 1000,
-      })),
-   });
+   const railTotal: number = apartments?.data?.pagination?.total ?? 0;
 
    /** [{apartment, rooms}] for the left rail */
    const groups = useMemo(
-      () =>
-         apartmentList.map((apartment, index) => ({
-            apartment,
-            rooms: ((roomQueries[index]?.data as Res | undefined)?.data
-               ?.rooms || []) as RoomItem[],
-         })),
-      [apartmentList, roomQueries],
+      () => apartmentList.map((apartment) => ({ apartment, rooms: apartment.rooms || [] })),
+      [apartmentList],
    );
 
-   const isLoadingRooms = roomQueries.some((query) => query.isLoading);
+   const isLoadingRooms = isLoadingApartments;
 
    const activeGroup = groups.find((group) =>
       group.rooms.some((room) => room._id === selectedRoom),
@@ -251,23 +252,25 @@ const HostCalendar: React.FC = () => {
             onClick={() => selectDay(day)}
             disabled={isPast}
             className={clsx(
-               'flex flex-col justify-between items-start p-2 md:p-3 min-h-[72px] md:min-h-[90px] rounded-xl border text-left transition-all duration-150',
+               'flex flex-col justify-between items-start p-2 md:p-3 min-h-[84px] md:min-h-[104px] rounded-xl border text-left transition-all duration-150',
                isPast
                   ? 'bg-gray-50 border-gray-100 cursor-not-allowed'
                   : 'bg-white border-gray-200 cursor-pointer hover:border-gray-900',
+               isToday && !isSelected && 'border-blue-400! bg-blue-50/40',
                isSelected &&
-                  '!bg-gray-900 !border-gray-900 text-white shadow-card-md',
+                  'bg-gray-900! border-gray-900! text-white shadow-card-md',
             )}
          >
             <span
                className={clsx(
                   'text-sm font-semibold',
-                  isPast && 'text-gray-300 line-through',
-                  !isPast && !isSelected && 'text-gray-900',
-                  isSelected && 'text-white',
-                  isToday &&
-                     !isSelected &&
-                     'flex justify-center items-center w-6 h-6 -m-0.5 text-white bg-blue-500 rounded-full',
+                  isToday && !isSelected
+                     ? 'flex justify-center items-center w-6 h-6 -m-0.5 text-white bg-blue-500 rounded-full'
+                     : isPast
+                       ? 'text-gray-300 line-through'
+                       : isSelected
+                         ? 'text-white'
+                         : 'text-gray-900',
                )}
             >
                {day.date()}
@@ -306,11 +309,11 @@ const HostCalendar: React.FC = () => {
          >
             {month.format('MMMM')}
          </button>
-         <div className="grid grid-cols-7">
+         <div className="grid grid-cols-7 gap-1">
             {WEEKDAYS_MINI.map((weekday, index) => (
                <span
                   key={index}
-                  className="pb-1 text-[10px] font-semibold text-center text-gray-400"
+                  className="pb-1.5 text-[10px] font-semibold text-center text-gray-400"
                >
                   {weekday}
                </span>
@@ -320,6 +323,7 @@ const HostCalendar: React.FC = () => {
                if (!inMonth)
                   return <span key={day.format('YYYY-MM-DD')} />;
                const isPast = day.isBefore(today, 'day');
+               const isToday = day.isSame(today, 'day');
                const isSelected = selectedDate?.isSame(day, 'day');
                const price = priceFor(day);
                return (
@@ -329,21 +333,24 @@ const HostCalendar: React.FC = () => {
                      disabled={isPast}
                      onClick={() => selectDay(day)}
                      className={clsx(
-                        'flex flex-col items-center py-1 border-none rounded-md transition-colors',
+                        'flex flex-col gap-0.5 items-center py-1.5 border-none rounded-lg transition-colors',
                         isPast
                            ? 'bg-gray-50 cursor-not-allowed'
                            : 'bg-gray-100/80 cursor-pointer hover:bg-gray-200',
-                        isSelected && '!bg-gray-900 text-white',
+                        isToday && !isSelected && 'ring-1 ring-blue-400 bg-blue-50!',
+                        isSelected && 'bg-gray-900! text-white',
                      )}
                   >
                      <span
                         className={clsx(
                            'text-[11px] font-semibold leading-tight',
-                           isPast
-                              ? 'text-gray-300 line-through'
-                              : isSelected
-                                ? 'text-white'
-                                : 'text-gray-800',
+                           isToday && !isSelected
+                              ? 'flex justify-center items-center w-[18px] h-[18px] text-white bg-blue-500 rounded-full'
+                              : isPast
+                                ? 'text-gray-300 line-through'
+                                : isSelected
+                                  ? 'text-white'
+                                  : 'text-gray-800',
                         )}
                      >
                         {day.date()}
@@ -356,7 +363,9 @@ const HostCalendar: React.FC = () => {
                                  ? 'text-gray-300'
                                  : isSelected
                                    ? 'text-white'
-                                   : 'text-gray-500',
+                                   : isToday
+                                     ? 'text-blue-600'
+                                     : 'text-gray-500',
                            )}
                         >
                            {compactPrice(price)}
@@ -434,6 +443,42 @@ const HostCalendar: React.FC = () => {
                            ))}
                         </div>
                      ))
+                  )}
+
+                  {railTotal > RAIL_PAGE_SIZE && (
+                     <div className="flex flex-row flex-shrink-0 gap-2 items-center pl-3 border-l border-gray-100 lg:flex-col lg:pt-3 lg:pl-0 lg:border-l-0 lg:border-t">
+                        <button
+                           type="button"
+                           aria-label="Previous listings"
+                           disabled={railPage <= 1}
+                           onClick={() => setRailPage(railPage - 1)}
+                           className={clsx(
+                              'flex justify-center items-center w-8 h-8 rounded-lg border transition-colors',
+                              railPage <= 1
+                                 ? 'text-gray-300 border-gray-100 cursor-not-allowed'
+                                 : 'text-gray-600 border-gray-200 cursor-pointer hover:border-blue-400 hover:text-blue-600',
+                           )}
+                        >
+                           <LeftOutlined className="text-[11px]" />
+                        </button>
+                        <span className="text-[10px] font-semibold text-gray-400 whitespace-nowrap">
+                           {railPage}/{Math.ceil(railTotal / RAIL_PAGE_SIZE)}
+                        </span>
+                        <button
+                           type="button"
+                           aria-label="More listings"
+                           disabled={railPage >= Math.ceil(railTotal / RAIL_PAGE_SIZE)}
+                           onClick={() => setRailPage(railPage + 1)}
+                           className={clsx(
+                              'flex justify-center items-center w-8 h-8 rounded-lg border transition-colors',
+                              railPage >= Math.ceil(railTotal / RAIL_PAGE_SIZE)
+                                 ? 'text-gray-300 border-gray-100 cursor-not-allowed'
+                                 : 'text-gray-600 border-gray-200 cursor-pointer hover:border-blue-400 hover:text-blue-600',
+                           )}
+                        >
+                           <RightOutlined className="text-[11px]" />
+                        </button>
+                     </div>
                   )}
                </div>
 
@@ -526,7 +571,7 @@ const HostCalendar: React.FC = () => {
                               </div>
                            ))}
                         </div>
-                        <div className="overflow-y-auto pt-3 pr-1 -mr-1 space-y-8 max-h-[72vh]">
+                        <div className="overflow-y-auto pt-3 pr-1 -mr-1 space-y-8 min-h-[560px] max-h-[calc(100vh-11rem)]">
                            {monthsWindow.map((month) => (
                               <div key={month.format('YYYY-MM')}>
                                  <h3 className="mb-2 text-base font-bold text-gray-900">
@@ -542,7 +587,7 @@ const HostCalendar: React.FC = () => {
                         </div>
                      </>
                   ) : (
-                     <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2 xl:grid-cols-3">
+                     <div className="grid grid-cols-1 gap-x-10 gap-y-9 md:grid-cols-2 xl:grid-cols-3">
                         {yearMonths.map(renderMiniMonth)}
                      </div>
                   )}
@@ -569,7 +614,7 @@ const HostCalendar: React.FC = () => {
                            min={1000}
                            className="w-full"
                            size="large"
-                           addonAfter="VND"
+                           suffix="VND"
                            value={draftPrice ?? undefined}
                            onChange={(value) => setDraftPrice(value)}
                            formatter={(value) =>
@@ -581,7 +626,8 @@ const HostCalendar: React.FC = () => {
                                  : ''
                            }
                            parser={(value) =>
-                              value ? Number(value.replace(/,/g, '')) : 0
+                              // Same as the room form: drop any separator, not just commas.
+                              value ? Number(value.replace(/[^\d]/g, '')) : 0
                            }
                         />
                         <div className="flex gap-3 mt-5">
@@ -594,7 +640,7 @@ const HostCalendar: React.FC = () => {
                            <Button
                               type="primary"
                               className={`flex-1 h-10 rounded-full ${
-                                 draftPrice ? 'bg-blue-500' : '!bg-gray-100 !text-gray-400'
+                                 draftPrice ? 'bg-blue-500' : 'bg-gray-100! text-gray-400!'
                               }`}
                               loading={updatePricingMutation.isPending}
                               disabled={!draftPrice}

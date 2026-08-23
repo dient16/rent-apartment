@@ -4,8 +4,8 @@ import cors from 'cors';
 import type { Express } from 'express';
 import express from 'express';
 import helmet from 'helmet';
-import { pino } from 'pino';
 
+import { logger } from '@/utils/logger';
 import { dbConnect } from '@/config/db.config';
 import { env } from '@/config/env.config';
 import passport from '@/config/passport.config';
@@ -15,11 +15,14 @@ import requestLogger from '@/middlewares/requestLogger';
 import initRoutes from '@/routes';
 import { initApartmentIndex } from '@/services/apartmentSearch.service';
 
-const logger = pino({ name: 'server start' });
 const app: Express = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.set('trust proxy', true);
+// Express 5 switched the default query parser to 'simple', which no longer turns
+// `roomIds[]=a&roomIds[]=b` into an array. This codebase was written against the
+// Express 4 default, so keep qs semantics.
+app.set('query parser', 'extended');
 
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(cookieParser());
@@ -29,8 +32,10 @@ app.use(
     crossOriginResourcePolicy: false,
   })
 );
-dbConnect();
-initApartmentIndex();
+// Fire-and-forget startup work: without a catch a failure here surfaces as an
+// unhandled rejection instead of a readable log line.
+dbConnect().catch((error) => logger.fatal({ err: error }, 'Database connection failed'));
+initApartmentIndex().catch((error) => logger.error({ err: error }, 'Elasticsearch index init failed'));
 app.use(passport.initialize());
 app.use(rateLimiter);
 app.use(requestLogger);

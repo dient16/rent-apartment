@@ -9,9 +9,11 @@ import {
    SearchOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from '@/lib/router-compat';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { path } from '@/utils/constant';
 import { apiGetApartmentByUser } from '@/apis';
+import { useDebounce } from '@/hooks';
+import PaginationBar from '@/components/SearchResult/PaginationBar';
 
 interface HostListing {
    _id: string;
@@ -27,27 +29,32 @@ interface HostListing {
    rooms: unknown[];
 }
 
+const PAGE_SIZE = 12;
+
 const HostListings: React.FC = () => {
    const navigate = useNavigate();
    const [search, setSearch] = useState('');
+   const [page, setPage] = useState(1);
+   // Search and paging both run server-side, so debounce before hitting the API.
+   const debouncedSearch = useDebounce(search, 350);
+
+   // A new keyword invalidates the current page number.
+   const [lastSearch, setLastSearch] = useState(debouncedSearch);
+   if (lastSearch !== debouncedSearch) {
+      setLastSearch(debouncedSearch);
+      setPage(1);
+   }
 
    const { data, isLoading } = useQuery({
-      queryKey: ['apartments-host'],
-      queryFn: apiGetApartmentByUser,
+      queryKey: ['apartments-host', page, debouncedSearch],
+      queryFn: () =>
+         apiGetApartmentByUser({ page, limit: PAGE_SIZE, search: debouncedSearch }),
+      // Keep the previous page on screen while the next one loads, no layout flash.
+      placeholderData: keepPreviousData,
    });
 
-   const listings: HostListing[] = useMemo(() => data?.data || [], [data]);
-
-   const visible = useMemo(() => {
-      if (!search.trim()) return listings;
-      const keyword = search.trim().toLowerCase();
-      return listings.filter(
-         (listing) =>
-            listing.title?.toLowerCase().includes(keyword) ||
-            listing.location?.province?.toLowerCase().includes(keyword) ||
-            listing.location?.district?.toLowerCase().includes(keyword),
-      );
-   }, [listings, search]);
+   const visible: HostListing[] = useMemo(() => data?.data?.apartments || [], [data]);
+   const total: number = data?.data?.pagination?.total ?? 0;
 
    const locationText = (listing: HostListing) =>
       [listing.location?.district, listing.location?.province]
@@ -65,8 +72,7 @@ const HostListings: React.FC = () => {
                   </h1>
                   {!isLoading && (
                      <p className="mt-0.5 text-sm text-gray-500">
-                        {listings.length} listing
-                        {listings.length !== 1 ? 's' : ''} published
+                        {total} listing{total !== 1 ? 's' : ''} published
                      </p>
                   )}
                </div>
@@ -103,7 +109,7 @@ const HostListings: React.FC = () => {
                      >
                         <Skeleton.Image
                            active
-                           className="!w-full !h-44 !rounded-xl"
+                           className="w-full! h-44! rounded-xl!"
                         />
                         <Skeleton
                            active
@@ -115,7 +121,7 @@ const HostListings: React.FC = () => {
                </div>
             ) : visible.length === 0 ? (
                <div className="flex flex-col items-center py-24 text-center bg-white rounded-2xl border border-gray-100 shadow-card-sm">
-                  {listings.length === 0 ? (
+                  {!debouncedSearch ? (
                      <>
                         <span className="flex justify-center items-center mb-5 w-16 h-16 text-2xl text-blue-500 bg-blue-50 rounded-full">
                            <HomeOutlined />
@@ -239,6 +245,19 @@ const HostListings: React.FC = () => {
                      </div>
                   ))}
                </div>
+            )}
+
+            {!isLoading && total > 0 && (
+               <PaginationBar
+                  page={page}
+                  pageSize={PAGE_SIZE}
+                  total={total}
+                  onChange={(next) => {
+                     setPage(next);
+                     window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  itemLabel="listing"
+               />
             )}
          </div>
       </div>

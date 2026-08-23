@@ -27,9 +27,9 @@ import { apiGetAddress } from '@/apis';
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 L.Icon.Default.mergeOptions({
-   iconRetinaUrl: markerIcon2x,
-   iconUrl: markerIcon,
-   shadowUrl: markerShadow,
+   iconRetinaUrl: markerIcon2x.src,
+   iconUrl: markerIcon.src,
+   shadowUrl: markerShadow.src,
 });
 
 const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org/search?';

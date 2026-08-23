@@ -22,7 +22,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
                      <Image
                         src={images[0]}
                         alt="Main photo"
-                        rootClassName="!block w-full h-full"
+                        rootClassName="block! w-full h-full"
                         style={COVER}
                      />
                   </div>
@@ -31,7 +31,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
                         <Image
                            src={image}
                            alt={`Photo ${index + 2}`}
-                           rootClassName="!block w-full h-full"
+                           rootClassName="block! w-full h-full"
                            style={COVER}
                            preview={
                               index === 3 && extraCount > 0
@@ -101,7 +101,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
                            <Image
                               src={image}
                               alt={`Photo ${index + 1}`}
-                              rootClassName="!block w-full h-full"
+                              rootClassName="block! w-full h-full"
                               style={COVER}
                            />
                         </div>

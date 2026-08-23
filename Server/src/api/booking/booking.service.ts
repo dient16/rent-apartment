@@ -2,8 +2,11 @@ import fs from 'node:fs/promises';
 
 import to from 'await-to-js';
 import { StatusCodes } from 'http-status-codes';
+import moment from 'moment';
 
 import User from '@/api/user/user.model';
+import { logger } from '@/utils/logger';
+import { escapeRegex } from '@/utils/regex';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 import { notificationService } from '@/api/notification/notification.service';
 import { sendMail } from '@/services/mail.service';
@@ -15,32 +18,99 @@ import { env } from '@/config/env.config';
 import ApartmentModel from '@/api/apartment/apartment.model';
 const { SERVER_URL } = env;
 
-const getUserBookings = async (userId: string) => {
+/** Dates go straight into emails, so render them readably instead of Date.toString(). */
+const formatMailDate = (value: Date | string) => moment(value).format('ddd, DD MMM YYYY');
+
+/** Deep-link a booking in the client app. */
+const bookingUrl = (bookingId: string) => `${env.CLIENT_URL}/my-booking/${bookingId}`;
+
+
+type BookingListQuery = { page?: number; limit?: number; status?: string; search?: string };
+
+
+const getUserBookings = async (userId: string, { page = 1, limit = 10, status = 'all', search = '' }: BookingListQuery = {}) => {
   try {
     // Step 1: Find all apartments owned by the user
-    const apartments = await ApartmentModel.find({ owner: userId }).exec();
+    const apartments = await ApartmentModel.find({ owner: userId }).select('_id title').lean().exec();
     if (!apartments.length) {
-      return new ServiceResponse(ResponseStatus.Success, 'No bookings found', [], StatusCodes.OK);
+      return new ServiceResponse(
+        ResponseStatus.Success,
+        'No bookings found',
+        { bookings: [], counts: {}, stats: { revenue: 0, pending: 0, upcoming: 0, total: 0 }, pagination: { page, limit, total: 0, totalPages: 1 } },
+        StatusCodes.OK
+      );
     }
 
     // Step 2: Find all rooms in those apartments
     const rooms = await RoomModel.find({
       apartmentId: { $in: apartments.map((apartment) => apartment._id) },
-    } as any).exec();
-
-    // Step 3: Find all bookings related to those rooms
-    const bookings = await BookingModel.find({
-      'rooms.roomId': { $in: rooms.map((room) => room._id) },
     } as any)
-      .populate({
-        path: 'rooms.roomId',
-        select: 'roomType apartmentId',
-        model: RoomModel,
-        populate: { path: 'apartmentId', select: 'title', model: ApartmentModel },
-      })
-      .sort({ createdAt: -1 })
+      .select('_id apartmentId')
       .lean()
       .exec();
+
+    const baseFilter: Record<string, any> = { 'rooms.roomId': { $in: rooms.map((room) => room._id) } };
+
+    if (search.trim()) {
+      const keyword = new RegExp(escapeRegex(search.trim()), 'i');
+      // Listing titles live on Apartment, so resolve matching apartments to their rooms first.
+      const matchedRoomIds = rooms
+        .filter((room: any) =>
+          apartments.some((apartment: any) => apartment._id.equals(room.apartmentId) && keyword.test(apartment.title))
+        )
+        .map((room: any) => room._id);
+
+      baseFilter.$or = [
+        { firstname: keyword },
+        { lastname: keyword },
+        { email: keyword },
+        ...(matchedRoomIds.length ? [{ 'rooms.roomId': { $in: matchedRoomIds } }] : []),
+      ];
+    }
+
+    // Status tabs count across the whole (unpaginated) result set.
+    const filter = status === 'all' ? baseFilter : { ...baseFilter, status };
+
+    const [countRows, statRows, total, bookings] = await Promise.all([
+      BookingModel.aggregate([{ $match: baseFilter }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
+      BookingModel.aggregate([
+        { $match: baseFilter },
+        {
+          $group: {
+            _id: null,
+            revenue: {
+              $sum: { $cond: [{ $in: ['$status', ['confirmed', 'completed']] }, '$totalPrice', 0] },
+            },
+            pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+            upcoming: {
+              $sum: {
+                $cond: [{ $and: [{ $eq: ['$status', 'confirmed'] }, { $gt: ['$checkInTime', new Date()] }] }, 1, 0],
+              },
+            },
+            total: { $sum: 1 },
+          },
+        },
+      ]),
+      BookingModel.countDocuments(filter),
+      BookingModel.find(filter as any)
+        .populate({
+          path: 'rooms.roomId',
+          select: 'roomType apartmentId',
+          model: RoomModel,
+          populate: { path: 'apartmentId', select: 'title', model: ApartmentModel },
+        })
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec(),
+    ]);
+
+    const counts: Record<string, number> = { all: 0 };
+    countRows.forEach((row: any) => {
+      counts[row._id] = row.count;
+      counts.all += row.count;
+    });
 
     const hostBookings = bookings.map((booking: any) => ({
       _id: booking._id,
@@ -59,9 +129,27 @@ const getUserBookings = async (userId: string) => {
       createdAt: booking.createdAt,
     }));
 
-    return new ServiceResponse(ResponseStatus.Success, 'Bookings retrieved successfully', hostBookings, StatusCodes.OK);
+    return new ServiceResponse(
+      ResponseStatus.Success,
+      'Bookings retrieved successfully',
+      {
+        bookings: hostBookings,
+        counts,
+        // The dashboard needs figures over every booking, not just the page it shows.
+        stats: statRows[0]
+          ? {
+              revenue: statRows[0].revenue,
+              pending: statRows[0].pending,
+              upcoming: statRows[0].upcoming,
+              total: statRows[0].total,
+            }
+          : { revenue: 0, pending: 0, upcoming: 0, total: 0 },
+        pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
+      },
+      StatusCodes.OK
+    );
   } catch (error) {
-    console.error('Error retrieving user bookings:', error);
+    logger.error({ err: error }, 'Error retrieving user bookings');
     return new ServiceResponse(
       ResponseStatus.Failed,
       'Error retrieving bookings',
@@ -148,12 +236,13 @@ const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceRes
   }
 
   const htmlToSend = htmlTemplate
-    .replace('{{firstname}}', firstname)
-    .replace('{{lastname}}', lastname)
-    .replace('{{bookingId}}', newBooking._id.toString())
-    .replace('{{checkInTime}}', checkInTime.toString())
-    .replace('{{checkOutTime}}', checkOutTime.toString())
-    .replace('{{totalPrice}}', `${totalPrice.toLocaleString()} VND`);
+    .replaceAll('{{firstname}}', firstname)
+    .replaceAll('{{lastname}}', lastname)
+    .replaceAll('{{bookingId}}', newBooking._id.toString().slice(-8).toUpperCase())
+    .replaceAll('{{bookingUrl}}', bookingUrl(newBooking._id.toString()))
+    .replaceAll('{{checkInTime}}', formatMailDate(checkInTime))
+    .replaceAll('{{checkOutTime}}', formatMailDate(checkOutTime))
+    .replaceAll('{{totalPrice}}', `${totalPrice.toLocaleString()} VND`);
 
   const [mailError] = await to(sendMail({ email, html: htmlToSend, subject: 'Booking Confirmation' }));
   if (mailError) {
@@ -184,14 +273,26 @@ const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceRes
 
   return new ServiceResponse(ResponseStatus.Success, 'Booking successfully created', savedBooking, StatusCodes.CREATED);
 };
-const getBookings = async (userId: string): Promise<ServiceResponse<any>> => {
+const getBookings = async (
+  userId: string,
+  { page = 1, limit = 10, status = 'all' }: BookingListQuery = {}
+): Promise<ServiceResponse<any>> => {
   const [errFindUser, user] = await to(User.findById(userId).lean().exec());
   if (errFindUser || !user) {
     return new ServiceResponse(ResponseStatus.Failed, 'User not found', null, StatusCodes.NOT_FOUND);
   }
 
+  const baseFilter: Record<string, any> = { email: user.email };
+  const filter = status === 'all' ? baseFilter : { ...baseFilter, status };
+
+  const [errCount, countRows] = await to(
+    BookingModel.aggregate([{ $match: baseFilter }, { $group: { _id: '$status', count: { $sum: 1 } } }])
+  );
+
+  const [errTotal, total] = await to(BookingModel.countDocuments(filter));
+
   const [errFindBookings, bookings] = await to(
-    BookingModel.find({ email: user.email })
+    BookingModel.find(filter as any)
       .populate({
         path: 'rooms.roomId',
         select: 'roomType price amenities size images apartmentId',
@@ -199,11 +300,13 @@ const getBookings = async (userId: string): Promise<ServiceResponse<any>> => {
         populate: { path: 'apartmentId', select: 'title location.province location.district', model: ApartmentModel },
       })
       .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
       .lean()
       .exec()
   );
 
-  if (errFindBookings) {
+  if (errFindBookings || errCount || errTotal) {
     return new ServiceResponse(
       ResponseStatus.Failed,
       'Error finding bookings',
@@ -240,10 +343,20 @@ const getBookings = async (userId: string): Promise<ServiceResponse<any>> => {
     status: booking.status,
   }));
 
+  const counts: Record<string, number> = { all: 0 };
+  (countRows || []).forEach((row: any) => {
+    counts[row._id] = row.count;
+    counts.all += row.count;
+  });
+
   return new ServiceResponse(
     ResponseStatus.Success,
     'Bookings retrieved successfully',
-    filteredBookingDetails,
+    {
+      bookings: filteredBookingDetails,
+      counts,
+      pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
+    },
     StatusCodes.OK
   );
 };
@@ -347,12 +460,13 @@ const confirmBooking = async (bookingId: string): Promise<ServiceResponse<IBooki
   }
 
   const htmlToSend = htmlTemplate
-    .replace('{{firstname}}', booking.firstname)
-    .replace('{{lastname}}', booking.lastname)
-    .replace('{{bookingId}}', booking._id.toString())
-    .replace('{{checkInTime}}', booking.checkInTime.toString())
-    .replace('{{checkOutTime}}', booking.checkOutTime.toString())
-    .replace('{{totalPrice}}', `${booking.totalPrice.toLocaleString()} VND`);
+    .replaceAll('{{firstname}}', booking.firstname)
+    .replaceAll('{{lastname}}', booking.lastname)
+    .replaceAll('{{bookingId}}', booking._id.toString().slice(-8).toUpperCase())
+    .replaceAll('{{bookingUrl}}', bookingUrl(booking._id.toString()))
+    .replaceAll('{{checkInTime}}', formatMailDate(booking.checkInTime))
+    .replaceAll('{{checkOutTime}}', formatMailDate(booking.checkOutTime))
+    .replaceAll('{{totalPrice}}', `${booking.totalPrice.toLocaleString()} VND`);
 
   const [mailError] = await to(sendMail({ email: booking.email, html: htmlToSend, subject: 'Booking Confirmed' }));
   if (mailError) {

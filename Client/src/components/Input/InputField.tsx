@@ -10,7 +10,8 @@ interface InputFieldProps {
    label: string;
    className?: string;
    rows?: number;
-   addonAfter?: string;
+   /** Unit label shown inside the field, e.g. "VND". */
+   suffix?: string;
    formatter?: (value: string) => string;
    parser?: (value: string) => string;
 }
@@ -22,7 +23,7 @@ const InputField: React.FC<InputFieldProps> = ({
    label,
    className,
    rows,
-   addonAfter,
+   suffix,
    formatter,
    parser,
 }) => {
@@ -63,7 +64,7 @@ const InputField: React.FC<InputFieldProps> = ({
                      className="w-full"
                      size="large"
                      status={error && 'error'}
-                     addonAfter={addonAfter}
+                     suffix={suffix}
                      formatter={formatter}
                      parser={parser}
                      onChange={(value) => {
@@ -79,7 +80,7 @@ const InputField: React.FC<InputFieldProps> = ({
                      className="w-full"
                      size="large"
                      status={error && 'error'}
-                     addonAfter={addonAfter}
+                     suffix={suffix}
                      onChange={(value) => {
                         clearErrors(name);
                         field.onChange(value);

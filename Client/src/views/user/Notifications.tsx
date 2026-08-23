@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Badge, Button, Empty, Pagination, Skeleton } from 'antd';
+import { Badge, Button, Empty, Skeleton } from 'antd';
 import {
    BellOutlined,
    CheckCircleOutlined,
@@ -20,6 +20,7 @@ import {
    NOTIFICATION_TYPE_META,
    type NotificationItem,
 } from '@/components/NotificationBell/NotificationBell';
+import PaginationBar from '@/components/SearchResult/PaginationBar';
 
 type Filter = 'all' | 'unread' | 'read';
 const PAGE_SIZE = 10;
@@ -227,16 +228,17 @@ const Notifications: React.FC = () => {
                )}
             </div>
 
-                  {total > PAGE_SIZE && (
-                     <div className="flex justify-center mt-6">
-                        <Pagination
-                           current={page}
-                           total={total}
-                           pageSize={PAGE_SIZE}
-                           showSizeChanger={false}
-                           onChange={(newPage) => setPage(newPage)}
-                        />
-                     </div>
+                  {total > 0 && (
+                     <PaginationBar
+                        page={page}
+                        pageSize={PAGE_SIZE}
+                        total={total}
+                        onChange={(next) => {
+                           setPage(next);
+                           window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        itemLabel="notification"
+                     />
                   )}
                </div>
             </div>

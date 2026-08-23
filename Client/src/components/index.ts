@@ -37,3 +37,4 @@ export { default as NotificationBell } from './NotificationBell/NotificationBell
 export const Messenger = dynamic(() => import('./Messenger/Messenger'), { ssr: false });
 export { default as UserAvatar } from './UserAvatar/UserAvatar';
 export { default as GoogleMapEmbed } from './GoogleMapEmbed/GoogleMapEmbed';
+export { default as FullscreenLoader } from './FullscreenLoader/FullscreenLoader';

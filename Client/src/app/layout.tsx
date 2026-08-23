@@ -16,9 +16,11 @@ export default function RootLayout({
 }: {
    children: React.ReactNode;
 }) {
+   // Browser extensions (Grammarly, MDL-based ones, dark-mode toggles) inject
+   // attributes/classes into <html> and <body> before React hydrates — those
+   // mismatches are not ours to fix, so silence them at both levels.
    return (
-      <html lang="en">
-         {/* Browser extensions (e.g. Grammarly) inject attributes into <body> — ignore that mismatch */}
+      <html lang="en" suppressHydrationWarning>
          <body suppressHydrationWarning>
             <AntdRegistry>
                <TopProgress />

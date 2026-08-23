@@ -4,9 +4,10 @@ import express from 'express';
 import { z } from 'zod';
 
 import * as controller from '@/api/user/user.controller';
-import { UserSchema } from '@/api/user/user.dto';
+import { favoritesQuerySchema, UserSchema } from '@/api/user/user.dto';
 import { createApiResponse } from '@/api-docs/openAPIResponseBuilders';
 import upload from '@/middlewares/uploadFile';
+import { validateRequest } from '@/utils/httpHandlers';
 import { verifyAccessToken } from '@/middlewares/verifyToken';
 
 import { commonValidations } from '@/utils/commonValidation';
@@ -54,7 +55,7 @@ export const userRouter: Router = (() => {
 
   router.post('/host-welcome-seen', verifyAccessToken, controller.markHostWelcomeSeen);
 
-  router.get('/favorites', verifyAccessToken, controller.getFavorites);
+  router.get('/favorites', verifyAccessToken, validateRequest(favoritesQuerySchema), controller.getFavorites);
 
   userRegistry.registerPath({
     method: 'post',

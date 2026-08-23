@@ -37,6 +37,14 @@ export const getApartmentQuerySchema = z.object({
   }),
 });
 
+export const getOwnerApartmentsSchema = z.object({
+  query: z.object({
+    page: stringToNumber(z.number().int().min(1)).default(1),
+    limit: stringToNumber(z.number().int().min(1).max(50)).default(12),
+    search: z.string().trim().default(''),
+  }),
+});
+
 export const searchRoomSchema = z.object({
   query: z.object({
     numberOfGuest: stringToNumber(z.number()).optional().default(1),
@@ -89,4 +97,5 @@ export type SearchRoomType = z.infer<typeof searchRoomSchema>;
 export type CreateApartmentType = z.infer<typeof createApartmentSchema>;
 export type Location = z.infer<typeof locationSchema>;
 export type GetApartmentQuery = z.infer<typeof getApartmentQuerySchema>;
+export type GetOwnerApartmentsQuery = z.infer<typeof getOwnerApartmentsSchema>['query'];
 export type CreateRoom = z.infer<typeof roomSchema>;

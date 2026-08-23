@@ -54,7 +54,7 @@ const SearchInfoBar: React.FC<SearchInfoBarProps> = ({
                            isShowRightIcon={false}
                            isShowNight={false}
                            isBorder={false}
-                           className="!h-[25px] text-sm select-none"
+                           className="h-[25px]! text-sm select-none"
                         />
                      </div>
                   </Tooltip>

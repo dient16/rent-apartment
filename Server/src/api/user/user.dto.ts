@@ -1,6 +1,8 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
+import { stringToNumber } from '@/utils/zodTransforms';
+
 extendZodWithOpenApi(z);
 
 export const UserSchema = z.object({
@@ -34,3 +36,10 @@ export const userDecodeSchema = z.object({
 });
 
 export type User = z.infer<typeof UserSchema>;
+
+export const favoritesQuerySchema = z.object({
+  query: z.object({
+    page: stringToNumber(z.number().int().min(1)).default(1),
+    limit: stringToNumber(z.number().int().min(1).max(50)).default(12),
+  }),
+});

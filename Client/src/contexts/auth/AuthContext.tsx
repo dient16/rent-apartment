@@ -7,7 +7,7 @@ import React, {
    useReducer,
    useState,
 } from 'react';
-import { useIsHydrated } from '@/hooks';
+import { useIsHydrated, useLockBodyScroll } from '@/hooks';
 import { AuthActionType } from './types';
 import { initialize, reducer, signOut } from './reduces';
 import { apiGetCurrentUser } from '@/apis';
@@ -103,15 +103,14 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       }
    }, [data, isError, isLoading, state.accessToken]);
 
+   const showLoader = mounted && isLoading;
+   useLockBodyScroll(showLoader);
+
    return (
       <AuthContext.Provider
          value={{ ...state, dispatch, authModal, setAuthModal }}
       >
-         <Spin
-            spinning={mounted && isLoading}
-            fullscreen={mounted && isLoading}
-            size="large"
-         >
+         <Spin spinning={showLoader} fullscreen={showLoader} size="large">
             {children}
          </Spin>
       </AuthContext.Provider>

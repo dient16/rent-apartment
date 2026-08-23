@@ -57,7 +57,7 @@ const AboutPage: React.FC = () => {
          <section className="relative overflow-hidden bg-midnight-blue">
             <div className="absolute inset-0 opacity-20">
                <img
-                  src={dalat}
+                  src={dalat.src}
                   alt=""
                   className="object-cover w-full h-full"
                />
@@ -135,12 +135,12 @@ const AboutPage: React.FC = () => {
                </div>
                <div className="grid grid-cols-2 gap-4">
                   <img
-                     src={hoian}
+                     src={hoian.src}
                      alt="Hoi An homestay"
                      className="object-cover w-full h-64 rounded-2xl shadow-card-lg"
                   />
                   <img
-                     src={nhatrang}
+                     src={nhatrang.src}
                      alt="Nha Trang apartment"
                      className="object-cover mt-8 w-full h-64 rounded-2xl shadow-card-lg"
                   />

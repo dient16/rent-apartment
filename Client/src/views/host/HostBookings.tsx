@@ -1,5 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+   keepPreviousData,
+   useMutation,
+   useQuery,
+   useQueryClient,
+} from '@tanstack/react-query';
 import { Avatar, Button, Input, message, Popconfirm, Table, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -11,6 +16,8 @@ import {
 import moment from 'moment';
 import clsx from 'clsx';
 import { apiCancelBooking, apiConfirmBooking, apiGetUserBookings } from '@/apis';
+import { useDebounce } from '@/hooks';
+import PaginationBar from '@/components/SearchResult/PaginationBar';
 import StatusBadge, {
    type BookingStatus,
 } from '@/components/StatusBadge/StatusBadge';
@@ -37,14 +44,33 @@ const FILTERS: { key: 'all' | BookingStatus; label: string }[] = [
    { key: 'canceled', label: 'Canceled' },
 ];
 
+const PAGE_SIZE = 10;
+
 const HostBookings: React.FC = () => {
    const queryClient = useQueryClient();
    const [filter, setFilter] = useState<'all' | BookingStatus>('all');
    const [search, setSearch] = useState('');
+   const [page, setPage] = useState(1);
+   // Filtering and paging run server-side, so debounce before hitting the API.
+   const debouncedSearch = useDebounce(search, 350);
+
+   // Changing tab or keyword invalidates the current page number.
+   const [lastQuery, setLastQuery] = useState(`${filter}|${debouncedSearch}`);
+   if (lastQuery !== `${filter}|${debouncedSearch}`) {
+      setLastQuery(`${filter}|${debouncedSearch}`);
+      setPage(1);
+   }
 
    const { data, isLoading } = useQuery({
-      queryKey: ['bookings-host'],
-      queryFn: apiGetUserBookings,
+      queryKey: ['bookings-host', page, filter, debouncedSearch],
+      queryFn: () =>
+         apiGetUserBookings({
+            page,
+            limit: PAGE_SIZE,
+            status: filter,
+            search: debouncedSearch,
+         }),
+      placeholderData: keepPreviousData,
    });
 
    const confirmMutation = useMutation({
@@ -71,30 +97,10 @@ const HostBookings: React.FC = () => {
       },
    });
 
-   const bookings: HostBooking[] = useMemo(() => data?.data || [], [data]);
-
-   const counts = useMemo(() => {
-      const result: Record<string, number> = { all: bookings.length };
-      bookings.forEach((booking) => {
-         result[booking.status] = (result[booking.status] || 0) + 1;
-      });
-      return result;
-   }, [bookings]);
-
-   const visible = useMemo(() => {
-      let rows = bookings;
-      if (filter !== 'all') rows = rows.filter((b) => b.status === filter);
-      if (search.trim()) {
-         const keyword = search.trim().toLowerCase();
-         rows = rows.filter(
-            (b) =>
-               b.guestName?.toLowerCase().includes(keyword) ||
-               b.email?.toLowerCase().includes(keyword) ||
-               b.apartmentName?.toLowerCase().includes(keyword),
-         );
-      }
-      return rows;
-   }, [bookings, filter, search]);
+   const visible: HostBooking[] = useMemo(() => data?.data?.bookings || [], [data]);
+   // Tab badges count the whole result set, not the page on screen.
+   const counts: Record<string, number> = data?.data?.counts || {};
+   const total: number = data?.data?.pagination?.total ?? 0;
 
    const columns: ColumnsType<HostBooking> = [
       {
@@ -261,9 +267,20 @@ const HostBookings: React.FC = () => {
                   dataSource={visible}
                   loading={isLoading}
                   rowKey="_id"
-                  pagination={{ pageSize: 8, showSizeChanger: false }}
+                  pagination={false}
                   scroll={{ x: 900 }}
                />
+               {!isLoading && total > 0 && (
+                  <div className="px-5">
+                     <PaginationBar
+                        page={page}
+                        pageSize={PAGE_SIZE}
+                        total={total}
+                        onChange={setPage}
+                        itemLabel="booking"
+                     />
+                  </div>
+               )}
             </div>
          </div>
       </div>

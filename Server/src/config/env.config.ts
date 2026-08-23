@@ -17,6 +17,9 @@ export const env = cleanEnv(process.env, {
   CLIENT_URL: str({ devDefault: testOnly('http://localhost:8000') }),
   MONGODB_URL: str(),
   ELASTICSEARCH_URL: str({ default: 'http://localhost:9200' }),
+  // Comma-separated DNS servers used only for geocoder lookups. Set this when the
+  // network's own resolver blackholes nominatim.openstreetmap.org; empty = OS resolver.
+  GEOCODER_DNS: str({ default: '' }),
   JWT_ACCESS_KEY: str(),
   EMAIL_NAME: str(),
   EMAIL_APP_PASSWORD: str(),

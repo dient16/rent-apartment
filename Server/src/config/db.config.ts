@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 import { env } from '@/config/env.config';
-import { logger } from '@/server';
+import { logger } from '@/utils/logger';
 
 mongoose.set('strictQuery', false);
 const { MONGODB_URL } = env;

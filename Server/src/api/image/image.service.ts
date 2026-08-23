@@ -36,22 +36,56 @@ export const uploadImageService = async (filename: string): Promise<ServiceRespo
   return new ServiceResponse<string | null>(ResponseStatus.Failed, 'Error upload image', null, 500);
 };
 
-export const openImageBrowserService = async (filename: string): Promise<ServiceResponse<Readable | null>> => {
+const CONTENT_TYPES: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+};
+
+export type ImageDownload = {
+  stream: Readable;
+  contentType: string;
+  length: number;
+  uploadDate: Date;
+  etag: string;
+};
+
+export const openImageBrowserService = async (filename: string): Promise<ServiceResponse<ImageDownload | null>> => {
   const gfs = await gfsPromise;
-  const [err, files] = await to(gfs.find({ filename }).toArray());
+  const [err, files] = await to(gfs.find({ filename }, { limit: 1 }).toArray());
 
   if (err) {
-    return new ServiceResponse<Readable | null>(ResponseStatus.Failed, 'Error preview image', null, 500);
+    return new ServiceResponse<ImageDownload | null>(ResponseStatus.Failed, 'Error preview image', null, 500);
   }
 
-  if (!files || files.length === 0) {
-    return new ServiceResponse<Readable | null>(ResponseStatus.Failed, 'No image exist', null, 404);
+  const file = files?.[0];
+  if (!file) {
+    return new ServiceResponse<ImageDownload | null>(ResponseStatus.Failed, 'No image exist', null, 404);
   }
 
-  return new ServiceResponse<Readable>(
+  const extension = filename.slice(filename.lastIndexOf('.')).toLowerCase();
+
+  return new ServiceResponse<ImageDownload>(
     ResponseStatus.Success,
     'Image retrieved successfully',
-    gfs.openDownloadStreamByName(filename),
+    {
+      // Stream by _id: openDownloadStreamByName would repeat the lookup we just did.
+      stream: gfs.openDownloadStream(file._id),
+      // `contentType` is a legacy GridFS field kept by older uploads; newer ones carry the
+      // mime type in metadata, and anything older than both falls back to the extension.
+      contentType:
+        file.metadata?.contentType ??
+        (file as { contentType?: string }).contentType ??
+        CONTENT_TYPES[extension] ??
+        'application/octet-stream',
+      length: file.length,
+      uploadDate: file.uploadDate,
+      etag: `"${file._id.toString()}-${file.length}"`,
+    },
     200
   );
 };

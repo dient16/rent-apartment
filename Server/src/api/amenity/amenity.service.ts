@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 import { env } from '@/config/env.config';
-import { logger } from '@/server';
+import { logger } from '@/utils/logger';
 
 import AmenityModel from './amenity.model';
 import type { Amenity } from './amenity.dto';

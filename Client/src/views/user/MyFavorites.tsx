@@ -1,10 +1,11 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Button, Carousel, Skeleton, Tooltip } from 'antd';
 import { HeartOutlined } from '@ant-design/icons';
 import { useNavigate } from '@/lib/router-compat';
 import moment from 'moment';
 import { apiGetFavorites } from '@/apis';
+import PaginationBar from '@/components/SearchResult/PaginationBar';
 import { FavoriteButton } from '@/components';
 import { useAuth } from '@/hooks';
 import { path } from '@/utils/constant';
@@ -18,17 +19,22 @@ interface FavoriteApartment {
    avgRating: number;
 }
 
+const PAGE_SIZE = 12;
+
 const MyFavorites: React.FC = () => {
    const navigate = useNavigate();
    const { isAuthenticated, setAuthModal } = useAuth();
+   const [page, setPage] = useState(1);
 
    const { data, isLoading } = useQuery({
-      queryKey: ['favorites'],
-      queryFn: apiGetFavorites,
+      queryKey: ['favorites', page],
+      queryFn: () => apiGetFavorites({ page, limit: PAGE_SIZE }),
       enabled: isAuthenticated,
+      placeholderData: keepPreviousData,
    });
 
-   const favorites: FavoriteApartment[] = data?.data || [];
+   const favorites: FavoriteApartment[] = data?.data?.favorites || [];
+   const total: number = data?.data?.pagination?.total ?? 0;
 
    const goToApartment = (apartmentId: string) => {
       navigate(
@@ -78,7 +84,7 @@ const MyFavorites: React.FC = () => {
                      >
                         <Skeleton.Image
                            active
-                           className="!w-full !h-[185px] !rounded-2xl"
+                           className="w-full! h-[185px]! rounded-2xl!"
                         />
                         <Skeleton
                            active
@@ -183,6 +189,19 @@ const MyFavorites: React.FC = () => {
                      </div>
                   ))}
                </div>
+            )}
+
+            {!isLoading && total > 0 && (
+               <PaginationBar
+                  page={page}
+                  pageSize={PAGE_SIZE}
+                  total={total}
+                  onChange={(next) => {
+                     setPage(next);
+                     window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  itemLabel="favorite"
+               />
             )}
          </div>
       </div>

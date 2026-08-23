@@ -68,6 +68,13 @@ interface RetriableConfig extends InternalAxiosRequestConfig {
    _retry?: boolean;
 }
 
+declare module 'axios' {
+   export interface AxiosRequestConfig {
+      /** Skip the global error toast — for screens that render their own error UI. */
+      skipErrorToast?: boolean;
+   }
+}
+
 instance.interceptors.response.use(
    (response: AxiosResponse) => response?.data,
    async (error: AxiosError) => {
@@ -94,7 +101,10 @@ instance.interceptors.response.use(
          }
       }
 
-      if (status !== 401) {
+      // Screens that render their own error UI opt out, otherwise the user gets a toast
+      // on top of the message already shown on the page — once per attempt.
+      const skipToast = error.config?.skipErrorToast;
+      if (status !== 401 && !skipToast) {
          const data = error.response?.data as { message?: string } | undefined;
          message.error(data?.message || 'Error from server');
       }
