@@ -334,6 +334,18 @@
    70% { transform: scale(1.4); opacity: 0; }
    100% { opacity: 0; }
 }
+/* Tailwind preflight forces `height: auto` on img, which collapses Leaflet tiles */
+.leaflet-container img.leaflet-tile,
+.leaflet-container img.leaflet-marker-icon,
+.leaflet-container img.leaflet-marker-shadow {
+   max-width: none;
+   height: auto;
+}
+.leaflet-container img.leaflet-tile {
+   width: auto;
+   height: auto;
+}
+
 .leaflet-popup-content-wrapper {
    border-radius: 12px;
    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);

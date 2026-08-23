@@ -156,7 +156,7 @@ const CreateApartment: React.FC = () => {
    const StepComponent = steps[step].content;
    const stepItems = steps.map((item) => ({
       title: item.title,
-      description: item.description,
+      content: item.description,
    }));
 
    return (
@@ -188,7 +188,7 @@ const CreateApartment: React.FC = () => {
                   {/* Sidebar steps (desktop) */}
                   <div className="hidden flex-shrink-0 p-6 w-72 bg-white rounded-2xl border border-gray-100 lg:block shadow-card-sm sticky top-24">
                      <Steps
-                        direction="vertical"
+                        orientation="vertical"
                         current={step}
                         onChange={handleStepChange}
                         items={stepItems}

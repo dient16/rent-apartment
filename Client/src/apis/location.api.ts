@@ -1,22 +1,31 @@
-import axios, { AxiosResponse } from 'axios';
+import api from './axiosConfig';
 
-const NOMINATIM_API_URL = 'https://nominatim.openstreetmap.org/reverse';
-export const apiGetAddress = (
-   lat: number,
-   lng: number,
-): Promise<AxiosResponse> =>
-   axios({
-      url: NOMINATIM_API_URL,
+/** Place with coordinates, as returned by the server's geocoder proxy. */
+export interface GeoPlace {
+   label: string;
+   description: string;
+   lat: number;
+   lon: number;
+   province: string;
+   district: string;
+   ward: string;
+}
+
+// The browser cannot reach nominatim.openstreetmap.org directly (blocked/CORS),
+// so both directions go through the server, which also handles the fallback provider.
+export const apiGetAddress = (lat: number, lng: number): Promise<Res> =>
+   api({
+      url: '/location/reverse',
       method: 'get',
-      params: {
-         lat,
-         lon: lng,
-         format: 'json',
-         'accept-language': 'vi',
-      },
+      params: { lat, lon: lng },
    });
 
-import api from './axiosConfig';
+export const apiGeocode = (q: string): Promise<Res> =>
+   api({
+      url: '/location/geocode',
+      method: 'get',
+      params: { q },
+   });
 
 export interface AddressSuggestion {
    label: string;

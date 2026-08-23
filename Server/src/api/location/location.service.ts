@@ -9,7 +9,9 @@ import { logger } from '@/utils/logger';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
+const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
 const PHOTON_URL = 'https://photon.komoot.io/api';
+const PHOTON_REVERSE_URL = 'https://photon.komoot.io/reverse';
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 phut — Nominatim gioi han ~1 req/s
 const CACHE_MAX_ENTRIES = 500;
 
@@ -147,6 +149,69 @@ const sortByPriority = <T,>(items: T[], typeOf: (item: T) => string) =>
     return aPriority - bPriority;
   });
 
+
+/** Place with coordinates + administrative parts, for the map picker. */
+interface GeoPlace {
+  label: string;
+  description: string;
+  lat: number;
+  lon: number;
+  province: string;
+  district: string;
+  ward: string;
+}
+
+const toGeoPlace = (place: any): GeoPlace => {
+  const address = place.address || {};
+  const parts = String(place.display_name || '')
+    .split(',')
+    .map((part: string) => part.trim())
+    .filter(Boolean);
+
+  return {
+    label: place.name || parts[0] || '',
+    description: parts.join(', '),
+    lat: Number(place.lat),
+    lon: Number(place.lon),
+    province: address.state || address.city || '',
+    district: address.county || address.city_district || address.district || address.town || address.city || '',
+    ward: address.quarter || address.suburb || address.village || address.town || '',
+  };
+};
+
+const toPhotonGeoPlace = (feature: any): GeoPlace => {
+  const props = feature?.properties || {};
+  const [lon, lat] = feature?.geometry?.coordinates || [];
+
+  return {
+    label: props.name || '',
+    description: [props.street, props.district, props.city, props.county, props.state].filter(Boolean).join(', '),
+    lat: Number(lat),
+    lon: Number(lon),
+    province: props.state || props.city || '',
+    district: props.county || props.district || props.city || '',
+    ward: props.district || props.locality || '',
+  };
+};
+
+const isUsablePlace = (place: GeoPlace) => Boolean(place.label) && Number.isFinite(place.lat) && Number.isFinite(place.lon);
+
+/** Runs the geocoder providers in order and returns the first one that answers. */
+const firstProviderResult = async <T,>(
+  attempts: { name: string; run: () => Promise<T | null> }[],
+  context: Record<string, unknown>
+): Promise<T | null> => {
+  for (const attempt of attempts) {
+    try {
+      const result = await attempt.run();
+      if (result) return result;
+    } catch (error) {
+      logger.debug({ err: error, provider: attempt.name, ...context }, 'Geocoding provider failed, trying the next one');
+    }
+  }
+  return null;
+};
+
 interface Provider {
   name: string;
   url: (query: string) => string;
@@ -245,5 +310,82 @@ export const locationService = {
     }
 
     return new ServiceResponse(ResponseStatus.Success, 'Suggestions', [], StatusCodes.OK);
+  },
+
+  /** Forward geocoding with coordinates, for the create-listing map picker. */
+  async geocode(query: string) {
+    const normalized = query.trim();
+    if (normalized.length < 2) {
+      return new ServiceResponse(ResponseStatus.Success, 'Places', [], StatusCodes.OK);
+    }
+
+    const places = await firstProviderResult<GeoPlace[]>(
+      [
+        {
+          name: 'nominatim',
+          run: async () => {
+            const payload = await fetchJson(
+              `${NOMINATIM_URL}?q=${encodeURIComponent(normalized)}&format=json&addressdetails=1&limit=6&countrycodes=VN`
+            );
+            const results = (payload || []).map(toGeoPlace).filter(isUsablePlace);
+            return results.length ? results : null;
+          },
+        },
+        {
+          name: 'photon',
+          run: async () => {
+            const payload = await fetchJson(`${PHOTON_URL}?q=${encodeURIComponent(normalized)}&limit=10`);
+            const results = (payload?.features || [])
+              .filter((feature: any) => feature?.properties?.countrycode === 'VN')
+              .map(toPhotonGeoPlace)
+              .filter(isUsablePlace)
+              .slice(0, 6);
+            return results.length ? results : null;
+          },
+        },
+      ],
+      { query: normalized }
+    );
+
+    return new ServiceResponse(ResponseStatus.Success, 'Places', places ?? [], StatusCodes.OK);
+  },
+
+  /** Reverse geocoding for a point the host clicked on the map. */
+  async reverseGeocode(lat: number, lon: number) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      return new ServiceResponse(ResponseStatus.Failed, 'Invalid coordinates', null, StatusCodes.BAD_REQUEST);
+    }
+
+    const place = await firstProviderResult<GeoPlace>(
+      [
+        {
+          name: 'nominatim',
+          run: async () => {
+            const payload = await fetchJson(
+              `${NOMINATIM_REVERSE_URL}?lat=${lat}&lon=${lon}&format=json&addressdetails=1&accept-language=vi`
+            );
+            const result = payload?.address ? toGeoPlace({ ...payload, lat, lon }) : null;
+            return result?.description ? result : null;
+          },
+        },
+        {
+          name: 'photon',
+          run: async () => {
+            const payload = await fetchJson(`${PHOTON_REVERSE_URL}?lat=${lat}&lon=${lon}&limit=1`);
+            const feature = payload?.features?.[0];
+            if (!feature) return null;
+            const result = toPhotonGeoPlace(feature);
+            return { ...result, lat, lon };
+          },
+        },
+      ],
+      { lat, lon }
+    );
+
+    if (!place) {
+      return new ServiceResponse(ResponseStatus.Success, 'Address', null, StatusCodes.OK);
+    }
+
+    return new ServiceResponse(ResponseStatus.Success, 'Address', place, StatusCodes.OK);
   },
 };

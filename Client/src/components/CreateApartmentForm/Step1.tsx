@@ -16,25 +16,63 @@ import { Districts } from '@/utils/location/districts';
 import { Wards } from '@/utils/location/wards';
 import { motion } from 'framer-motion';
 import { Select, Spin } from 'antd';
-import axios from 'axios';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import { apiGetAddress } from '@/apis';
+import { apiGeocode, apiGetAddress } from '@/apis';
+import type { GeoPlace } from '@/apis/location.api';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// Static image imports resolve to `{ src }` under Next, but to a plain string
+// in some bundler/test setups - normalise both shapes before handing to Leaflet.
+const assetUrl = (asset: any): string =>
+   typeof asset === 'string' ? asset : (asset?.src ?? asset?.default?.src ?? '');
+
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 /* eslint-enable @typescript-eslint/no-explicit-any */
-L.Icon.Default.mergeOptions({
-   iconRetinaUrl: markerIcon2x.src,
-   iconUrl: markerIcon.src,
-   shadowUrl: markerShadow.src,
-});
 
-const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org/search?';
+const defaultIconOptions = {
+   iconRetinaUrl: assetUrl(markerIcon2x),
+   iconUrl: assetUrl(markerIcon),
+   shadowUrl: assetUrl(markerShadow),
+   iconSize: [25, 41] as [number, number],
+   iconAnchor: [12, 41] as [number, number],
+   popupAnchor: [1, -34] as [number, number],
+   shadowSize: [41, 41] as [number, number],
+};
+
+L.Icon.Default.mergeOptions(defaultIconOptions);
+
+const defaultMarkerIcon = L.icon(defaultIconOptions);
 
 type LatLng = { lat: number; lng: number };
+
+// The map mounts inside a framer-motion container that is still animating (and
+// sized 0) on first paint, so Leaflet caches a zero size and renders nothing.
+// Re-measure once mounted and on every container resize.
+const InvalidateSize: React.FC = () => {
+   const map = useMap();
+
+   useEffect(() => {
+      const container = map.getContainer();
+      const refresh = () => map.invalidateSize();
+
+      refresh();
+      const raf = requestAnimationFrame(refresh);
+      const timer = setTimeout(refresh, 300);
+      const observer = new ResizeObserver(refresh);
+      observer.observe(container);
+
+      return () => {
+         cancelAnimationFrame(raf);
+         clearTimeout(timer);
+         observer.disconnect();
+      };
+   }, [map]);
+
+   return null;
+};
 
 // Module scope: defining these in Step1's render remounts the map layers every time.
 const LocationMarker: React.FC<{ position: LatLng | null }> = ({ position }) => {
@@ -46,7 +84,7 @@ const LocationMarker: React.FC<{ position: LatLng | null }> = ({ position }) => 
       }
    }, [position, map]);
 
-   return position === null ? null : <Marker position={position} />;
+   return position === null ? null : <Marker position={position} icon={defaultMarkerIcon} />;
 };
 
 const LocationMarker1: React.FC<{
@@ -62,34 +100,19 @@ const LocationMarker1: React.FC<{
 
          try {
             const response = await apiGetAddress(e.latlng.lat, e.latlng.lng);
-            const address = response.data;
-            setValue(
-               'location.province',
-               address.address?.state ?? address.address?.city,
-            );
-            setValue(
-               'location.district',
-               address.address?.county ??
-                  address.address?.city ??
-                  address.address?.suburb ??
-                  address.address?.city_district ??
-                  address.address?.town,
-            );
-            setValue(
-               'location.ward',
+            const place = response.data;
+            if (!place) return;
 
-               address.address?.quarter ??
-                  address.address?.suburb ??
-                  address.address?.village ??
-                  address.address?.town,
-            );
+            setValue('location.province', place.province);
+            setValue('location.district', place.district);
+            setValue('location.ward', place.ward);
          } catch (error) {
             console.error(error);
          }
       },
    });
 
-   return position === null ? null : <Marker position={position} />;
+   return position === null ? null : <Marker position={position} icon={defaultMarkerIcon} />;
 };
 
 const Step1: React.FC = () => {
@@ -127,29 +150,19 @@ const Step1: React.FC = () => {
       setLoading(true);
 
       try {
-         const response = await axios.get(NOMINATIM_BASE_URL, {
-            params: {
-               q: value,
-               format: 'json',
-               addressdetails: 1,
-               limit: 5,
-               countrycodes: 'VN',
-            },
-         });
+         const response = await apiGeocode(value);
 
-         const results = response.data.map((item: any) => ({
+         const results = (response.data ?? []).map((item: GeoPlace) => ({
             value: `${item.lat},${item.lon}`,
             label: (
                <>
-                  <div className="font-semibold">
-                     {item.display_name.split(',')[0]}
-                  </div>
-                  <div className="text-gray-500">{item.display_name}</div>
+                  <div className="font-semibold">{item.label}</div>
+                  <div className="text-gray-500">{item.description}</div>
                </>
             ),
-            title: item.display_name.split(',')[0],
-            description: item.display_name,
-            address: item.address,
+            title: item.label,
+            description: item.description,
+            place: item,
          }));
 
          setOptions(results);
@@ -177,19 +190,10 @@ const Step1: React.FC = () => {
       setValue('location.lat', parseFloat(lat));
       setValue('location.long', parseFloat(lon));
 
-      const address = option.address;
-      setValue('location.province', address?.state ?? address?.city);
-      setValue(
-         'location.district',
-         address?.county ??
-            address?.suburb ??
-            address?.town ??
-            address?.city_district,
-      );
-      setValue(
-         'location.ward',
-         address?.quarter ?? address?.village ?? address?.town,
-      );
+      const place: GeoPlace | undefined = option.place;
+      setValue('location.province', place?.province);
+      setValue('location.district', place?.district);
+      setValue('location.ward', place?.ward);
    };
 
    return (
@@ -299,13 +303,18 @@ const Step1: React.FC = () => {
                      Click on the map to select your location.
                   </p>
                </div>
-               <div className="h-72">
+               <div className="overflow-hidden h-72 rounded-md shadow-sm">
                   <MapContainer
                      center={position || [10.762622, 106.660172]}
                      zoom={13}
-                     className="w-full h-full rounded-md shadow-sm"
+                     scrollWheelZoom={false}
+                     style={{ width: '100%', height: '100%' }}
                   >
-                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                     <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                     />
+                     <InvalidateSize />
                      <LocationMarker position={position} />
                      <LocationMarker1
                         position={position}
