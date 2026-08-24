@@ -166,6 +166,16 @@ const Messenger: React.FC = () => {
    });
 
    // Socket listeners: presence updates, partner typing, instant new messages
+   // The chat fills the viewport exactly - lock the page behind it so the few
+   // stray pixels below (scrollbars/rounding) can't be scrolled into view.
+   useEffect(() => {
+      const previous = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+         document.body.style.overflow = previous;
+      };
+   }, []);
+
    useEffect(() => {
       const socket = connectSocket();
       if (!socket) return;

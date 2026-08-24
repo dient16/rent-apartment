@@ -67,6 +67,27 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       queryFn: apiGetCurrentUser,
       enabled: typeof window !== 'undefined' && !!localStorage.getItem('ACCESS_TOKEN'),
    });
+   // Restore the session synchronously before first paint: the token proves the
+   // user was signed in, the cached profile fills the header while /me revalidates.
+   // (Runs in useLayoutEffect, not initial state, so SSR/CSR HTML stay identical.)
+   useLayoutEffect(() => {
+      try {
+         const rawToken = localStorage.getItem('ACCESS_TOKEN');
+         if (!rawToken) return;
+         const cachedUser = localStorage.getItem('AUTH_USER');
+         dispatch(
+            initialize({
+               isAuthenticated: true,
+               accessToken: JSON.parse(rawToken),
+               user: cachedUser ? JSON.parse(cachedUser) : null,
+            }),
+         );
+      } catch {
+         /* corrupted storage - fall through to the query result */
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, []);
+
    // axiosConfig handles access-token refresh (single-flight); when refresh
    // fails it emits this event so we sign the user out.
    useEffect(() => {
@@ -82,7 +103,12 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
    }, [dispatch]);
 
    useLayoutEffect(() => {
-      if (!data && !data?.success && !isLoading) {
+      // Only drop the session when the check actually ran and failed - not while
+      // the request is still in flight (that caused a signed-out flash on reload).
+      const hasToken =
+         typeof window !== 'undefined' && !!localStorage.getItem('ACCESS_TOKEN');
+      if (!isLoading && (!hasToken || isError)) {
+         localStorage.removeItem('AUTH_USER');
          dispatch(
             initialize({
                isAuthenticated: false,
@@ -90,10 +116,11 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
                user: null,
             }),
          );
-      } else if (data && !isError && !!localStorage.getItem('ACCESS_TOKEN')) {
+      } else if (data && !isError && hasToken) {
          const token = JSON.parse(
             localStorage.getItem('ACCESS_TOKEN') as string,
          );
+         localStorage.setItem('AUTH_USER', JSON.stringify(data?.data ?? null));
          dispatch(
             initialize({
                isAuthenticated: true,

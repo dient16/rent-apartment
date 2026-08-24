@@ -1,11 +1,12 @@
-'use client';
+import type { Metadata } from 'next';
+import AboutClient from './AboutClient';
 
-import dynamic from 'next/dynamic';
-import PageLoader from '@/components/PageLoader/PageLoader';
-
-// CSR like the old SPA (phase 1) — avoids SSR issues with browser-only libs
-const About = dynamic(() => import('@/views/public/About'), { ssr: false, loading: () => <PageLoader /> });
+export const metadata: Metadata = {
+   title: 'About us',
+   description: 'Find House connects travelers with hand-picked apartments and homestays across Vietnam - our story, mission and the team behind the platform.',
+   alternates: { canonical: '/about' },
+};
 
 export default function Page() {
-   return <About />;
+   return <AboutClient />;
 }

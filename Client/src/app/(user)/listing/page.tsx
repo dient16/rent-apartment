@@ -12,9 +12,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
    const { province } = await searchParams;
    const place = typeof province === 'string' && province.trim() ? province.trim() : 'Vietnam';
+   const canonical =
+      typeof province === 'string' && province.trim()
+         ? `/listing?province=${encodeURIComponent(province.trim())}`
+         : '/listing';
    return {
-      title: `Stays in ${place} — Find House`,
+      title: `Stays in ${place}`,
       description: `Apartments, hotels and homestays in ${place}: compare prices, amenities and guest reviews, then book instantly.`,
+      alternates: { canonical },
    };
 }
 

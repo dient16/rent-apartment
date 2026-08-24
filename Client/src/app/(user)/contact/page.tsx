@@ -1,11 +1,12 @@
-'use client';
+import type { Metadata } from 'next';
+import ContactClient from './ContactClient';
 
-import dynamic from 'next/dynamic';
-import PageLoader from '@/components/PageLoader/PageLoader';
-
-// CSR like the old SPA (phase 1) — avoids SSR issues with browser-only libs
-const Contact = dynamic(() => import('@/views/public/Contact'), { ssr: false, loading: () => <PageLoader /> });
+export const metadata: Metadata = {
+   title: 'Contact us',
+   description: 'Questions about a booking or hosting on Find House? Reach our support team by email, phone or the contact form.',
+   alternates: { canonical: '/contact' },
+};
 
 export default function Page() {
-   return <Contact />;
+   return <ContactClient />;
 }

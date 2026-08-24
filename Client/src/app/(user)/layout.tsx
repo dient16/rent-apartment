@@ -16,13 +16,28 @@ export default function UserLayout({
    }, [pathname]);
 
    // The messenger fills the viewport — a footer below it only adds scroll
-   const hideFooter = pathname?.startsWith('/messages');
+   const isMessenger = pathname?.startsWith('/messages');
 
    return (
-      <div className="flex z-50 flex-col justify-center items-center w-full font-main">
+      <div
+         className={
+            isMessenger
+               ? // Lock the whole page to the viewport: header + chat, zero outer scroll
+                 'flex z-50 flex-col items-center w-full font-main h-dvh overflow-hidden'
+               : 'flex z-50 flex-col justify-center items-center w-full font-main'
+         }
+      >
          <Header />
-         <div className="w-full min-h-[calc(100vh-60px)] lg:min-h-[calc(100vh-80px)]">{children}</div>
-         {!hideFooter && <Footer />}
+         <div
+            className={
+               isMessenger
+                  ? 'w-full flex-1 min-h-0 overflow-hidden'
+                  : 'w-full min-h-[calc(100vh-60px)] lg:min-h-[calc(100vh-80px)]'
+            }
+         >
+            {children}
+         </div>
+         {!isMessenger && <Footer />}
       </div>
    );
 }

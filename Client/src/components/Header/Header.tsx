@@ -3,6 +3,7 @@ import logo from '@/assets/logo-icon.png';
 import { navigateHosts, navigates, path } from '@/utils/constant';
 import { MenuAccount, NotificationBell, SignIn, SignUp, UserAvatar } from '@/components';
 import { NavLink, useNavigate } from '@/lib/router-compat';
+import { useIsHydrated } from '@/hooks';
 import {
    Flex,
    Button,
@@ -26,6 +27,9 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
    const { SlClose, AiOutlineUsergroupAdd, PiSignInBold, CgMenuLeft, HiMenu } =
       icons;
    const navigate = useNavigate();
+   // SSR can't know the login state - render a neutral placeholder until the
+   // client restores the session, so signed-in users never see Sign in flash.
+   const hydrated = useIsHydrated();
    const [openNavigate, setOpenNavigate] = useState(false);
    const [menuOpen, setMenuOpen] = useState(false);
    const {
@@ -157,7 +161,9 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                   </Tooltip>
                )}
 
-               {!isAuthenticated && !currentUser ? (
+               {!hydrated ? (
+                  <span className="hidden lg:block w-[220px] h-10 bg-gray-100 rounded-full animate-pulse" />
+               ) : !isAuthenticated && !currentUser ? (
                   <Flex gap={10} align="center">
                      <Button
                         className="hidden px-6 h-10 rounded-full border-gray-300 lg:block font-main hover:border-blue-500 hover:text-blue-600"

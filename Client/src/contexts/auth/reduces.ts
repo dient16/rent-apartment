@@ -39,6 +39,8 @@ const reducerHandlers: ReducerHandler = {
       };
    },
    SIGN_OUT(state: AuthState): AuthState {
+      localStorage.removeItem('ACCESS_TOKEN');
+      localStorage.removeItem('AUTH_USER');
       return {
          ...state,
          isAuthenticated: false,

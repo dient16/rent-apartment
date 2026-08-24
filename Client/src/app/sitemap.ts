@@ -9,6 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
    const staticRoutes: MetadataRoute.Sitemap = ['', '/listing', '/about', '/contact'].map(
       (path) => ({
          url: `${SITE_URL}${path}`,
+         lastModified: new Date(),
          changeFrequency: 'daily',
          priority: path === '' ? 1 : 0.8,
       }),
@@ -23,6 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...staticRoutes,
       ...apartments.map((apartment) => ({
          url: `${SITE_URL}/apartment/${apartment._id}`,
+         lastModified: new Date(),
          changeFrequency: 'weekly' as const,
          priority: 0.7,
       })),
