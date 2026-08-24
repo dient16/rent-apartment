@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import clsx from 'clsx';
 import { FiImage } from 'react-icons/fi';
 
@@ -10,9 +10,15 @@ interface AppImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 }
 
 /**
- * Content image with a loading shimmer, native lazy-loading, a fade-in on load
- * and a neutral fallback when the file is missing.
- * Size it via `wrapperClassName` (or className); the img always covers the box.
+ * Loading shimmer + fade-in is disabled for now: on reload, images inside
+ * carousels could stay hidden behind the shimmer. Flip this to re-enable it.
+ */
+const SHOW_LOADING_STATE = false;
+
+/**
+ * Content image with native lazy-loading and a neutral fallback when the file
+ * is missing. Size it via `wrapperClassName` (or className); the img always
+ * covers the box.
  */
 const AppImage: React.FC<AppImageProps> = ({
    wrapperClassName,
@@ -25,23 +31,7 @@ const AppImage: React.FC<AppImageProps> = ({
    const [loaded, setLoaded] = useState(false);
    const [failed, setFailed] = useState(false);
 
-   // New src: start over so the shimmer shows again instead of the stale image.
-   const [prevSrc, setPrevSrc] = useState(src);
-   if (prevSrc !== src) {
-      setPrevSrc(src);
-      setLoaded(false);
-      setFailed(false);
-   }
-
-   // The image can finish loading before React hydrates and attaches `onLoad`
-   // (SSR + browser cache on reload), so the `load` event is lost and the img
-   // would stay at opacity-0 forever. Read the element's own state when React
-   // attaches the ref instead.
-   const checkAlreadyComplete = useCallback((img: HTMLImageElement | null) => {
-      if (!img || !img.complete) return;
-      if (img.naturalWidth > 0) setLoaded(true);
-      else setFailed(true);
-   }, []);
+   const visible = !SHOW_LOADING_STATE || loaded;
 
    return (
       <span
@@ -51,8 +41,7 @@ const AppImage: React.FC<AppImageProps> = ({
             className,
          )}
       >
-         {/* Shimmer while the bytes arrive */}
-         {!loaded && !failed && (
+         {SHOW_LOADING_STATE && !loaded && !failed && (
             <span className="absolute inset-0 img-shimmer" aria-hidden />
          )}
 
@@ -63,9 +52,6 @@ const AppImage: React.FC<AppImageProps> = ({
          ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-               // Remount per src so the ref callback re-checks the new image.
-               key={typeof src === 'string' ? src : undefined}
-               ref={checkAlreadyComplete}
                src={src}
                alt={alt}
                loading={loading}
@@ -73,8 +59,9 @@ const AppImage: React.FC<AppImageProps> = ({
                onLoad={() => setLoaded(true)}
                onError={() => setFailed(true)}
                className={clsx(
-                  'object-cover absolute inset-0 w-full h-full transition-opacity duration-300',
-                  loaded ? 'opacity-100' : 'opacity-0',
+                  'object-cover absolute inset-0 w-full h-full',
+                  SHOW_LOADING_STATE && 'transition-opacity duration-300',
+                  visible ? 'opacity-100' : 'opacity-0',
                )}
                {...rest}
             />
