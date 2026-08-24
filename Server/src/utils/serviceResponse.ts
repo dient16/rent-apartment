@@ -1,3 +1,4 @@
+import type { Response } from 'express';
 import { z } from 'zod';
 
 export enum ResponseStatus {
@@ -18,6 +19,15 @@ export class ServiceResponse<T = null> {
       this.data = responseObject;
     }
     this.statusCode = statusCode;
+  }
+
+  /**
+   * Write this response to Express: HTTP status from `statusCode`, the object
+   * itself as the JSON body. Controllers call `serviceResponse.send(res)`;
+   * commands/queries just keep returning `ServiceResponse` as before.
+   */
+  send(res: Response) {
+    return res.status(this.statusCode).send(this);
   }
 }
 

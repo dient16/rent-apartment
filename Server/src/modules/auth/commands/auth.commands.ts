@@ -151,9 +151,7 @@ export const authCommands = {
       const accessToken = generateAccessToken(user._id, isAdmin);
       const newRefreshToken = generateRefreshToken(user._id);
 
-      const [errUpdate] = await to(
-        authRepository.setRefreshToken(user._id, newRefreshToken)
-      );
+      const [errUpdate] = await to(authRepository.setRefreshToken(user._id, newRefreshToken));
       if (errUpdate) {
         return new ServiceResponse(
           ResponseStatus.Failed,

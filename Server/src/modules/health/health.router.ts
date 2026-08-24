@@ -6,7 +6,6 @@ import { z } from 'zod';
 
 import { createApiResponse, PUBLIC } from '@/api-docs/openAPIResponseBuilders';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
-import { handleServiceResponse } from '@/utils/httpHandlers';
 
 export const healthRegistry = new OpenAPIRegistry();
 
@@ -25,7 +24,7 @@ export const healthRouter: Router = (() => {
 
   router.get('/', (_req: Request, res: Response) => {
     const serviceResponse = new ServiceResponse(ResponseStatus.Success, 'Service is healthy', null, StatusCodes.OK);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   });
 
   return router;

@@ -134,8 +134,7 @@ export const messageCommands = {
       // Realtime push so the recipient's open chat updates instantly
       emitToUser(String(recipientId), 'message:new', { conversationId: String(conversationId) });
       const sender = await messageRepository.findUserName(userId);
-      const senderName =
-        [(sender as any)?.firstname, (sender as any)?.lastname].filter(Boolean).join(' ') || 'Someone';
+      const senderName = [(sender as any)?.firstname, (sender as any)?.lastname].filter(Boolean).join(' ') || 'Someone';
       await notificationCommands.notifyNewMessage({
         recipientId,
         senderName,

@@ -12,11 +12,9 @@ export const userRepository = {
       .select('-confirmationToken -password -createApartments -emailConfirmed -provider -isAdmin -refreshToken')
       .exec(),
 
-  updateById: (userId: string, data: Partial<User>) =>
-    UserModel.findByIdAndUpdate(userId, data, { new: true }).exec(),
+  updateById: (userId: string, data: Partial<User>) => UserModel.findByIdAndUpdate(userId, data, { new: true }).exec(),
 
-  markHostWelcomeSeen: (userId: string) =>
-    UserModel.findByIdAndUpdate(userId, { hasSeenHostWelcome: true }).exec(),
+  markHostWelcomeSeen: (userId: string) => UserModel.findByIdAndUpdate(userId, { hasSeenHostWelcome: true }).exec(),
 
   findFavoriteIds: (userId: string) => UserModel.findById(userId).select('favorites').lean().exec(),
 

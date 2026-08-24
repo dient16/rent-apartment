@@ -67,7 +67,12 @@ export const reviewCommands = {
   async deleteReview(userId: string, reviewId: string) {
     const [error, deleted] = await to(reviewRepository.deleteUserReview(reviewId, userId));
     if (error) {
-      return new ServiceResponse(ResponseStatus.Failed, 'Error deleting review', null, StatusCodes.INTERNAL_SERVER_ERROR);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'Error deleting review',
+        null,
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
     }
     if (!deleted) {
       return new ServiceResponse(ResponseStatus.Failed, 'Review not found', null, StatusCodes.NOT_FOUND);

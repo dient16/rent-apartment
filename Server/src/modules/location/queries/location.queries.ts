@@ -118,7 +118,10 @@ const toSuggestion = (place: any): Suggestion => {
     label,
     description: rest.join(', '),
     // Compact value for the search box: "Name, Province".
-    value: [label, cityOrProvince].filter(Boolean).filter((v, i, arr) => arr.indexOf(v) === i).join(', '),
+    value: [label, cityOrProvince]
+      .filter(Boolean)
+      .filter((v, i, arr) => arr.indexOf(v) === i)
+      .join(', '),
   };
 };
 
@@ -135,11 +138,14 @@ const toPhotonSuggestion = (feature: any): Suggestion => {
   return {
     label,
     description: parts.join(', '),
-    value: [label, cityOrProvince].filter(Boolean).filter((v, i, arr) => arr.indexOf(v) === i).join(', '),
+    value: [label, cityOrProvince]
+      .filter(Boolean)
+      .filter((v, i, arr) => arr.indexOf(v) === i)
+      .join(', '),
   };
 };
 
-const sortByPriority = <T,>(items: T[], typeOf: (item: T) => string) =>
+const sortByPriority = <T>(items: T[], typeOf: (item: T) => string) =>
   [...items].sort((a, b) => {
     const aPriority = PRIORITY_TYPES.indexOf(typeOf(a));
     const bPriority = PRIORITY_TYPES.indexOf(typeOf(b));
@@ -148,7 +154,6 @@ const sortByPriority = <T,>(items: T[], typeOf: (item: T) => string) =>
     if (bPriority === -1) return -1;
     return aPriority - bPriority;
   });
-
 
 /** Place with coordinates + administrative parts, for the map picker. */
 interface GeoPlace {
@@ -194,10 +199,11 @@ const toPhotonGeoPlace = (feature: any): GeoPlace => {
   };
 };
 
-const isUsablePlace = (place: GeoPlace) => Boolean(place.label) && Number.isFinite(place.lat) && Number.isFinite(place.lon);
+const isUsablePlace = (place: GeoPlace) =>
+  Boolean(place.label) && Number.isFinite(place.lat) && Number.isFinite(place.lon);
 
 /** Runs the geocoder providers in order and returns the first one that answers. */
-const firstProviderResult = async <T,>(
+const firstProviderResult = async <T>(
   attempts: { name: string; run: () => Promise<T | null> }[],
   context: Record<string, unknown>
 ): Promise<T | null> => {
@@ -206,7 +212,10 @@ const firstProviderResult = async <T,>(
       const result = await attempt.run();
       if (result) return result;
     } catch (error) {
-      logger.debug({ err: error, provider: attempt.name, ...context }, 'Geocoding provider failed, trying the next one');
+      logger.debug(
+        { err: error, provider: attempt.name, ...context },
+        'Geocoding provider failed, trying the next one'
+      );
     }
   }
   return null;

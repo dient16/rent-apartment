@@ -2,7 +2,6 @@ import type { NextFunction, Request, Response } from '@/types/http';
 import { StatusCodes } from 'http-status-codes';
 
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
-import { handleServiceResponse } from '@/utils/httpHandlers';
 
 import type { GetOwnerApartmentsQuery, SearchRoomType } from './apartment.dto';
 import { apartmentCommands } from './commands/apartment.commands';
@@ -12,7 +11,7 @@ import { apartmentSearchQueries } from './queries/apartment-search.queries';
 export const getAllApartment = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const serviceResponse = await apartmentQueries.getAllApartments();
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -20,7 +19,7 @@ export const getAllApartment = async (_req: Request, res: Response, next: NextFu
 export const getUserApartments = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const serviceResponse = await apartmentQueries.getUserApartments((req.user as UserDecode)._id);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -29,7 +28,7 @@ export const getPopularRooms = async (req: Request, res: Response, next: NextFun
   try {
     const limit = parseInt(req.query.limit as string) || 10;
     const serviceResponse = await apartmentQueries.getPopularRooms(limit);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -39,7 +38,7 @@ export const getApartmentDetail = async (req: Request, res: Response, next: Next
     const { apartmentId } = req.params;
 
     const serviceResponse = await apartmentQueries.getApartmentDetail(apartmentId, req.query as any);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -51,7 +50,7 @@ export const createApartment = async (req: Request, res: Response, next: NextFun
 
     const serviceResponse = await apartmentCommands.createApartment(userId, req.body);
 
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -63,19 +62,16 @@ export const searchApartments = async (req: SearchRoomType & Request, res: Respo
     today.setHours(0, 0, 0, 0);
 
     if (new Date(startDate) < today || new Date(endDate) < today) {
-      return handleServiceResponse(
-        new ServiceResponse<null>(
-          ResponseStatus.Failed,
-          "The start date and end date must be on or after today's date",
-          null,
-          StatusCodes.BAD_REQUEST
-        ),
-        res
-      );
+      return new ServiceResponse<null>(
+        ResponseStatus.Failed,
+        "The start date and end date must be on or after today's date",
+        null,
+        StatusCodes.BAD_REQUEST
+      ).send(res);
     }
 
     const serviceResponse = await apartmentSearchQueries.searchApartments(req.query);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -86,7 +82,7 @@ export const updateApartment = async (req: Request, res: Response, next: NextFun
     const { apartmentId } = req.params;
     const { _id: updatedBy } = req.user as UserDecode;
     const serviceResponse = await apartmentCommands.updateApartment(apartmentId, req.body, updatedBy);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -97,7 +93,7 @@ export const deleteApartment = async (req: Request, res: Response, next: NextFun
     const { apartmentId } = req.params;
     const { _id: deletedBy } = req.user as UserDecode;
     const serviceResponse = await apartmentCommands.deleteApartment(apartmentId, deletedBy);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -108,7 +104,7 @@ export const removeRoomFromApartment = async (req: Request, res: Response, next:
     const { apartmentId, roomId } = req.params;
     const { _id: removedBy } = req.user as UserDecode;
     const serviceResponse = await apartmentCommands.removeRoomFromApartment(apartmentId, roomId, removedBy);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -124,7 +120,7 @@ export const getRoomsCheckout = async (req: Request, res: Response, next: NextFu
     const roomNumbers = toArray(req.query.roomNumbers);
 
     const badRequest = (message: string) =>
-      handleServiceResponse(new ServiceResponse(ResponseStatus.Failed, message, null, StatusCodes.BAD_REQUEST), res);
+      new ServiceResponse(ResponseStatus.Failed, message, null, StatusCodes.BAD_REQUEST).send(res);
 
     if (!roomIds.length) {
       return badRequest('roomIds is required.');
@@ -138,7 +134,7 @@ export const getRoomsCheckout = async (req: Request, res: Response, next: NextFu
 
     const serviceResponse = await apartmentQueries.getRoomsCheckout(roomIds, roomNumbers, query);
 
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -151,7 +147,7 @@ export const getApartmentsByUserId = async (req: Request, res: Response, next: N
       userId,
       req.query as unknown as GetOwnerApartmentsQuery
     );
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }

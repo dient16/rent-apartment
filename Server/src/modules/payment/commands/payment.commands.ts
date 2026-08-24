@@ -12,12 +12,7 @@ export const paymentCommands = {
     // VND is a zero-decimal currency: Stripe rejects fractional amounts outright.
     const chargeable = Math.round(amount);
     if (!Number.isFinite(chargeable) || chargeable <= 0) {
-      return new ServiceResponse(
-        ResponseStatus.Failed,
-        'Invalid payment amount',
-        null,
-        StatusCodes.BAD_REQUEST
-      );
+      return new ServiceResponse(ResponseStatus.Failed, 'Invalid payment amount', null, StatusCodes.BAD_REQUEST);
     }
 
     const [err, paymentIntent] = await to(

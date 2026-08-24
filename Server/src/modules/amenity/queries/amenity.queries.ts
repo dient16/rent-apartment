@@ -16,7 +16,12 @@ export const amenityQueries = {
     const [errGet, amenities] = await to(amenityRepository.findAll());
     if (errGet) {
       logger.error(errGet);
-      return new ServiceResponse(ResponseStatus.Failed, 'Error getting amenities', null, StatusCodes.INTERNAL_SERVER_ERROR);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'Error getting amenities',
+        null,
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
     }
     if (!amenities || amenities.length === 0) {
       return new ServiceResponse(ResponseStatus.Failed, 'No amenities found', null, StatusCodes.NOT_FOUND);

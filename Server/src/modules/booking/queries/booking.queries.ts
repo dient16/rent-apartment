@@ -11,7 +11,10 @@ import type { BookingListQuery } from '../booking.shared';
 
 const { SERVER_URL } = env;
 
-const getUserBookings = async (userId: string, { page = 1, limit = 10, status = 'all', search = '' }: BookingListQuery = {}) => {
+const getUserBookings = async (
+  userId: string,
+  { page = 1, limit = 10, status = 'all', search = '' }: BookingListQuery = {}
+) => {
   try {
     // Apartments owned by the user.
     const apartments = await bookingRepository.findOwnedApartments(userId);
@@ -19,7 +22,12 @@ const getUserBookings = async (userId: string, { page = 1, limit = 10, status = 
       return new ServiceResponse(
         ResponseStatus.Success,
         'No bookings found',
-        { bookings: [], counts: {}, stats: { revenue: 0, pending: 0, upcoming: 0, total: 0 }, pagination: { page, limit, total: 0, totalPages: 1 } },
+        {
+          bookings: [],
+          counts: {},
+          stats: { revenue: 0, pending: 0, upcoming: 0, total: 0 },
+          pagination: { page, limit, total: 0, totalPages: 1 },
+        },
         StatusCodes.OK
       );
     }
@@ -192,7 +200,9 @@ const getBooking = async (bookingId: string): Promise<ServiceResponse<any>> => {
   if (errApartments || apartments.length === 0) {
     return new ServiceResponse(ResponseStatus.Failed, 'Apartments not found', null, StatusCodes.NOT_FOUND);
   }
-  const apartment = apartments.find((ap) => ap._id.toString() === (booking.rooms[0] as any).roomId.apartmentId.toString());
+  const apartment = apartments.find(
+    (ap) => ap._id.toString() === (booking.rooms[0] as any).roomId.apartmentId.toString()
+  );
   const bookingDetails = {
     _id: booking._id,
     status: booking.status,

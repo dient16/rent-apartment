@@ -1,14 +1,12 @@
 import type { NextFunction, Request, Response } from '@/types/http';
 
-import { handleServiceResponse } from '@/utils/httpHandlers';
-
 import { imageCommands } from './commands/image.commands';
 import { imageQueries } from './queries/image.queries';
 
 export const uploadImage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const response = await imageCommands.uploadImage(req.file?.filename as string);
-    handleServiceResponse(response, res);
+    response.send(res);
   } catch (error) {
     next(error);
   }
@@ -23,7 +21,7 @@ export const openImageBrowser = async (req: Request, res: Response, next: NextFu
 
     if (!response.data) {
       // Previously this fell through without writing anything and the request hung.
-      return handleServiceResponse(response, res);
+      return response.send(res);
     }
 
     const { stream, contentType, length, uploadDate, etag } = response.data;
@@ -51,7 +49,7 @@ export const openImageBrowser = async (req: Request, res: Response, next: NextFu
 export const uploadMultipleFiles = (req: Request, res: Response, next: NextFunction) => {
   try {
     const files = Array.isArray(req.files) ? (req.files as Express.Multer.File[]) : [];
-    handleServiceResponse(imageCommands.uploadMultipleFiles(files.map((file) => file.filename)), res);
+    imageCommands.uploadMultipleFiles(files.map((file) => file.filename)).send(res);
   } catch (error) {
     next(error);
   }
@@ -60,7 +58,7 @@ export const uploadMultipleFiles = (req: Request, res: Response, next: NextFunct
 export const getRecentFile = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const serviceResponse = await imageQueries.getRecentFile();
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -69,7 +67,7 @@ export const getRecentFile = async (_req: Request, res: Response, next: NextFunc
 export const getAllFiles = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const serviceResponse = await imageQueries.getAllFiles();
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -78,7 +76,7 @@ export const getAllFiles = async (_req: Request, res: Response, next: NextFuncti
 export const getFileByFilename = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const serviceResponse = await imageQueries.getFileByFilename(req.params.filename);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -87,7 +85,7 @@ export const getFileByFilename = async (req: Request, res: Response, next: NextF
 export const deleteFileByFileName = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const serviceResponse = await imageCommands.deleteFileByFileName(req.params.id);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }

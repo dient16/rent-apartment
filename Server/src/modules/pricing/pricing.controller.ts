@@ -1,7 +1,5 @@
 import type { NextFunction, Request, Response } from '@/types/http';
 
-import { handleServiceResponse } from '@/utils/httpHandlers';
-
 import { pricingCommands } from './commands/pricing.commands';
 import { pricingQueries } from './queries/pricing.queries';
 
@@ -11,7 +9,7 @@ export const updatePricing = async (req: Request, res: Response, next: NextFunct
 
     const serviceResponse = await pricingCommands.updatePricing(roomId, new Date(date), price);
 
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -22,7 +20,7 @@ export const getPricingByRoomId = async (req: Request, res: Response, next: Next
 
     const serviceResponse = await pricingQueries.getPricingByRoomId(roomId);
 
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }

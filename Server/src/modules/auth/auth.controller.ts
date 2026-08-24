@@ -2,7 +2,6 @@ import type { CookieOptions } from 'express';
 import type { NextFunction, Request, Response } from '@/types/http';
 
 import { env } from '@/config/env.config';
-import { handleServiceResponse } from '@/utils/httpHandlers';
 
 import { authCommands } from './commands/auth.commands';
 
@@ -34,7 +33,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     const { email } = req.body;
     const serviceResponse = await authCommands.register(email);
 
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -46,7 +45,7 @@ export const confirmEmail = async (req: Request, res: Response, next: NextFuncti
     const serviceResponse = await authCommands.confirmEmail(token);
     const userId = serviceResponse?.data?._id;
     if (userId) return res.redirect(`${CLIENT_URL}/set-password/${userId}`);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -56,7 +55,7 @@ export const setPassword = async (req: Request, res: Response, next: NextFunctio
   try {
     const { userId, password } = req.body;
     const serviceResponse = await authCommands.setPassword(userId, password);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -69,7 +68,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     if (serviceResponse.success && serviceResponse.data) {
       attachRefreshCookie(res, serviceResponse.data);
     }
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -82,7 +81,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
 
     res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions);
 
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -98,7 +97,7 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
       res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions);
     }
 
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -111,7 +110,7 @@ export const googleLoginSuccess = async (req: Request, res: Response, next: Next
     if (serviceResponse.success && serviceResponse.data) {
       attachRefreshCookie(res, serviceResponse.data);
     }
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }

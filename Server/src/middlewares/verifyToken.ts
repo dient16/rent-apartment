@@ -3,35 +3,29 @@ import { StatusCodes } from 'http-status-codes';
 import jwt from 'jsonwebtoken';
 
 import { env } from '@/config/env.config';
-const { JWT_ACCESS_KEY } = env;
-export const verifyAccessToken = (req: Request, res: Response, next: NextFunction) => {
-  if (req?.headers?.authorization?.startsWith('Bearer')) {
-    const token = req.headers.authorization.split(' ')[1];
+import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 
-    jwt.verify(token, JWT_ACCESS_KEY, (err, decode) => {
-      if (err) {
-        if (err.name === 'TokenExpiredError') {
-          return res.status(StatusCodes.UNAUTHORIZED).json({
-            success: false,
-            message: 'Access token has expired!!!',
-            statusCode: StatusCodes.UNAUTHORIZED,
-          });
-        }
-        return res.status(StatusCodes.UNAUTHORIZED).json({
-          success: false,
-          message: 'Invalid access token!!!',
-          statusCode: StatusCodes.UNAUTHORIZED,
-        });
-      }
-      req.user = decode as UserDecode;
-      next();
-    });
-  } else {
-    return res.status(StatusCodes.UNAUTHORIZED).json({
-      success: false,
-      message: 'Require authentication!!!',
-    });
+const { JWT_ACCESS_KEY } = env;
+
+const unauthorized = (message: string) =>
+  new ServiceResponse<null>(ResponseStatus.Failed, message, null, StatusCodes.UNAUTHORIZED);
+
+export const verifyAccessToken = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.headers.authorization?.startsWith('Bearer')) {
+    return unauthorized('Require authentication!!!').send(res);
   }
+
+  const token = req.headers.authorization.split(' ')[1];
+
+  jwt.verify(token, JWT_ACCESS_KEY, (err, decode) => {
+    if (err) {
+      return unauthorized(
+        err.name === 'TokenExpiredError' ? 'Access token has expired!!!' : 'Invalid access token!!!'
+      ).send(res);
+    }
+    req.user = decode as UserDecode;
+    next();
+  });
 };
 
 /**
@@ -53,10 +47,7 @@ export const optionalAccessToken = (req: Request, _res: Response, next: NextFunc
 export const verifyIsAdmin = (req: Request, res: Response, next: NextFunction) => {
   const user = req.user as UserDecode;
   if (!user?.isAdmin) {
-    return res.status(StatusCodes.UNAUTHORIZED).json({
-      success: false,
-      message: 'Required admin role!!!',
-    });
+    return unauthorized('Required admin role!!!').send(res);
   }
 
   next();

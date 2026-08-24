@@ -27,8 +27,7 @@ export const notificationRepository = {
       { upsert: true, new: true, timestamps: true }
     ).exec(),
 
-  markManyRead: (filter: Record<string, unknown>) =>
-    NotificationModel.updateMany(filter, { isRead: true }).exec(),
+  markManyRead: (filter: Record<string, unknown>) => NotificationModel.updateMany(filter, { isRead: true }).exec(),
 
   markOneRead: (notificationId: string, userId: string) =>
     NotificationModel.findOneAndUpdate({ _id: notificationId, user: userId }, { isRead: true }, { new: true }).exec(),

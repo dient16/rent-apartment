@@ -63,6 +63,5 @@ export const reviewRepository = {
       { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
     ).populate('user', 'firstname lastname avatar email'),
 
-  deleteUserReview: (reviewId: string, userId: string) =>
-    ReviewModel.findOneAndDelete({ _id: reviewId, user: userId }),
+  deleteUserReview: (reviewId: string, userId: string) => ReviewModel.findOneAndDelete({ _id: reviewId, user: userId }),
 };

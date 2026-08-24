@@ -13,7 +13,12 @@ export const amenityCommands = {
     const [errExisting, existing] = await to(amenityRepository.findByName(name));
     if (errExisting) {
       logger.error('Error finding amenity');
-      return new ServiceResponse(ResponseStatus.Failed, 'Error finding amenity', null, StatusCodes.INTERNAL_SERVER_ERROR);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'Error finding amenity',
+        null,
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
     }
     if (existing) {
       return new ServiceResponse(
@@ -27,7 +32,12 @@ export const amenityCommands = {
     const [errCreate, newAmenity] = await to(amenityRepository.create({ name, description, icon }));
     if (errCreate) {
       logger.error('Error creating amenity');
-      return new ServiceResponse(ResponseStatus.Failed, 'Error creating amenity', null, StatusCodes.INTERNAL_SERVER_ERROR);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'Error creating amenity',
+        null,
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
     }
 
     return new ServiceResponse<Amenity>(
@@ -47,7 +57,12 @@ export const amenityCommands = {
     const [errFind, amenity] = await to(amenityRepository.findById(aid));
     if (errFind) {
       logger.error('Internal server error');
-      return new ServiceResponse(ResponseStatus.Failed, 'Internal server error', null, StatusCodes.INTERNAL_SERVER_ERROR);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'Internal server error',
+        null,
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
     }
     if (!amenity) {
       return new ServiceResponse(ResponseStatus.Failed, 'Amenity does not exist', null, StatusCodes.NOT_FOUND);
@@ -56,7 +71,12 @@ export const amenityCommands = {
     const [errUpdate, updated] = await to(amenityRepository.updateById(aid, { name, description, icon }));
     if (errUpdate) {
       logger.error('Error updating amenity');
-      return new ServiceResponse(ResponseStatus.Failed, 'Error updating amenity', null, StatusCodes.INTERNAL_SERVER_ERROR);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'Error updating amenity',
+        null,
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
     }
 
     return new ServiceResponse(ResponseStatus.Success, 'Amenity updated successfully', updated, StatusCodes.OK);
@@ -66,7 +86,12 @@ export const amenityCommands = {
     const [errFind, amenity] = await to(amenityRepository.findById(aid));
     if (errFind) {
       logger.error('Error finding amenity');
-      return new ServiceResponse(ResponseStatus.Failed, 'Error finding amenity', null, StatusCodes.INTERNAL_SERVER_ERROR);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'Error finding amenity',
+        null,
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
     }
     if (!amenity) {
       return new ServiceResponse(ResponseStatus.Failed, 'Amenity does not exist', null, StatusCodes.NOT_FOUND);
@@ -75,9 +100,19 @@ export const amenityCommands = {
     const [errDelete] = await to(amenityRepository.deleteById(aid));
     if (errDelete) {
       logger.error('Error deleting amenity');
-      return new ServiceResponse(ResponseStatus.Failed, 'Error deleting amenity', null, StatusCodes.INTERNAL_SERVER_ERROR);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'Error deleting amenity',
+        null,
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
     }
 
-    return new ServiceResponse<Amenity>(ResponseStatus.Success, 'Amenity deleted successfully', amenity, StatusCodes.OK);
+    return new ServiceResponse<Amenity>(
+      ResponseStatus.Success,
+      'Amenity deleted successfully',
+      amenity,
+      StatusCodes.OK
+    );
   },
 };

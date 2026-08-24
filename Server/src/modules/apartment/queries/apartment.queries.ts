@@ -392,7 +392,10 @@ export const apartmentQueries = {
       );
     }
   },
-  async getApartmentsByUserId(userId: string, { page = 1, limit = 12, search = '' }: Partial<GetOwnerApartmentsQuery> = {}) {
+  async getApartmentsByUserId(
+    userId: string,
+    { page = 1, limit = 12, search = '' }: Partial<GetOwnerApartmentsQuery> = {}
+  ) {
     const filter: Record<string, any> = { owner: userId };
 
     if (search.trim()) {

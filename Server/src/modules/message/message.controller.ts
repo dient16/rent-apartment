@@ -1,7 +1,5 @@
 import type { NextFunction, Request, Response } from '@/types/http';
 
-import { handleServiceResponse } from '@/utils/httpHandlers';
-
 import { messageCommands } from './commands/message.commands';
 import { messageQueries } from './queries/message.queries';
 
@@ -11,7 +9,7 @@ export const startConversation = async (req: Request, res: Response, next: NextF
     const { recipientId } = req.body;
 
     const serviceResponse = await messageCommands.startConversation(userId, recipientId);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -22,7 +20,7 @@ export const getConversations = async (req: Request, res: Response, next: NextFu
     const { _id: userId } = req.user as UserDecode;
 
     const serviceResponse = await messageQueries.getConversations(userId);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -36,7 +34,7 @@ export const getMessages = async (req: Request, res: Response, next: NextFunctio
     const before = typeof req.query.before === 'string' ? req.query.before : undefined;
 
     const serviceResponse = await messageQueries.getMessages(userId, conversationId, limit, before);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -49,7 +47,7 @@ export const sendMessage = async (req: Request, res: Response, next: NextFunctio
     const { content } = req.body;
 
     const serviceResponse = await messageCommands.sendMessage(userId, conversationId, content);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }
@@ -62,7 +60,7 @@ export const reactToMessage = async (req: Request, res: Response, next: NextFunc
     const { emoji } = req.body;
 
     const serviceResponse = await messageCommands.reactToMessage(userId, messageId, emoji);
-    handleServiceResponse(serviceResponse, res);
+    serviceResponse.send(res);
   } catch (error) {
     next(error);
   }

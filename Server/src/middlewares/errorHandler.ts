@@ -2,6 +2,7 @@ import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Respon
 import { StatusCodes } from 'http-status-codes';
 
 import { logger } from '@/utils/logger';
+import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 
 const unexpectedRequest: RequestHandler = (req: Request, res: Response, next) => {
   const error = new Error(`Route ${req.originalUrl} not found!`);
@@ -21,9 +22,8 @@ const errHandler: ErrorRequestHandler = (error, req: Request, res: Response, _ne
     { err: error, reqId: req.id, method: req.method, url: req.originalUrl, statusCode },
     `${req.method} ${req.originalUrl} failed: ${error?.message ?? 'unknown error'}`
   );
-  return res.status(statusCode).json({
-    success: false,
-    message: error?.message || 'Error from server',
-  });
+  return new ServiceResponse<null>(ResponseStatus.Failed, error?.message || 'Error from server', null, statusCode).send(
+    res
+  );
 };
 export default () => [unexpectedRequest, addErrorToRequestLog, errHandler];
