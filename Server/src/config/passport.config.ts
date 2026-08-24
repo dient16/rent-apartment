@@ -7,14 +7,20 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import UserModel from '@/modules/user/user.model';
 import { env } from '@/config/env.config';
 
-const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, FACEBOOK_APP_ID, FACEBOOK_APP_SECRET } = env;
+const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, FACEBOOK_APP_ID, FACEBOOK_APP_SECRET, SERVER_URL } = env;
+
+// Absolute callback URLs. A relative path is resolved from the request's Host/protocol,
+// so behind a reverse proxy (Render) it becomes `http://...` and Google answers
+// `redirect_uri_mismatch`. Register these exact URLs in the Google / Facebook consoles.
+const oauthCallback = (provider: 'google' | 'facebook') =>
+  `${SERVER_URL.replace(/\/$/, '')}/api/auth/${provider}/callback`;
 
 passport.use(
   new GoogleStrategy(
     {
       clientID: GOOGLE_CLIENT_ID,
       clientSecret: GOOGLE_CLIENT_SECRET,
-      callbackURL: '/api/auth/google/callback',
+      callbackURL: oauthCallback('google'),
     },
     async (_accessToken, _refreshToken, profile: GoogleProfile, cb) => {
       try {
@@ -54,7 +60,7 @@ passport.use(
     {
       clientID: FACEBOOK_APP_ID,
       clientSecret: FACEBOOK_APP_SECRET,
-      callbackURL: '/api/auth/facebook/callback',
+      callbackURL: oauthCallback('facebook'),
       profileFields: ['email', 'photos', 'id', 'displayName', 'name', 'gender'],
     },
     async (_accessToken, _refreshToken, profile: FacebookProfile, cb) => {
