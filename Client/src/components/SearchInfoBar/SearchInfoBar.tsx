@@ -31,7 +31,7 @@ const SearchInfoBar: React.FC<SearchInfoBarProps> = ({
 
    return (
       <div className="sticky lg:top-[80px] top-[60px] left-0 right-0 z-40 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
-         <div className="flex gap-3 items-center justify-between px-5 lg:px-7 py-2.5 mx-auto max-w-main">
+         <div className="flex gap-3 items-center justify-between px-5 lg:px-7 py-1.5 mx-auto max-w-main">
             <Controller
                name="searchDate"
                control={control}
@@ -43,7 +43,7 @@ const SearchInfoBar: React.FC<SearchInfoBarProps> = ({
                      open={!!fieldState.error}
                      placement="bottom"
                   >
-                     <div className="flex items-center px-3 py-1.5 rounded-full border border-gray-200 transition-colors cursor-pointer hover:border-blue-400 hover:bg-blue-50/40">
+                     <div className="flex items-center px-2.5 py-0.5 rounded-full border border-gray-200 transition-colors cursor-pointer hover:border-blue-400 hover:bg-blue-50/40">
                         <CustomDatePicker
                            value={field.value}
                            onChange={(dates) => {
@@ -64,7 +64,7 @@ const SearchInfoBar: React.FC<SearchInfoBarProps> = ({
                {stats.map((stat) => (
                   <div
                      key={stat.label}
-                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 bg-gray-50 rounded-full border border-gray-100"
+                     className="flex items-center gap-1.5 px-2.5 py-1 text-xs md:text-sm text-gray-700 bg-gray-50 rounded-full border border-gray-100"
                   >
                      <span className="text-gray-400">{stat.icon}</span>
                      <span className="font-semibold text-gray-900">{stat.value}</span>

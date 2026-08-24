@@ -21,7 +21,28 @@ const Listing: React.FC = () => {
    const [drawerVisible, setDrawerVisible] = useState(false);
    const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
 
-   const methods = useForm();
+   // Filter state comes from the URL, so a reload (or a shared link) keeps the
+   // active chips selected instead of resetting them.
+   const filterValues = React.useMemo(() => {
+      const minPrice = searchParams.get('minPrice');
+      const maxPrice = searchParams.get('maxPrice');
+      const minRating = searchParams.get('minRating');
+      const amenities = searchParams.get('amenities');
+      return {
+         searchPrice:
+            minPrice && maxPrice ? [Number(minPrice), Number(maxPrice)] : undefined,
+         minRating: minRating ? Number(minRating) : undefined,
+         bedType: searchParams.get('bedType') || undefined,
+         amenities: amenities ? amenities.split(',').filter(Boolean) : [],
+      };
+   }, [searchParams]);
+
+   const methods = useForm({ defaultValues: filterValues });
+
+   React.useEffect(() => {
+      methods.reset({ ...methods.getValues(), ...filterValues });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [filterValues]);
 
    // 15 results per page (the BE defaults to 10)
    const queryString = React.useMemo(() => {
@@ -89,6 +110,40 @@ const Listing: React.FC = () => {
       setFilterDrawerVisible(false);
    };
 
+   // Filters apply straight away and are mirrored in the URL, so the chips and the
+   // query string never drift apart.
+   const applyFilters = (formData: Record<string, any>) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      const setOrDelete = (key: string, value?: string) => {
+         if (value) {
+            params.set(key, value);
+         } else {
+            params.delete(key);
+         }
+      };
+
+      if (
+         formData.searchPrice?.[0] !== undefined &&
+         formData.searchPrice?.[1] !== undefined
+      ) {
+         params.set('minPrice', String(formData.searchPrice[0]));
+         params.set('maxPrice', String(formData.searchPrice[1]));
+      } else {
+         params.delete('minPrice');
+         params.delete('maxPrice');
+      }
+      setOrDelete('bedType', formData.bedType);
+      setOrDelete(
+         'minRating',
+         formData.minRating ? String(formData.minRating) : undefined,
+      );
+      setOrDelete('amenities', formData.amenities?.length ? formData.amenities.join(',') : undefined);
+      params.delete('page');
+
+      setSearchParams(params);
+   };
+
    const handleChangePage = (page: number) => {
       const newSearchParams = new URLSearchParams(searchParams.toString());
       newSearchParams.set('page', page.toString());
@@ -115,13 +170,13 @@ const Listing: React.FC = () => {
          >
             Search
          </Button>
-         <FilterSection />
+         <FilterSection onApply={applyFilters} />
       </form>
    );
 
    return (
       <div className="flex flex-col justify-center items-center w-full bg-gray-50 font-main">
-         <div className="flex flex-col gap-6 px-5 mt-2 mb-5 w-full min-h-screen lg:flex-row lg:mt-8 max-w-main sm:px-5">
+         <div className="flex flex-col gap-6 px-5 mt-2 mb-5 w-full min-h-screen lg:flex-row lg:mt-4 max-w-main sm:px-5">
             {/* Mobile: summary + filter button */}
             <div className="flex justify-center items-center w-full lg:hidden">
                <SummaryCard

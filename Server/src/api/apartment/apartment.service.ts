@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import moment from 'moment';
 import mongoose, { Types } from 'mongoose';
 
+import AmenityModel from '@/api/amenity/amenity.model';
 import ReviewModel from '@/api/review/review.model';
 import RoomModel from '@/api/room/room.model';
 import type { Room } from '@/api/room/room.dto';
@@ -487,7 +488,26 @@ export const apartmentService = {
       },
     };
     if (bedType) {
-      roomMatch.bedType = new RegExp(String(bedType).trim(), 'i');
+      roomMatch.bedType = new RegExp(escapeRegex(String(bedType).trim()), 'i');
+    }
+
+    // Amenities are stored as ObjectId refs: resolve the names first so the filter
+    // runs on the rooms themselves (any room of the apartment), not only the cheapest one.
+    if (amenityList.length) {
+      const matchedAmenities = await AmenityModel.find({
+        name: { $in: amenityList.map((amenity) => new RegExp(`^${escapeRegex(amenity)}$`, 'i')) },
+      })
+        .select('_id')
+        .lean();
+      if (matchedAmenities.length < amenityList.length) {
+        return new ServiceResponse(
+          ResponseStatus.Success,
+          'Apartments retrieved successfully',
+          { page: Math.max(1, page || 1), pageResults: 0, totalResults: 0, apartments: [] },
+          StatusCodes.OK
+        );
+      }
+      roomMatch.amenities = { $all: matchedAmenities.map((amenity: any) => amenity._id) };
     }
 
     // Elasticsearch handles unaccented input and typos; null = fall back to regex.
@@ -574,10 +594,6 @@ export const apartmentService = {
           as: 'amenities',
         },
       },
-      // Amenities: the representative room must have all of them.
-      ...(amenityList.length
-        ? [{ $match: { 'amenities.name': { $all: amenityList.map((amenity) => new RegExp(`^${amenity}$`, 'i')) } } }]
-        : []),
       {
         $project: {
           _id: 1,
@@ -635,6 +651,10 @@ export const apartmentService = {
     const options = {
       page: page || 1,
       limit: limit || 10,
+      // The facet optimization hoists every $match before the $facet, which breaks
+      // matches on fields created later in the pipeline (rating, joined apartment)
+      // and counts rooms instead of grouped apartments (phantom extra pages).
+      useFacet: false,
     };
     const [error, result] = await to<PaginatedResult<ApartmentDoc>>(
       (RoomModel as any).aggregatePaginate(RoomModel.aggregate(aggregation), options)

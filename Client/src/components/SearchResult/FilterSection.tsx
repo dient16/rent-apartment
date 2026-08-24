@@ -1,36 +1,48 @@
 import React from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
+import { apiGetServices } from '@/apis';
 import { Button, Slider } from 'antd';
 import { StarFilled } from '@ant-design/icons';
 import clsx from 'clsx';
 
 const RATING_OPTIONS = [
-   { value: 4.5, label: '4.5+' },
    { value: 4, label: '4+' },
+   { value: 3.5, label: '3.5+' },
    { value: 3, label: '3+' },
 ];
 
 const BED_TYPES = ['Single', 'Double', 'Queen', 'King'];
 
-const AMENITY_OPTIONS = [
-   'Free Wifi',
-   'Free Parking',
-   'Air conditioning',
-   'TV',
-   'Washer',
-   'Hair dryer',
-   'Iron',
-];
 
-/** Filters actually sent to the API: price / rating / bed type */
-const FilterSection: React.FC = () => {
-   const { control, watch, setValue } = useFormContext();
+interface FilterSectionProps {
+   /** Pushes the current filter values into the URL right away. */
+   onApply?: (values: Record<string, any>) => void;
+}
+
+/** Filters actually sent to the API: price / rating / bed type / amenities */
+const FilterSection: React.FC<FilterSectionProps> = ({ onApply }) => {
+   const { control, watch, setValue, getValues } = useFormContext();
+
+   const apply = (patch: Record<string, any>) =>
+      onApply?.({ ...getValues(), ...patch });
+
+   // Amenity names must match the ones stored in the DB, otherwise the filter never matches.
+   const { data: { data: amenityOptions } = {} } = useQuery({
+      queryKey: ['amenities'],
+      queryFn: apiGetServices,
+      staleTime: 5 * 60 * 1000,
+   });
 
    const clearFilters = () => {
-      setValue('searchPrice', undefined);
-      setValue('minRating', undefined);
-      setValue('bedType', undefined);
-      setValue('amenities', undefined);
+      const cleared = {
+         searchPrice: undefined,
+         minRating: undefined,
+         bedType: undefined,
+         amenities: [],
+      };
+      Object.entries(cleared).forEach(([name, value]) => setValue(name, value));
+      onApply?.({ ...getValues(), ...cleared });
    };
 
    return (
@@ -70,6 +82,10 @@ const FilterSection: React.FC = () => {
                      step={50000}
                      value={field.value ?? [100000, 5000000]}
                      onChange={field.onChange}
+                     onChangeComplete={(value) => {
+                        field.onChange(value);
+                        apply({ searchPrice: value });
+                     }}
                   />
                )}
             />
@@ -89,13 +105,14 @@ const FilterSection: React.FC = () => {
                         <button
                            key={option.value}
                            type="button"
-                           onClick={() =>
-                              field.onChange(
+                           onClick={() => {
+                              const next =
                                  field.value === option.value
                                     ? undefined
-                                    : option.value,
-                              )
-                           }
+                                    : option.value;
+                              field.onChange(next);
+                              apply({ minRating: next });
+                           }}
                            className={clsx(
                               'flex gap-1 items-center px-3.5 py-1.5 text-sm font-medium rounded-full border transition-colors cursor-pointer',
                               field.value === option.value
@@ -133,11 +150,11 @@ const FilterSection: React.FC = () => {
                         <button
                            key={bed}
                            type="button"
-                           onClick={() =>
-                              field.onChange(
-                                 field.value === bed ? undefined : bed,
-                              )
-                           }
+                           onClick={() => {
+                              const next = field.value === bed ? undefined : bed;
+                              field.onChange(next);
+                              apply({ bedType: next });
+                           }}
                            className={clsx(
                               'px-3.5 py-1.5 text-sm font-medium rounded-full border transition-colors cursor-pointer',
                               field.value === bed
@@ -163,29 +180,32 @@ const FilterSection: React.FC = () => {
                control={control}
                render={({ field }) => {
                   const selected: string[] = field.value || [];
-                  const toggle = (amenity: string) =>
-                     field.onChange(
-                        selected.includes(amenity)
-                           ? selected.filter((item) => item !== amenity)
-                           : [...selected, amenity],
-                     );
+                  const toggle = (amenity: string) => {
+                     const next = selected.includes(amenity)
+                        ? selected.filter((item) => item !== amenity)
+                        : [...selected, amenity];
+                     field.onChange(next);
+                     apply({ amenities: next });
+                  };
                   return (
                      <div className="flex flex-wrap gap-2">
-                        {AMENITY_OPTIONS.map((amenity) => (
-                           <button
-                              key={amenity}
-                              type="button"
-                              onClick={() => toggle(amenity)}
-                              className={clsx(
-                                 'px-3.5 py-1.5 text-sm font-medium rounded-full border transition-colors cursor-pointer',
-                                 selected.includes(amenity)
-                                    ? 'bg-blue-500 text-white border-blue-500'
-                                    : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400',
-                              )}
-                           >
-                              {amenity}
-                           </button>
-                        ))}
+                        {(amenityOptions || []).map(
+                           ({ name: amenity }: { name: string }) => (
+                              <button
+                                 key={amenity}
+                                 type="button"
+                                 onClick={() => toggle(amenity)}
+                                 className={clsx(
+                                    'px-3.5 py-1.5 text-sm font-medium rounded-full border transition-colors cursor-pointer',
+                                    selected.includes(amenity)
+                                       ? 'bg-blue-500 text-white border-blue-500'
+                                       : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400',
+                                 )}
+                              >
+                                 {amenity}
+                              </button>
+                           ),
+                        )}
                      </div>
                   );
                }}

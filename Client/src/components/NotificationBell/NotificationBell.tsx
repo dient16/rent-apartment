@@ -1,7 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { Button, Empty, Popover, Skeleton } from 'antd';
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+   useInfiniteQuery,
+   useMutation,
+   useQueryClient,
+} from '@tanstack/react-query';
 import { Link, useNavigate } from '@/lib/router-compat';
 import moment from 'moment';
 import clsx from 'clsx';
@@ -57,11 +61,24 @@ const NotificationBell: React.FC = () => {
    const [open, setOpen] = useState(false);
    const [filter, setFilter] = useState<Filter>('all');
 
-   const { data, isLoading } = useQuery({
-      queryKey: ['notifications', filter],
-      queryFn: () => apiGetNotifications({ filter, limit: 8 }),
-      refetchInterval: 30_000,
-   });
+   const PAGE_SIZE = 8;
+   // Infinite scroll: each page appends; the next page is derived from the total.
+   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+      useInfiniteQuery({
+         queryKey: ['notifications', filter],
+         queryFn: ({ pageParam }) =>
+            apiGetNotifications({ filter, page: pageParam, limit: PAGE_SIZE }),
+         initialPageParam: 1,
+         getNextPageParam: (lastPage, allPages) => {
+            const total: number = lastPage?.data?.total || 0;
+            const loaded = allPages.reduce(
+               (count, page) => count + (page?.data?.notifications?.length || 0),
+               0,
+            );
+            return loaded < total ? allPages.length + 1 : undefined;
+         },
+         refetchInterval: 30_000,
+      });
 
    const invalidate = () =>
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -76,10 +93,25 @@ const NotificationBell: React.FC = () => {
    });
 
    const notifications: NotificationItem[] = useMemo(
-      () => data?.data?.notifications || [],
+      () =>
+         (data?.pages || []).flatMap(
+            (page: any) => page?.data?.notifications || [],
+         ),
       [data],
    );
-   const unreadCount: number = data?.data?.unreadCount || 0;
+   const unreadCount: number = data?.pages?.[0]?.data?.unreadCount || 0;
+
+   // Load the next page when the list is scrolled near the bottom.
+   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, clientHeight, scrollHeight } = event.currentTarget;
+      if (
+         scrollHeight - scrollTop - clientHeight < 60 &&
+         hasNextPage &&
+         !isFetchingNextPage
+      ) {
+         fetchNextPage();
+      }
+   };
 
    const openNotification = (notification: NotificationItem) => {
       if (!notification.isRead) {
@@ -132,7 +164,7 @@ const NotificationBell: React.FC = () => {
             ))}
          </div>
 
-         <div className="overflow-y-auto max-h-[380px]">
+         <div className="overflow-y-auto max-h-[380px]" onScroll={handleScroll}>
             {isLoading ? (
                <div className="p-4">
                   <Skeleton active paragraph={{ rows: 3 }} />
@@ -191,6 +223,11 @@ const NotificationBell: React.FC = () => {
                      </button>
                   );
                })
+            )}
+            {isFetchingNextPage && (
+               <div className="px-4 py-2">
+                  <Skeleton active paragraph={{ rows: 1 }} title={false} />
+               </div>
             )}
          </div>
 

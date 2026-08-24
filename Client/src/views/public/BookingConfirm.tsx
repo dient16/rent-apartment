@@ -107,7 +107,7 @@ const BookingConfirm: React.FC = () => {
       </div>
    ) : (
       <div className="flex justify-center px-4 pt-3 pb-10 w-full bg-gray-50 md:px-6 lg:px-10 min-h-screen">
-         <div className="max-w-main w-full mt-5">
+         <div className="max-w-main w-full mt-2">
             <Steps
                size="small"
                current={step}

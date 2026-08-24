@@ -5,7 +5,7 @@
  * Components keep their old API (useNavigate, Link to=, NavLink,
  * tuple-style useSearchParams...) — only the import source changed.
  */
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useReducer } from 'react';
 import NextLink from 'next/link';
 import {
    usePathname,
@@ -58,14 +58,35 @@ type SetSearchParams = (
    next: URLSearchParams | Record<string, string>,
 ) => void;
 
+// Shallow URL updates bypass the Next router, so notify every subscribed
+// useSearchParams() ourselves — both directions (chips <-> URL) stay in sync.
+const searchParamListeners = new Set<() => void>();
+const notifySearchParams = () => searchParamListeners.forEach((listener) => listener());
+
 export const useSearchParams = (): [URLSearchParams, SetSearchParams] => {
    const router = useRouter();
    const pathname = usePathname();
    const nextParams = useNextSearchParams();
+   const [version, bump] = useReducer((count: number) => count + 1, 0);
+
+   useEffect(() => {
+      searchParamListeners.add(bump);
+      window.addEventListener('popstate', bump);
+      return () => {
+         searchParamListeners.delete(bump);
+         window.removeEventListener('popstate', bump);
+      };
+   }, []);
 
    const params = useMemo(
-      () => new URLSearchParams(nextParams?.toString() || ''),
-      [nextParams],
+      () =>
+         new URLSearchParams(
+            typeof window !== 'undefined'
+               ? window.location.search
+               : nextParams?.toString() || '',
+         ),
+      // `version` re-reads the live URL after a shallow replaceState
+      [nextParams, version],
    );
 
    const setSearchParams: SetSearchParams = (next) => {
@@ -73,7 +94,14 @@ export const useSearchParams = (): [URLSearchParams, SetSearchParams] => {
          next instanceof URLSearchParams
             ? next.toString()
             : new URLSearchParams(next).toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname || '/');
+      const url = qs ? `${pathname}?${qs}` : pathname || '/';
+      // Shallow update: no server round trip re-running the (force-dynamic) page.
+      if (typeof window !== 'undefined') {
+         window.history.replaceState(window.history.state, '', url);
+         notifySearchParams();
+      } else {
+         router.replace(url);
+      }
    };
 
    return [params, setSearchParams];
