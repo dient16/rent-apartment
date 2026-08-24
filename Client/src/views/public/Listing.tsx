@@ -9,6 +9,8 @@ import {
    Results,
    SummaryCard,
 } from '@/components';
+import HorizontalSearchBar from '@/components/SearchResult/HorizontalSearchBar';
+import MapExplore from '@/components/SearchResult/MapExplore';
 import { apiSearchRoom } from '@/apis';
 import { Drawer, Button } from 'antd';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -213,16 +215,41 @@ const Listing: React.FC = () => {
                <FormProvider {...methods}>{searchAndFilterForm}</FormProvider>
             </Drawer>
 
-            {/* Desktop sidebar */}
-            <div className="hidden lg:block flex-shrink-0 w-[330px]">
-               <div className="sticky top-24 p-5 bg-white rounded-2xl border border-gray-100 shadow-card-sm">
-                  <FormProvider {...methods}>
-                     {searchAndFilterForm}
-                  </FormProvider>
-               </div>
+            {/* Desktop: search bar on top, filters + results below */}
+            <div className="hidden lg:flex flex-col gap-5 w-full min-w-0">
+               <FormProvider {...methods}>
+                  <form onSubmit={methods.handleSubmit(handleSearch)}>
+                     <HorizontalSearchBar searchParams={searchParams} />
+                  </form>
+
+                  <div className="flex gap-6 items-start w-full min-w-0">
+                     <div className="flex flex-col flex-shrink-0 gap-4 w-[300px]">
+                        <MapExplore
+                           apartments={data?.data?.apartments || []}
+                           detailQuery={queryString}
+                        />
+                        <div className="p-5 bg-white rounded-2xl border border-gray-100 shadow-card-sm">
+                           <FilterSection onApply={applyFilters} />
+                        </div>
+                     </div>
+
+                     <div className="w-full min-w-0">
+                        <Results
+                           data={data}
+                           isFetching={isLoading}
+                           numberOfGuest={numberOfGuest}
+                           roomNumber={roomNumber}
+                           searchParams={searchParams}
+                           handleChangePage={handleChangePage}
+                           handleSortChange={handleSortChange}
+                        />
+                     </div>
+                  </div>
+               </FormProvider>
             </div>
 
-            <div className="w-full min-w-0">
+            {/* Mobile: results only (search/filter live in the drawers) */}
+            <div className="w-full min-w-0 lg:hidden">
                <Results
                   data={data}
                   isFetching={isLoading}

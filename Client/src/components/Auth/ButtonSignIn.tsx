@@ -20,28 +20,28 @@ const ButtonSignInGoogle: React.FC = () => {
       );
    };
    return (
-      <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-3">
          <Button
-            className="flex gap-2 justify-center items-center py-7 px-10 w-full text-red-500 border-red-500 font-main"
-            icon={<FcGoogle size={23} />}
+            className="flex gap-2 justify-center items-center w-full font-medium text-gray-700 rounded-xl border-gray-300 h-[46px] font-main hover:border-gray-400 hover:text-gray-900"
+            icon={<FcGoogle size={20} />}
             loading={isLoadingGoogle}
             onClick={() => {
                setIsLoadingGoogle(true);
                handleLoginGoogle();
             }}
          >
-            Sign in with Google
+            Google
          </Button>
          <Button
-            className="flex gap-2 justify-center items-center py-7 px-10 w-full text-blue-500 border-blue-500 font-main"
-            icon={<SiFacebook size={22} />}
+            className="flex gap-2 justify-center items-center w-full font-medium text-gray-700 rounded-xl border-gray-300 h-[46px] font-main hover:border-gray-400 hover:text-gray-900"
+            icon={<SiFacebook size={18} className="text-[#1877F2]" />}
             loading={isLoadingFaceBook}
             onClick={() => {
                setIsLoadingFaceBook(true);
                handleLoginFaceBook();
             }}
          >
-            Sign in with Facebook
+            Facebook
          </Button>
       </div>
    );

@@ -180,6 +180,11 @@ export const apartmentSearchQueries = {
             district: '$apartment.location.district',
             province: '$apartment.location.province',
           },
+          // Coordinates power the "explore on map" view on the client
+          coords: {
+            lat: '$apartment.location.lat',
+            long: '$apartment.location.long',
+          },
           image: {
             $concat: [`${SERVER_URL}/api/image/`, { $arrayElemAt: [{ $ifNull: ['$images', []] }, 0] }],
           },

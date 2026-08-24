@@ -1,20 +1,11 @@
 import React, { useState } from 'react';
 import logo from '@/assets/logo-icon.png';
 import { navigateHosts, navigates, path } from '@/utils/constant';
-import { MenuAccount, NotificationBell, SignIn, SignUp, UserAvatar } from '@/components';
+import { MenuAccount, NotificationBell, UserAvatar } from '@/components';
+import AuthModal from '@/components/Auth/AuthModal';
 import { NavLink, useNavigate } from '@/lib/router-compat';
 import { useIsHydrated } from '@/hooks';
-import {
-   Flex,
-   Button,
-   Modal,
-   Tabs,
-   Drawer,
-   Image,
-   Popover,
-   Tooltip,
-} from 'antd';
-import type { TabsProps } from 'antd';
+import { Flex, Button, Drawer, Image, Popover, Tooltip } from 'antd';
 import { FiHeart } from 'react-icons/fi';
 import { TbHomePlus } from 'react-icons/tb';
 import icons from '@/utils/icons';
@@ -47,36 +38,6 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
       }
    };
 
-   const tabItemsModal: TabsProps['items'] = [
-      {
-         key: 'signin',
-         label: (
-            <div
-               className="flex justify-center items-center text-xl font-main w-[120px] sm:w-[300px] md:w-[350px] lg:w-[390px]"
-               onClick={() =>
-                  setAuthModal({ isOpen: true, activeTab: 'signin' })
-               }
-            >
-               Sign In
-            </div>
-         ),
-         children: <SignIn setModalOpen={setAuthModal} />,
-      },
-      {
-         key: 'signup',
-         label: (
-            <div
-               className="flex justify-center items-center text-xl font-main w-[120px] sm:w-[300px] md:w-[350px] lg:w-[390px]"
-               onClick={() =>
-                  setAuthModal({ isOpen: true, activeTab: 'signup' })
-               }
-            >
-               Sign Up
-            </div>
-         ),
-         children: <SignUp />,
-      },
-   ];
    return (
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
          <div className="flex justify-between items-center px-3 mx-auto w-full h-[60px] select-none md:px-10 lg:h-[80px] max-w-main">
@@ -210,29 +171,7 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
             </Flex>
          </div>
 
-         <Modal
-            centered
-            open={authModal.isOpen}
-            onOk={() => setAuthModal({ isOpen: false, activeTab: 'signin' })}
-            onCancel={() =>
-               setAuthModal({ isOpen: false, activeTab: 'signin' })
-            }
-            width={840}
-            footer={null}
-            closeIcon={<SlClose size={25} />}
-            styles={{
-               mask: {
-                  backdropFilter: 'blur(10px)',
-               },
-            }}
-         >
-            <Tabs
-               centered={true}
-               activeKey={authModal.activeTab}
-               items={tabItemsModal}
-               tabBarGutter={0}
-            />
-         </Modal>
+         <AuthModal />
          <Drawer
             title={
                <div

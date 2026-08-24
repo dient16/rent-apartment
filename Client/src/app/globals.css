@@ -107,15 +107,16 @@
 }
 .datepicker-nav-select .ant-select-arrow {
    inset-inline-end: 8px;
-   font-size: 10px;
-   color: #9ca3af;
+   font-size: 11px;
+   color: #4b5563;
+   opacity: 1 !important;
    transition: color 0.15s ease;
 }
 .datepicker-nav-select:hover .ant-select-selector {
    background-color: #f3f4f6;
 }
 .datepicker-nav-select:hover .ant-select-arrow {
-   color: #4b5563;
+   color: #1f2937;
 }
 .datepicker-nav-popup {
    padding: 6px;
@@ -150,7 +151,9 @@
    background-color: #fff;
    border: 1px solid #e5e7eb;
    border-radius: 9999px;
-   transition: border-color 0.15s ease, background-color 0.15s ease;
+   transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
 }
 .datepicker-nav-btn:hover {
    border-color: #111827;
@@ -165,7 +168,9 @@
    display: flex;
    align-items: center;
    justify-content: center;
-   transition: border-color 0.15s ease, background-color 0.15s ease;
+   transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
 }
 .custom-datepicker .rdrNextPrevButton:hover {
    border-color: #111827;
@@ -264,7 +269,10 @@
 }
 
 /* Hover ngay: vien tron muot */
-.custom-datepicker .rdrDay:not(.rdrDayPassive):not(.rdrDayDisabled):hover .rdrDayNumber span {
+.custom-datepicker
+   .rdrDay:not(.rdrDayPassive):not(.rdrDayDisabled):hover
+   .rdrDayNumber
+   span {
    color: #111827;
 }
 
@@ -330,9 +338,17 @@
    animation: map-pin-pulse 2s ease-out infinite;
 }
 @keyframes map-pin-pulse {
-   0% { transform: scale(0.5); opacity: 1; }
-   70% { transform: scale(1.4); opacity: 0; }
-   100% { opacity: 0; }
+   0% {
+      transform: scale(0.5);
+      opacity: 1;
+   }
+   70% {
+      transform: scale(1.4);
+      opacity: 0;
+   }
+   100% {
+      opacity: 0;
+   }
 }
 /* Tailwind preflight forces `height: auto` on img, which collapses Leaflet tiles */
 .leaflet-container img.leaflet-tile,
@@ -368,7 +384,9 @@
    color: #374151 !important;
    background: #fff !important;
    border: none !important;
-   transition: background-color 0.15s, color 0.15s;
+   transition:
+      background-color 0.15s,
+      color 0.15s;
 }
 .leaflet-control-zoom a:first-child {
    border-bottom: 1px solid #f3f4f6 !important;
@@ -382,3 +400,81 @@
    background: #fff !important;
 }
 
+/* Slim, unobtrusive scrollbar for scrollable side panels */
+.nice-scrollbar::-webkit-scrollbar {
+   width: 6px;
+}
+.nice-scrollbar::-webkit-scrollbar-thumb {
+   background: #d1d5db;
+   border-radius: 9999px;
+}
+.nice-scrollbar::-webkit-scrollbar-thumb:hover {
+   background: #9ca3af;
+}
+.nice-scrollbar::-webkit-scrollbar-track {
+   background: transparent;
+}
+
+/* Price pill marker on the explore map */
+.price-pin {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   min-width: 80px;
+   padding: 5px 12px;
+   background: #1d4ed8;
+   color: #fff;
+   font-weight: 700;
+   font-size: 12.5px;
+   border-radius: 9999px;
+   border: 2px solid #fff;
+   box-shadow: 0 4px 12px rgba(29, 78, 216, 0.35);
+   white-space: nowrap;
+   cursor: pointer;
+   transition:
+      transform 0.15s ease,
+      background 0.15s ease;
+}
+.price-pin:hover {
+   background: #1e40af;
+   transform: scale(1.08);
+   z-index: 1000;
+}
+
+.price-pin-active {
+   background: #172554;
+   transform: scale(1.1);
+}
+
+/* Kill every focus box antd draws on the month/year selects — text-only header */
+.datepicker-nav-select,
+.datepicker-nav-select:focus,
+.datepicker-nav-select:focus-within,
+.datepicker-nav-select.ant-select-focused,
+.datepicker-nav-select.ant-select-open {
+   outline: none !important;
+   box-shadow: none !important;
+   border: none !important;
+}
+.datepicker-nav-select .ant-select-selector,
+.datepicker-nav-select:focus-within .ant-select-selector,
+.datepicker-nav-select .ant-select-selector:focus,
+.datepicker-nav-select .ant-select-selector:focus-visible {
+   border: none !important;
+   outline: none !important;
+   box-shadow: none !important;
+}
+
+/* Some antd states dim the value text (e.g. right after closing the popup) */
+.datepicker-nav-select .ant-select-selection-item,
+.datepicker-nav-select .ant-select-selection-wrap,
+.datepicker-nav-select span[title] {
+   color: #0f172a !important;
+   opacity: 1 !important;
+}
+
+/* antd v6 fades the value to 0.25 while the popup is open — keep it solid here */
+.datepicker-nav-select.ant-select-open .ant-select-content-has-value {
+   opacity: 0.75 !important;
+   color: #0f172a !important;
+}

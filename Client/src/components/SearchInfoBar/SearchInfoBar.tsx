@@ -43,19 +43,21 @@ const SearchInfoBar: React.FC<SearchInfoBarProps> = ({
                      open={!!fieldState.error}
                      placement="bottom"
                   >
-                     <div className="flex items-center px-2.5 py-0.5 rounded-full border border-gray-200 transition-colors cursor-pointer hover:border-blue-400 hover:bg-blue-50/40">
-                        <CustomDatePicker
-                           value={field.value}
-                           onChange={(dates) => {
-                              field.onChange(dates);
-                              handleDateChange(dates);
-                           }}
-                           popoverPlacement="bottomLeft"
-                           isShowRightIcon={false}
-                           isShowNight={false}
-                           isBorder={false}
-                           className="h-[25px]! text-sm select-none"
-                        />
+                     {/* Same field style as the listing search bar */}
+                     <div className="flex items-center gap-2 px-3.5 h-[40px] min-w-[220px] bg-white border-[1.5px] border-gray-300 rounded-xl transition-colors cursor-pointer hover:border-gray-500 focus-within:border-blue-500">
+                        <div className="flex-1 min-w-0">
+                           <CustomDatePicker
+                              value={field.value}
+                              onChange={(dates) => {
+                                 field.onChange(dates);
+                                 handleDateChange(dates);
+                              }}
+                              popoverPlacement="bottomLeft"
+                              isShowNight={false}
+                              isBorder={false}
+                              className="my-0! h-full! w-full text-sm select-none"
+                           />
+                        </div>
                      </div>
                   </Tooltip>
                )}

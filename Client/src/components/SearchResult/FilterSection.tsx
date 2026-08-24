@@ -89,6 +89,64 @@ const FilterSection: React.FC<FilterSectionProps> = ({ onApply }) => {
                   />
                )}
             />
+            {/* Editable min/max, kept in sync with the slider */}
+            <Controller
+               name="searchPrice"
+               control={control}
+               render={({ field }) => {
+                  const [min, max] = field.value ?? [100000, 5000000];
+                  const commit = (index: 0 | 1, raw: string) => {
+                     const parsed = Number(raw.replace(/[^0-9]/g, ''));
+                     if (Number.isNaN(parsed)) return;
+                     const next: [number, number] =
+                        index === 0
+                           ? [Math.min(parsed, max), max]
+                           : [min, Math.max(parsed, min)];
+                     field.onChange(next);
+                     apply({ searchPrice: next });
+                  };
+                  return (
+                     <div className="flex gap-2 items-center mt-1">
+                        {([0, 1] as const).map((index) => (
+                           <React.Fragment key={index}>
+                              {index === 1 && (
+                                 <span className="text-gray-400">–</span>
+                              )}
+                              <label className="flex flex-1 gap-1 items-center px-3 py-1.5 min-w-0 rounded-full border border-gray-200 focus-within:border-blue-400">
+                                 <input
+                                    className="w-full min-w-0 text-sm text-gray-800 bg-transparent border-none outline-none"
+                                    inputMode="numeric"
+                                    value={(index === 0
+                                       ? min
+                                       : max
+                                    ).toLocaleString()}
+                                    onChange={(event) => {
+                                       const parsed = Number(
+                                          event.target.value.replace(/[^0-9]/g, ''),
+                                       );
+                                       if (Number.isNaN(parsed)) return;
+                                       field.onChange(
+                                          index === 0 ? [parsed, max] : [min, parsed],
+                                       );
+                                    }}
+                                    onBlur={(event) => commit(index, event.target.value)}
+                                    onKeyDown={(event) => {
+                                       if (event.key === 'Enter') {
+                                          event.preventDefault();
+                                          commit(index, (event.target as HTMLInputElement).value);
+                                       }
+                                    }}
+                                 />
+                                 <span className="flex-shrink-0 text-xs text-gray-400">
+                                    VND
+                                 </span>
+                              </label>
+                           </React.Fragment>
+                        ))}
+                     </div>
+                  );
+               }}
+            />
          </div>
 
          {/* Guest rating */}
