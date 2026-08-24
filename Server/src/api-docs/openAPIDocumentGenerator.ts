@@ -1,13 +1,13 @@
 import { OpenApiGeneratorV3, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 
-import { amenityRegistry } from '@/api/amenity/amenity.router';
-import { apartmentRegistry } from '@/api/apartment/apartment.router';
-import { authRegistry } from '@/api/auth/auth.router';
-import { bookingRegistry } from '@/api/booking/booking.router';
-import { healthRegistry } from '@/api/health/health.router';
-import { imageRegistry } from '@/api/image/image.router';
-import { roomRegistry } from '@/api/room/room.router';
-import { userRegistry } from '@/api/user/user.router';
+import { amenityRegistry } from '@/modules/amenity/amenity.router';
+import { apartmentRegistry } from '@/modules/apartment/apartment.router';
+import { authRegistry } from '@/modules/auth/auth.router';
+import { bookingRegistry } from '@/modules/booking/booking.router';
+import { healthRegistry } from '@/modules/health/health.router';
+import { imageRegistry } from '@/modules/image/image.router';
+import { roomRegistry } from '@/modules/room/room.router';
+import { userRegistry } from '@/modules/user/user.router';
 
 export function generateOpenAPIDocument() {
   const registry = new OpenAPIRegistry([

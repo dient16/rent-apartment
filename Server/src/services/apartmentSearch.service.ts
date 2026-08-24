@@ -1,7 +1,7 @@
 import { Client } from '@elastic/elasticsearch';
 import { pino } from 'pino';
 
-import type { Apartment } from '@/api/apartment/apartment.dto';
+import type { Apartment } from '@/modules/apartment/apartment.dto';
 import { env } from '@/config/env.config';
 
 const logger = pino({ name: 'elasticsearch' });

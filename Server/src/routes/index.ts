@@ -1,19 +1,19 @@
 import type { Application } from 'express';
 
-import { amenityRouter } from '@/api/amenity/amenity.router';
-import { apartmentRouter } from '@/api/apartment/apartment.router';
-import { authRouter } from '@/api/auth/auth.router';
-import { bookingRouter } from '@/api/booking/booking.router';
-import { healthRouter } from '@/api/health/health.router';
-import { imageRouter } from '@/api/image/image.router';
-import { locationRouter } from '@/api/location/location.router';
-import { messageRouter } from '@/api/message/message.router';
-import { notificationRouter } from '@/api/notification/notification.router';
-import { paymentRouter } from '@/api/payment/payment.router';
-import { pricingRouter } from '@/api/pricing/pricing.router';
-import { reviewRouter } from '@/api/review/review.router';
-import { roomRouter } from '@/api/room/room.router';
-import { userRouter } from '@/api/user/user.router';
+import { amenityRouter } from '@/modules/amenity/amenity.router';
+import { apartmentRouter } from '@/modules/apartment/apartment.router';
+import { authRouter } from '@/modules/auth/auth.router';
+import { bookingRouter } from '@/modules/booking/booking.router';
+import { healthRouter } from '@/modules/health/health.router';
+import { imageRouter } from '@/modules/image/image.router';
+import { locationRouter } from '@/modules/location/location.router';
+import { messageRouter } from '@/modules/message/message.router';
+import { notificationRouter } from '@/modules/notification/notification.router';
+import { paymentRouter } from '@/modules/payment/payment.router';
+import { pricingRouter } from '@/modules/pricing/pricing.router';
+import { reviewRouter } from '@/modules/review/review.router';
+import { roomRouter } from '@/modules/room/room.router';
+import { userRouter } from '@/modules/user/user.router';
 
 import { swaggerRouter } from './swagger.router';
 

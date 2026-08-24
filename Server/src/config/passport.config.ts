@@ -4,7 +4,7 @@ import { Strategy as FacebookStrategy } from 'passport-facebook';
 import type { Profile as GoogleProfile } from 'passport-google-oauth20';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
-import UserModel from '@/api/user/user.model';
+import UserModel from '@/modules/user/user.model';
 import { env } from '@/config/env.config';
 
 const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, FACEBOOK_APP_ID, FACEBOOK_APP_SECRET } = env;
