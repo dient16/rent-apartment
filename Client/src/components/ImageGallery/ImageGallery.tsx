@@ -1,4 +1,5 @@
 import { Image, Drawer, Carousel } from 'antd';
+import AppImage from '@/components/AppImage/AppImage';
 import { MdOutlineGridView } from 'react-icons/md';
 import { useState } from 'react';
 
@@ -59,7 +60,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
                <Carousel arrows swipeToSlide draggable>
                   {images.map((image, index) => (
                      <div key={index} className="w-full h-[220px] sm:h-[280px] md:h-[380px]">
-                        <img src={image} alt={`Photo ${index + 1}`} style={COVER} />
+                        <AppImage src={image} alt={`Photo ${index + 1}`} wrapperClassName="w-full h-full" />
                      </div>
                   ))}
                </Carousel>

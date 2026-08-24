@@ -1,4 +1,5 @@
 import React from 'react';
+import AppImage from '@/components/AppImage/AppImage';
 import { useNavigate } from '@/lib/router-compat';
 import { Tooltip } from 'antd';
 import {
@@ -64,10 +65,10 @@ const ResultItem: React.FC<SearchItemProps> = ({
       >
          {/* Image */}
          <div className="overflow-hidden relative flex-shrink-0 md:w-72 md:h-auto md:max-h-64">
-            <img
+            <AppImage
                src={room.image}
                alt={room.name}
-               className="object-cover w-full h-52 transition-transform duration-500 md:h-64 group-hover:scale-105"
+               wrapperClassName="object-cover w-full h-52 transition-transform duration-500 md:h-64 group-hover:scale-105"
             />
             <FavoriteButton
                apartmentId={room._id}

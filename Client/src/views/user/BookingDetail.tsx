@@ -1,4 +1,5 @@
 import React from 'react';
+import AppImage from '@/components/AppImage/AppImage';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Carousel, message, Popconfirm, Tooltip } from 'antd';
 import {
@@ -159,11 +160,11 @@ const BookingDetail: React.FC = () => {
                            <Carousel arrows swipeToSlide draggable>
                               {(room.images || []).map(
                                  (image: string, index: number) => (
-                                    <img
+                                    <AppImage
                                        key={index}
                                        src={image}
                                        alt={room.roomType}
-                                       className="object-cover w-full h-48 md:h-56"
+                                       wrapperClassName="object-cover w-full h-48 md:h-56"
                                     />
                                  ),
                               )}

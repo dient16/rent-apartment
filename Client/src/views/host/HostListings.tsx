@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import AppImage from '@/components/AppImage/AppImage';
 import { Button, Empty, Input, Skeleton, Tooltip } from 'antd';
 import {
    CalendarOutlined,
@@ -166,10 +167,10 @@ const HostListings: React.FC = () => {
                         {/* Cover image */}
                         <div className="overflow-hidden relative h-44">
                            {listing.images?.[0] ? (
-                              <img
+                              <AppImage
                                  src={listing.images[0]}
                                  alt={listing.title}
-                                 className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+                                 wrapperClassName="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                               />
                            ) : (
                               <div className="flex justify-center items-center w-full h-full text-3xl text-blue-300 bg-blue-50">

@@ -1,4 +1,5 @@
 import React from 'react';
+import AppImage from '@/components/AppImage/AppImage';
 import { Carousel } from 'antd';
 import { FaBed, FaCheck, FaRulerCombined, FaUsers } from 'react-icons/fa';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
@@ -59,11 +60,11 @@ const RoomInfo: React.FC<RoomInfoProps> = ({ roomInfo }) => {
                className="overflow-hidden rounded-2xl"
             >
                {images.map((image, index) => (
-                  <img
+                  <AppImage
                      key={index}
                      src={image}
                      alt={`${roomType} photo ${index + 1}`}
-                     className="w-full h-[340px] lg:h-[520px] object-cover"
+                     wrapperClassName="w-full h-[340px] lg:h-[520px] object-cover"
                   />
                ))}
             </Carousel>

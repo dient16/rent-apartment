@@ -1,4 +1,5 @@
 import React from 'react';
+import AppImage from '@/components/AppImage/AppImage';
 import { useQuery } from '@tanstack/react-query';
 import { Carousel, Skeleton, Tooltip } from 'antd';
 import icons from '@/utils/icons';
@@ -44,10 +45,10 @@ const ApartmentPopular: React.FC = () => {
                            className="rounded-3xl overflow-hidden"
                         >
                            {apartment.images.map((image, index) => (
-                              <img
+                              <AppImage
                                  key={index}
                                  src={image}
-                                 className="h-[185px] w-full object-cover"
+                                 wrapperClassName="h-[185px] w-full object-cover"
                               />
                            ))}
                         </Carousel>

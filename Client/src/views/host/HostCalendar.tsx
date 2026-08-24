@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import AppImage from '@/components/AppImage/AppImage';
 import {
    Button,
    InputNumber,
@@ -427,10 +428,10 @@ const HostCalendar: React.FC = () => {
                                     )}
                                  >
                                     {room.images?.[0] ? (
-                                       <img
+                                       <AppImage
                                           src={room.images[0]}
                                           alt={room.roomType}
-                                          className="object-cover w-full h-full"
+                                          wrapperClassName="object-cover w-full h-full"
                                        />
                                     ) : (
                                        <span className="flex justify-center items-center w-full h-full text-xs font-bold text-gray-400">
@@ -657,10 +658,10 @@ const HostCalendar: React.FC = () => {
                         {activeRoom ? (
                            <>
                               {activeRoom.images?.[0] && (
-                                 <img
+                                 <AppImage
                                     src={activeRoom.images[0]}
                                     alt={activeRoom.roomType}
-                                    className="object-cover mt-3 w-full h-32 rounded-xl"
+                                    wrapperClassName="object-cover mt-3 w-full h-32 rounded-xl"
                                  />
                               )}
                               <p className="mt-3 text-sm font-semibold text-gray-900 truncate">

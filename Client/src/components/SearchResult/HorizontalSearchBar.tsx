@@ -43,10 +43,16 @@ const HorizontalSearchBar: React.FC<HorizontalSearchBarProps> = ({
             name="searchText"
             control={control}
             defaultValue={searchParams.get('province') ?? ''}
+            rules={{
+               validate: (value) =>
+                  value?.trim() ? true : 'Please enter a destination',
+            }}
             render={({ field, fieldState: { error } }) => (
                <Tooltip title={error?.message} color="red" open={!!error} placement="bottom">
                   <div className="relative flex-[1.2] min-w-0">
-                     <div className={segment}>
+                     <div
+                        className={`${segment} ${error ? 'ring-1 ring-red-400 bg-red-50/40' : ''}`}
+                     >
                         <FaMapMarkerAlt className="flex-shrink-0 text-blue-500" />
                         <input
                            placeholder="Anywhere — city, district..."

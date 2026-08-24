@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AppImage from '@/components/AppImage/AppImage';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Button, Carousel, Skeleton, Tooltip } from 'antd';
 import { HeartOutlined } from '@ant-design/icons';
@@ -134,11 +135,11 @@ const MyFavorites: React.FC = () => {
                                     ? apartment.images
                                     : ['']
                                  ).map((image, index) => (
-                                    <img
+                                    <AppImage
                                        key={index}
                                        src={image}
                                        alt={apartment.title}
-                                       className="h-[185px] w-full object-cover bg-gray-100"
+                                       wrapperClassName="h-[185px] w-full object-cover bg-gray-100"
                                     />
                                  ))}
                               </Carousel>

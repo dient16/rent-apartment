@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Button, Drawer, Dropdown } from 'antd';
+import { Button, Drawer, Dropdown, Tooltip } from 'antd';
 import { ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from '@/lib/router-compat';
 import moment from 'moment';
@@ -61,9 +61,23 @@ const Search: React.FC = () => {
             control={control}
             name="searchText"
             defaultValue=""
-            render={({ field }) => (
+            rules={{
+               validate: (value) =>
+                  value?.trim() ? true : 'Please enter a destination',
+            }}
+            render={({ field, fieldState: { error } }) => (
                <>
-                  <label className={`${segmentClass} relative flex-[1.15] min-w-0`}>
+                  <Tooltip
+                     title={error?.message}
+                     color="red"
+                     open={!!error}
+                     placement="bottom"
+                  >
+                  <label
+                     className={`${segmentClass} relative flex-[1.15] min-w-0 ${
+                        error ? 'ring-1 ring-red-400 bg-red-50/40 rounded-full' : ''
+                     }`}
+                  >
                      <span className={labelClass}>Where</span>
                      <input
                         placeholder="Search destinations"
@@ -99,6 +113,7 @@ const Search: React.FC = () => {
                         />
                      </span>
                   </label>
+                  </Tooltip>
 
                   {/* Mobile/tablet full-screen destination sheet */}
                   <Drawer

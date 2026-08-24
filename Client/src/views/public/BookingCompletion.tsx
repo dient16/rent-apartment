@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import AppImage from '@/components/AppImage/AppImage';
 import { Button, Result, Skeleton } from 'antd';
 import {
    CalendarOutlined,
@@ -158,10 +159,10 @@ const BookingCompletion: React.FC = () => {
                         {rooms.map((room) => (
                            <div key={room.roomId} className="flex gap-4 items-center">
                               {room.images?.[0] && (
-                                 <img
+                                 <AppImage
                                     src={room.images[0]}
                                     alt={room.roomType}
-                                    className="object-cover flex-shrink-0 w-20 h-16 rounded-xl"
+                                    wrapperClassName="object-cover flex-shrink-0 w-20 h-16 rounded-xl"
                                  />
                               )}
                               <div className="min-w-0">

@@ -38,3 +38,4 @@ export const Messenger = dynamic(() => import('./Messenger/Messenger'), { ssr: f
 export { default as UserAvatar } from './UserAvatar/UserAvatar';
 export { default as GoogleMapEmbed } from './GoogleMapEmbed/GoogleMapEmbed';
 export { default as FullscreenLoader } from './FullscreenLoader/FullscreenLoader';
+export { default as AppImage } from './AppImage/AppImage';

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo } from 'react';
+import AppImage from '@/components/AppImage/AppImage';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -106,10 +107,10 @@ const ExploreMap: React.FC<ExploreMapProps> = ({
                      className="block no-underline font-main"
                   >
                      {apartment.image && (
-                        <img
+                        <AppImage
                            src={apartment.image}
                            alt={apartment.name}
-                           className="object-cover mb-2 w-full h-28 rounded-lg"
+                           wrapperClassName="object-cover mb-2 w-full h-28 rounded-lg"
                         />
                      )}
                      <div className="text-sm font-semibold text-gray-900 line-clamp-2">

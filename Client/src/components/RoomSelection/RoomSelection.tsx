@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AppImage from '@/components/AppImage/AppImage';
 import { FaBed, FaCheck, FaMinus, FaPlus, FaRulerCombined, FaUsers } from 'react-icons/fa';
 import { Modal } from 'antd';
 import { RoomInfo } from '@/components';
@@ -71,10 +72,10 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({
          <div className="flex flex-col md:flex-row">
             {/* Photo */}
             <div className="relative md:w-[280px] flex-shrink-0">
-               <img
+               <AppImage
                   alt={roomOption.roomType}
                   src={roomOption.images[0]}
-                  className="w-full h-[200px] md:h-full object-cover"
+                  wrapperClassName="w-full h-[200px] md:h-full object-cover"
                />
                <span className="flex absolute top-3 left-3 gap-1.5 items-center px-2.5 py-1 text-xs font-medium text-gray-800 bg-white/90 rounded-full backdrop-blur">
                   <FaRulerCombined size={11} />

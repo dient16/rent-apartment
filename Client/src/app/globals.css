@@ -193,13 +193,13 @@
    font-weight: 500;
 }
 .custom-datepicker .rdrDayPassive .rdrDayNumber span {
-   color: #d1d5db;
+   color: #c0c6cf;
 }
 .custom-datepicker .rdrDayDisabled {
    background: transparent;
 }
 .custom-datepicker .rdrDayDisabled .rdrDayNumber span {
-   color: #e5e7eb;
+   color: #c7ced8;
    text-decoration: line-through;
 }
 .custom-datepicker .rdrDayToday .rdrDayNumber span:after {
@@ -477,4 +477,84 @@
 .datepicker-nav-select.ant-select-open .ant-select-content-has-value {
    opacity: 0.75 !important;
    color: #0f172a !important;
+}
+
+/* react-date-range squares the pill corners at week/month boundaries (1.042em)
+   — keep the full round shape so edge days don't look clipped */
+.custom-datepicker .rdrDayEndOfWeek .rdrInRange,
+.custom-datepicker .rdrDayEndOfWeek .rdrStartEdge,
+.custom-datepicker .rdrDayEndOfMonth .rdrInRange,
+.custom-datepicker .rdrDayEndOfMonth .rdrStartEdge,
+.custom-datepicker .rdrDayEndOfWeek .rdrDayInPreview,
+.custom-datepicker .rdrDayEndOfWeek .rdrDayStartPreview,
+.custom-datepicker .rdrDayEndOfMonth .rdrDayInPreview,
+.custom-datepicker .rdrDayEndOfMonth .rdrDayStartPreview {
+   border-top-right-radius: 9999px;
+   border-bottom-right-radius: 9999px;
+   right: 3px;
+}
+.custom-datepicker .rdrDayStartOfWeek .rdrInRange,
+.custom-datepicker .rdrDayStartOfWeek .rdrEndEdge,
+.custom-datepicker .rdrDayStartOfMonth .rdrInRange,
+.custom-datepicker .rdrDayStartOfMonth .rdrEndEdge,
+.custom-datepicker .rdrDayStartOfWeek .rdrDayInPreview,
+.custom-datepicker .rdrDayStartOfWeek .rdrDayEndPreview,
+.custom-datepicker .rdrDayStartOfMonth .rdrDayInPreview,
+.custom-datepicker .rdrDayStartOfMonth .rdrDayEndPreview {
+   border-top-left-radius: 9999px;
+   border-bottom-left-radius: 9999px;
+   left: 3px;
+}
+
+/* Align the hover preview outline EXACTLY with the selected pill:
+   defaults differ (edges: top/bottom 5px, ±2px; previews: top/bottom 3px, 0px) */
+.custom-datepicker .rdrStartEdge,
+.custom-datepicker .rdrDayStartPreview {
+   left: 3px;
+}
+.custom-datepicker .rdrEndEdge,
+.custom-datepicker .rdrDayEndPreview {
+   right: 3px;
+}
+.custom-datepicker .rdrInRange,
+.custom-datepicker .rdrDayInPreview {
+   left: 0;
+   right: 0;
+}
+.custom-datepicker .rdrStartEdge,
+.custom-datepicker .rdrEndEdge,
+.custom-datepicker .rdrInRange,
+.custom-datepicker .rdrDayStartPreview,
+.custom-datepicker .rdrDayEndPreview,
+.custom-datepicker .rdrDayInPreview {
+   top: 4px;
+   bottom: 4px;
+}
+/* Preview corners match the pill's full round */
+.custom-datepicker .rdrDayStartPreview,
+.custom-datepicker .rdrDayEndPreview {
+   border-radius: 0;
+}
+.custom-datepicker .rdrDayStartPreview {
+   border-top-left-radius: 9999px;
+   border-bottom-left-radius: 9999px;
+}
+.custom-datepicker .rdrDayEndPreview {
+   border-top-right-radius: 9999px;
+   border-bottom-right-radius: 9999px;
+}
+
+/* Loading shimmer for AppImage */
+.img-shimmer {
+   background: linear-gradient(100deg, #f3f4f6 40%, #e5e7eb 50%, #f3f4f6 60%);
+   background-size: 200% 100%;
+   animation: img-shimmer-slide 1.4s ease-in-out infinite;
+}
+@keyframes img-shimmer-slide {
+   from {
+      background-position: 120% 0;
+   }
+   to {
+      background-position: -80% 0;
+   }
 }

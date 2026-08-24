@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import AppImage from '@/components/AppImage/AppImage';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Button, Skeleton, Tooltip } from 'antd';
 import {
@@ -187,10 +188,10 @@ const MyBooking: React.FC = () => {
                            className="flex overflow-hidden flex-col bg-white rounded-2xl border border-gray-100 transition-all duration-300 cursor-pointer group md:flex-row shadow-card-sm hover:shadow-card-md hover:border-blue-200"
                         >
                            <div className="overflow-hidden flex-shrink-0 md:w-64">
-                              <img
+                              <AppImage
                                  src={booking.rooms[0]?.image}
                                  alt={booking.apartmentName || 'Booking'}
-                                 className="object-cover w-full h-44 transition-transform duration-500 md:h-full group-hover:scale-105"
+                                 wrapperClassName="object-cover w-full h-44 transition-transform duration-500 md:h-full group-hover:scale-105"
                               />
                            </div>
 

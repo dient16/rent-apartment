@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import AppImage from '@/components/AppImage/AppImage';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from '@/lib/router-compat';
 import { apiGetApartmentDetails } from '@/apis';
@@ -91,17 +92,17 @@ const HostRoomDetail: React.FC = () => {
                   {/* ===== Gallery ===== */}
                   {gallery.length > 0 && (
                      <div className="grid overflow-hidden grid-cols-4 grid-rows-2 gap-2 mb-6 rounded-2xl h-[320px] md:h-[380px]">
-                        <img
+                        <AppImage
                            src={gallery[0]}
                            alt={apartment.title}
-                           className="object-cover col-span-4 row-span-2 w-full h-full md:col-span-2"
+                           wrapperClassName="object-cover col-span-4 row-span-2 w-full h-full md:col-span-2"
                         />
                         {gallery.slice(1, 5).map((image, index) => (
-                           <img
+                           <AppImage
                               key={index}
                               src={image}
                               alt=""
-                              className="hidden object-cover w-full h-full md:block"
+                              wrapperClassName="hidden object-cover w-full h-full md:block"
                            />
                         ))}
                      </div>
@@ -231,11 +232,11 @@ const HostRoomDetail: React.FC = () => {
                            <Carousel arrows swipeToSlide draggable>
                               {(room.images || []).map(
                                  (image: string, index: number) => (
-                                    <img
+                                    <AppImage
                                        key={index}
                                        src={image}
                                        alt={room.roomType}
-                                       className="object-cover w-full h-48"
+                                       wrapperClassName="object-cover w-full h-48"
                                     />
                                  ),
                               )}

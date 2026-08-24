@@ -52,6 +52,10 @@ const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
                name="searchText"
                control={control}
                defaultValue={searchParams.get('province') ?? ''}
+               rules={{
+                  validate: (value) =>
+                     value?.trim() ? true : 'Please enter a destination',
+               }}
                render={({ field, fieldState: { error } }) => (
                   <Tooltip
                      title={error?.message}
