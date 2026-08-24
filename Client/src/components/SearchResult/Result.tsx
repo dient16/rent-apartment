@@ -1,8 +1,9 @@
 import React from 'react';
-import { Button, Select, Skeleton } from 'antd';
+import { Button, Select } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import ResultItem from './ResultItem';
 import PaginationBar from './PaginationBar';
+import { ResultCardSkeleton } from './ListingSkeleton';
 
 interface ResultsProps {
    data: any;
@@ -49,18 +50,7 @@ const Results: React.FC<ResultsProps> = ({
 
          <div className="flex flex-col gap-4 w-full">
             {isFetching ? (
-               [1, 2, 3, 4].map((index) => (
-                  <div
-                     key={index}
-                     className="flex gap-5 p-4 bg-white rounded-2xl shadow-card-sm"
-                  >
-                     <Skeleton.Image
-                        active
-                        className="w-52! h-36! rounded-xl! hidden md:block"
-                     />
-                     <Skeleton active paragraph={{ rows: 3 }} />
-                  </div>
-               ))
+               [1, 2, 3, 4].map((index) => <ResultCardSkeleton key={index} />)
             ) : apartments.length === 0 ? (
                <div className="flex flex-col items-center py-20 text-center bg-white rounded-2xl border border-gray-100 shadow-card-sm">
                   <span className="flex justify-center items-center mb-5 w-16 h-16 text-2xl text-blue-400 bg-blue-50 rounded-full">

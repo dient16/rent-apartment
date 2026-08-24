@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 import * as controller from '@/modules/booking/booking.controller';
 import { createApiResponses, objectId, PaginationSchema, PUBLIC } from '@/api-docs/openAPIResponseBuilders';
-import { verifyAccessToken } from '@/middlewares/verifyToken';
+import { optionalAccessToken, verifyAccessToken } from '@/middlewares/verifyToken';
 import { bookingListQuerySchema, BookingSchema } from '@/modules/booking/booking.dto';
 import { validateRequest } from '@/utils/httpHandlers';
 
@@ -133,14 +133,15 @@ bookingRegistry.registerPath({
   path: '/api/booking',
   tags: ['Booking'],
   summary: 'Create a booking',
-  description: 'Public so guests can book without an account. Notifies the host and sends a confirmation email.',
+  description:
+    'Public so guests can book without an account (a Bearer token is used when present). Hosts cannot book their own apartment - by account or by email. Notifies the host and sends a confirmation email.',
   security: PUBLIC,
   request: {
     body: { content: { 'application/json': { schema: CreateBookingBody } } },
   },
   responses: createApiResponses(BookingDocSchema, 'Booking created', {
     status: StatusCodes.CREATED,
-    errors: [StatusCodes.BAD_REQUEST, StatusCodes.NOT_FOUND, StatusCodes.CONFLICT],
+    errors: [StatusCodes.BAD_REQUEST, StatusCodes.FORBIDDEN, StatusCodes.NOT_FOUND, StatusCodes.CONFLICT],
   }),
 });
 
@@ -172,7 +173,7 @@ bookingRegistry.registerPath({
 router.get('/user/bookings', verifyAccessToken, validateRequest(bookingListQuerySchema), controller.getUserBookings);
 router.get('/:bookingId', verifyAccessToken, controller.getBooking);
 router.get('/', verifyAccessToken, validateRequest(bookingListQuerySchema), controller.getBookings);
-router.post('/', controller.createBooking);
+router.post('/', optionalAccessToken, controller.createBooking);
 router.post('/:bookingId/confirm', verifyAccessToken, controller.confirmBooking);
 router.post('/:bookingId/cancel', verifyAccessToken, controller.cancelBooking);
 

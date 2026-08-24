@@ -123,18 +123,15 @@ export const getRoomsCheckout = async (req: Request, res: Response, next: NextFu
     const roomIds = toArray(req.query.roomIds);
     const roomNumbers = toArray(req.query.roomNumbers);
 
+    const badRequest = (message: string) =>
+      handleServiceResponse(new ServiceResponse(ResponseStatus.Failed, message, null, StatusCodes.BAD_REQUEST), res);
+
     if (!roomIds.length) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        status: ResponseStatus.Failed,
-        message: 'roomIds is required.',
-      });
+      return badRequest('roomIds is required.');
     }
 
     if (roomIds.length !== roomNumbers.length) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        status: ResponseStatus.Failed,
-        message: 'Mismatch between roomIds and roomNumbers length.',
-      });
+      return badRequest('Mismatch between roomIds and roomNumbers length.');
     }
 
     const { roomIds: _roomIds, roomNumbers: _roomNumbers, ...query } = req.query;

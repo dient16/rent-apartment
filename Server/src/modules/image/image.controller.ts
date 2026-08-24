@@ -50,48 +50,26 @@ export const openImageBrowser = async (req: Request, res: Response, next: NextFu
 
 export const uploadMultipleFiles = (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.files || !Array.isArray(req.files)) {
-      return res.status(400).json({
-        success: false,
-        message: 'No files uploaded',
-      });
-    }
-
-    const files = req.files as Express.Multer.File[];
-
-    const filenames = files.map((file) => file.filename);
-
-    res.status(200).json({
-      success: true,
-      message: `${filenames.length} files uploaded successfully`,
-      data: {
-        filenames: filenames,
-      },
-    });
+    const files = Array.isArray(req.files) ? (req.files as Express.Multer.File[]) : [];
+    handleServiceResponse(imageCommands.uploadMultipleFiles(files.map((file) => file.filename)), res);
   } catch (error) {
     next(error);
   }
 };
 
-export const getRecentFile = async (req: Request, res: Response, next: NextFunction) => {
+export const getRecentFile = async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const file = await imageQueries.getRecentFile();
-    res.status(200).json({
-      success: true,
-      data: { file },
-    });
+    const serviceResponse = await imageQueries.getRecentFile();
+    handleServiceResponse(serviceResponse, res);
   } catch (error) {
     next(error);
   }
 };
 
-export const getAllFiles = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllFiles = async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const files = await imageQueries.getAllFiles();
-    res.status(200).json({
-      success: true,
-      files,
-    });
+    const serviceResponse = await imageQueries.getAllFiles();
+    handleServiceResponse(serviceResponse, res);
   } catch (error) {
     next(error);
   }
@@ -99,11 +77,8 @@ export const getAllFiles = async (req: Request, res: Response, next: NextFunctio
 
 export const getFileByFilename = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const file = await imageQueries.getFileByFilename(req.params.filename);
-    res.status(200).json({
-      success: true,
-      file,
-    });
+    const serviceResponse = await imageQueries.getFileByFilename(req.params.filename);
+    handleServiceResponse(serviceResponse, res);
   } catch (error) {
     next(error);
   }
@@ -111,11 +86,8 @@ export const getFileByFilename = async (req: Request, res: Response, next: NextF
 
 export const deleteFileByFileName = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    await imageCommands.deleteFileByFileName(req.params.id);
-    res.status(200).json({
-      success: true,
-      message: `File with ID ${req.params.id} is deleted`,
-    });
+    const serviceResponse = await imageCommands.deleteFileByFileName(req.params.id);
+    handleServiceResponse(serviceResponse, res);
   } catch (error) {
     next(error);
   }

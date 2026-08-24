@@ -2,7 +2,6 @@ import type { Server } from 'node:http';
 
 import { logger } from '@/utils/logger';
 
-/** Failures outside Express never reach the error middleware — catch them here. */
 const registerProcessHandlers = (server: Server, shutdown: (code: number) => void) => {
   server.on('error', (error: NodeJS.ErrnoException) => {
     if (error.code === 'EADDRINUSE') {
@@ -24,7 +23,6 @@ const registerProcessHandlers = (server: Server, shutdown: (code: number) => voi
     shutdown(1);
   });
 
-  // Deprecations and things like MaxListenersExceededWarning otherwise go straight to stderr.
   process.on('warning', (warning) => {
     logger.warn({ err: warning }, `Process warning: ${warning.name}`);
   });

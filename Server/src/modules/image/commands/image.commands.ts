@@ -1,4 +1,5 @@
 import { default as to } from 'await-to-js';
+import { StatusCodes } from 'http-status-codes';
 import mongoose from 'mongoose';
 
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
@@ -20,6 +21,18 @@ export const imageCommands = {
       );
     }
     return new ServiceResponse<string | null>(ResponseStatus.Failed, 'Error upload image', null, 500);
+  },
+
+  uploadMultipleFiles(filenames: string[]): ServiceResponse<{ filenames: string[] } | null> {
+    if (filenames.length === 0) {
+      return new ServiceResponse(ResponseStatus.Failed, 'No files uploaded', null, StatusCodes.BAD_REQUEST);
+    }
+    return new ServiceResponse(
+      ResponseStatus.Success,
+      `${filenames.length} files uploaded successfully`,
+      { filenames },
+      StatusCodes.OK
+    );
   },
 
   async deleteFileByFileName(filename: string): Promise<ServiceResponse<any>> {

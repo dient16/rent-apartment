@@ -24,7 +24,7 @@ const ApartmentDetail: React.FC = () => {
    const [searchParams, setSearchParams] = useSearchParams();
    const navigate = useNavigate();
    const methods = useForm();
-   const { isAuthenticated, setAuthModal } = useAuth();
+   const { user, isAuthenticated, setAuthModal } = useAuth();
    const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
    const handleMessageHost = async () => {
@@ -73,8 +73,19 @@ const ApartmentDetail: React.FC = () => {
          ? moment(endDate).diff(moment(startDate), 'days')
          : 0;
 
+   // The server rejects this too (403); checking here avoids a dead-end checkout page.
+   const isOwner =
+      !!user?._id &&
+      !!apartment?.owner?._id &&
+      String(user._id) === String(apartment.owner._id);
+
    const selectedRooms = methods.watch('selectedRooms', []);
    const handleBooking = (data: any) => {
+      if (isOwner) {
+         message.warning('You cannot book your own apartment');
+         return;
+      }
+
       const queryParams = new URLSearchParams();
 
       selectedRooms.forEach((room: { roomId: string; count: number }) => {

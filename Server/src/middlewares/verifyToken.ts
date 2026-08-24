@@ -34,6 +34,22 @@ export const verifyAccessToken = (req: Request, res: Response, next: NextFunctio
   }
 };
 
+/**
+ * Attaches `req.user` when a valid Bearer token is present, but never rejects:
+ * for public routes (e.g. guest booking) that still want to know who the caller is.
+ */
+export const optionalAccessToken = (req: Request, _res: Response, next: NextFunction) => {
+  const header = req.headers.authorization;
+  if (header?.startsWith('Bearer ')) {
+    try {
+      req.user = jwt.verify(header.slice('Bearer '.length), JWT_ACCESS_KEY) as UserDecode;
+    } catch {
+      // Invalid/expired token on a public route: treat as anonymous.
+    }
+  }
+  next();
+};
+
 export const verifyIsAdmin = (req: Request, res: Response, next: NextFunction) => {
   const user = req.user as UserDecode;
   if (!user?.isAdmin) {

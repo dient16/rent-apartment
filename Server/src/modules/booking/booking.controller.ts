@@ -6,7 +6,9 @@ import { handleServiceResponse } from '@/utils/httpHandlers';
 
 export const createBooking = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const serviceResponse = await bookingCommands.createBooking(req.body);
+    // Optional: set by `optionalAccessToken` when the guest is signed in.
+    const userId = (req.user as UserDecode | undefined)?._id;
+    const serviceResponse = await bookingCommands.createBooking(req.body, userId);
     handleServiceResponse(serviceResponse, res);
   } catch (error) {
     next(error);

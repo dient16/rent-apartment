@@ -11,11 +11,69 @@ import type { Booking as IBooking } from '../booking.dto';
 import { bookingRepository } from '../booking.repository';
 import { bookingUrl, formatMailDate } from '../booking.shared';
 
-const createBooking = async (bookingData: Partial<IBooking>): Promise<ServiceResponse<IBooking | null>> => {
+/**
+ * A host must not book their own apartment. Checked both by the signed-in
+ * account (when a token was sent) and by the booking email, since guest
+ * booking is public and the email is the only identity we always have.
+ */
+const isBookingOwnApartment = async (roomIds: unknown[], email: string, userId?: string): Promise<boolean> => {
+  const rooms = await bookingRepository.findRoomApartmentIds(roomIds);
+  const apartmentIds = [...new Set(rooms.map((room) => String(room.apartmentId)))];
+  if (apartmentIds.length === 0) return false;
+
+  const apartments = await bookingRepository.findApartmentsWithOwnerContact(apartmentIds);
+  const normalizedEmail = email.trim().toLowerCase();
+
+  return apartments.some((apartment) => {
+    const owner = (apartment as { owner?: { _id?: unknown; email?: string } }).owner;
+    if (!owner) return false;
+    if (userId && String(owner._id) === String(userId)) return true;
+    return owner.email?.trim().toLowerCase() === normalizedEmail;
+  });
+};
+
+const createBooking = async (
+  bookingData: Partial<IBooking>,
+  userId?: string
+): Promise<ServiceResponse<IBooking | null>> => {
   const { email, firstname, lastname, phone, arrivalTime, checkInTime, checkOutTime, totalPrice, rooms } = bookingData;
 
-  if (!email || !firstname || !lastname || !rooms || rooms.length === 0 || !totalPrice || !checkInTime || !checkOutTime) {
+  if (
+    !email ||
+    !firstname ||
+    !lastname ||
+    !rooms ||
+    rooms.length === 0 ||
+    !totalPrice ||
+    !checkInTime ||
+    !checkOutTime
+  ) {
     return new ServiceResponse(ResponseStatus.Failed, 'Missing required fields', null, StatusCodes.BAD_REQUEST);
+  }
+
+  // Before touching availability: an own-apartment booking must not block any dates.
+  const [ownerCheckError, bookingOwnApartment] = await to(
+    isBookingOwnApartment(
+      rooms.map((room) => room.roomId),
+      email,
+      userId
+    )
+  );
+  if (ownerCheckError) {
+    return new ServiceResponse(
+      ResponseStatus.Failed,
+      'Error validating booking',
+      null,
+      StatusCodes.INTERNAL_SERVER_ERROR
+    );
+  }
+  if (bookingOwnApartment) {
+    return new ServiceResponse(
+      ResponseStatus.Failed,
+      'You cannot book your own apartment',
+      null,
+      StatusCodes.FORBIDDEN
+    );
   }
 
   for (const roomData of rooms) {
@@ -199,7 +257,12 @@ const cancelBooking = async (bookingId: string, userId: string): Promise<Service
     const roomIds = (booking as any).rooms.map((room: any) => room.roomId);
     const [findRoomsError, bookedRooms] = await to(bookingRepository.findRoomApartmentIds(roomIds));
     if (findRoomsError) {
-      return new ServiceResponse(ResponseStatus.Failed, 'Error checking rooms', null, StatusCodes.INTERNAL_SERVER_ERROR);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'Error checking rooms',
+        null,
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
     }
     const apartmentIds = [...new Set(bookedRooms.map((room) => String(room.apartmentId)))];
     const [findAptError, ownedCount] = await to(bookingRepository.countOwnedApartments(apartmentIds, userId));
