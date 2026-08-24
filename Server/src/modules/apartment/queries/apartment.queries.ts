@@ -1,36 +1,24 @@
 import { default as to } from 'await-to-js';
 import { StatusCodes } from 'http-status-codes';
 import moment from 'moment';
-import mongoose, { Types } from 'mongoose';
+import mongoose from 'mongoose';
 
-import ReviewModel from '@/modules/review/review.model';
-import RoomModel from '@/modules/room/room.model';
-import type { Room } from '@/modules/room/room.dto';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 import { env } from '@/config/env.config';
 
-import ApartmentModel from '../apartment.model';
-import type { Apartment, GetApartmentQuery, GetOwnerApartmentsQuery } from '../apartment.dto';
+import type { GetApartmentQuery, GetOwnerApartmentsQuery } from '../apartment.dto';
+import { apartmentRepository } from '../apartment.repository';
 import { escapeRegex } from '../apartment.shared';
 
 const { SERVER_URL } = env;
 
 /**
  * Read side. The aggregation pipelines ARE the read models here — each query
- * handler owns its own projection instead of going through a generic repository.
+ * handler owns its own projection; the repository only executes them.
  */
 export const apartmentQueries = {
   async getAllApartments() {
-    const [err, apartments] = await to(
-      ApartmentModel.find({})
-        .populate({
-          path: 'rooms.services',
-        })
-        .populate({
-          path: 'createBy',
-        })
-        .exec()
-    );
+    const [err, apartments] = await to(apartmentRepository.findAllPopulated());
 
     if (err) {
       return new ServiceResponse(
@@ -44,14 +32,7 @@ export const apartmentQueries = {
     return new ServiceResponse(ResponseStatus.Success, 'Apartments retrieved successfully', apartments, StatusCodes.OK);
   },
   async getUserApartments(userId: string) {
-    const [err, apartments] = await to(
-      ApartmentModel.find({ owner: new Types.ObjectId(userId) })
-        .populate({
-          path: 'rooms.amenities',
-        })
-        .select('title location')
-        .exec()
-    );
+    const [err, apartments] = await to(apartmentRepository.findByOwnerSummary(userId));
 
     if (err) {
       return new ServiceResponse(
@@ -75,9 +56,7 @@ export const apartmentQueries = {
     const FALLBACK_RATING = 4;
     const safeLimit = Math.min(Math.max(limit, 1), 50);
 
-    const [errAvg, globalRows] = await to(
-      ReviewModel.aggregate([{ $group: { _id: null, avg: { $avg: '$rating' } } }]).exec()
-    );
+    const [errAvg, globalRows] = await to(apartmentRepository.findGlobalAverageRating());
     if (errAvg) {
       return new ServiceResponse(
         ResponseStatus.Failed,
@@ -89,7 +68,7 @@ export const apartmentQueries = {
     const priorRating: number = globalRows?.[0]?.avg ?? FALLBACK_RATING;
 
     const [err, apartments] = await to(
-      ApartmentModel.aggregate([
+      apartmentRepository.aggregate([
         {
           $lookup: {
             from: 'rooms',
@@ -171,7 +150,7 @@ export const apartmentQueries = {
             },
           },
         },
-      ]).exec()
+      ])
     );
 
     if (err) {
@@ -199,13 +178,7 @@ export const apartmentQueries = {
         ? moment(query.endDate).toDate()
         : moment(startDate).add(1, 'day').toDate();
 
-    const [err, apartment] = await to<Apartment | null>(
-      ApartmentModel.findById(apartmentId)
-        .populate({ path: 'owner', select: 'firstname lastname email avatar' })
-        .select('-__v')
-        .lean()
-        .exec()
-    );
+    const [err, apartment] = await to(apartmentRepository.findDetailById(apartmentId));
 
     if (err) {
       return new ServiceResponse(
@@ -240,13 +213,7 @@ export const apartmentQueries = {
       ],
     };
 
-    const [roomErr, rooms] = await to<Room[]>(
-      RoomModel.find(roomsQuery)
-        .populate({ path: 'amenities', select: 'name icon' })
-        .select('-apartmentId -__v -unavailableDateRanges')
-        .lean()
-        .exec()
-    );
+    const [roomErr, rooms] = await to(apartmentRepository.findRooms(roomsQuery));
 
     if (roomErr) {
       return new ServiceResponse(
@@ -304,7 +271,7 @@ export const apartmentQueries = {
       );
     }
 
-    const pipeline = [
+    const pipeline: mongoose.PipelineStage[] = [
       { $match: { _id: { $in: roomIdsObj } } },
       {
         $lookup: {
@@ -362,7 +329,7 @@ export const apartmentQueries = {
     ];
 
     try {
-      const result = await RoomModel.aggregate(pipeline).exec();
+      const result = await apartmentRepository.aggregateRooms(pipeline);
 
       if (!result || result.length === 0) {
         return new ServiceResponse(
@@ -403,22 +370,7 @@ export const apartmentQueries = {
       filter.$or = [{ title: keyword }, { 'location.province': keyword }, { 'location.district': keyword }];
     }
 
-    const skip = (page - 1) * limit;
-
-    const [err, result] = await to(
-      Promise.all([
-        ApartmentModel.find(filter)
-          .select('title location rooms images')
-          // Rooms ship with the apartment so the host calendar needs one request.
-          .populate({ path: 'rooms', select: 'images price roomType' })
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .lean()
-          .exec(),
-        ApartmentModel.countDocuments(filter),
-      ])
-    );
+    const [err, result] = await to(apartmentRepository.findOwnerPage(filter, page, limit));
 
     if (err) {
       return new ServiceResponse(ResponseStatus.Failed, err.message, null, StatusCodes.INTERNAL_SERVER_ERROR);

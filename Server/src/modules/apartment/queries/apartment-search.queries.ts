@@ -3,14 +3,12 @@ import { StatusCodes } from 'http-status-codes';
 import moment from 'moment';
 import mongoose from 'mongoose';
 
-import AmenityModel from '@/modules/amenity/amenity.model';
-import RoomModel from '@/modules/room/room.model';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 import { env } from '@/config/env.config';
 import { searchApartmentIds } from '@/services/search';
 
+import { apartmentRepository } from '../apartment.repository';
 import { escapeRegex } from '../apartment.shared';
-import type { ApartmentDoc, PaginatedResult } from '../apartment.shared';
 
 const { SERVER_URL } = env;
 
@@ -69,11 +67,9 @@ export const apartmentSearchQueries = {
     // Amenities are stored as ObjectId refs: resolve the names first so the filter
     // runs on the rooms themselves (any room of the apartment), not only the cheapest one.
     if (amenityList.length) {
-      const matchedAmenities = await AmenityModel.find({
-        name: { $in: amenityList.map((amenity) => new RegExp(`^${escapeRegex(amenity)}$`, 'i')) },
-      })
-        .select('_id')
-        .lean();
+      const matchedAmenities = await apartmentRepository.findAmenityIdsByNames(
+        amenityList.map((amenity) => new RegExp(`^${escapeRegex(amenity)}$`, 'i'))
+      );
       if (matchedAmenities.length < amenityList.length) {
         return new ServiceResponse(
           ResponseStatus.Success,
@@ -82,7 +78,7 @@ export const apartmentSearchQueries = {
           StatusCodes.OK
         );
       }
-      roomMatch.amenities = { $all: matchedAmenities.map((amenity: any) => amenity._id) };
+      roomMatch.amenities = { $all: matchedAmenities.map((amenity) => amenity._id) };
     }
 
     // Elasticsearch handles unaccented input and typos; null = fall back to regex.
@@ -129,7 +125,7 @@ export const apartmentSearchQueries = {
     }
 
     // rooms: filter -> group -> join. Sort before $group so $first is the cheapest room.
-    const aggregation: any[] = [
+    const aggregation: mongoose.PipelineStage[] = [
       { $match: roomMatch },
       { $sort: { price: 1, _id: 1 } },
       {
@@ -236,9 +232,7 @@ export const apartmentSearchQueries = {
       // and counts rooms instead of grouped apartments (phantom extra pages).
       useFacet: false,
     };
-    const [error, result] = await to<PaginatedResult<ApartmentDoc>>(
-      (RoomModel as any).aggregatePaginate(RoomModel.aggregate(aggregation), options)
-    );
+    const [error, result] = await to(apartmentRepository.aggregateRoomsPaginated(aggregation, options));
     if (error) {
       return new ServiceResponse(
         ResponseStatus.Failed,

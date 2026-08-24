@@ -2,15 +2,12 @@ import { default as to } from 'await-to-js';
 import { StatusCodes } from 'http-status-codes';
 import mongoose, { Types } from 'mongoose';
 
-import RoomModel from '@/modules/room/room.model';
-import User from '@/modules/user/user.model';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 import { indexApartment, removeApartmentFromIndex } from '@/services/search';
 
 import { roomCommands } from '../../room/commands/room.commands';
-import ApartmentModel from '../apartment.model';
+import { apartmentRepository } from '../apartment.repository';
 
-/** Write side: create / update / delete apartments (search index kept in sync). */
 export const apartmentCommands = {
   async createApartment(createBy: string, body: any) {
     const {
@@ -30,24 +27,22 @@ export const apartmentCommands = {
 
     try {
       const [errApartment, newApartment] = await to(
-        ApartmentModel.create(
-          [
-            {
-              title,
-              description,
-              location,
-              owner: createBy,
-              rooms: [],
-              images: [],
-              houseRules,
-              checkInTime,
-              checkOutTime,
-              safetyInfo,
-              cancellationPolicy,
-              discounts,
-            },
-          ] as any[], // the model type comes from the request DTO, which has no `owner` field
-          { session }
+        apartmentRepository.create(
+          {
+            title,
+            description,
+            location,
+            owner: createBy,
+            rooms: [],
+            images: [],
+            houseRules,
+            checkInTime,
+            checkOutTime,
+            safetyInfo,
+            cancellationPolicy,
+            discounts,
+          },
+          session
         )
       );
 
@@ -76,7 +71,7 @@ export const apartmentCommands = {
       }
 
       const [errUpdateApartment] = await to(
-        ApartmentModel.findByIdAndUpdate(apartmentId, { $set: { rooms: roomIds } }, { new: true, session })
+        apartmentRepository.updateById(apartmentId, { $set: { rooms: roomIds } }, session)
       );
 
       if (errUpdateApartment) {
@@ -89,9 +84,7 @@ export const apartmentCommands = {
         );
       }
 
-      const [errUpdateUser] = await to(
-        User.findByIdAndUpdate(createBy, { $push: { createApartments: apartmentId } }, { new: true, session })
-      );
+      const [errUpdateUser] = await to(apartmentRepository.pushCreatedApartment(createBy, apartmentId, session));
 
       if (errUpdateUser) {
         await session.abortTransaction();
@@ -106,7 +99,7 @@ export const apartmentCommands = {
       await session.commitTransaction();
       session.endSession();
 
-      const populatedRooms = await RoomModel.find({ _id: { $in: roomIds } }).populate('amenities');
+      const populatedRooms = await apartmentRepository.findRoomsByIdsWithAmenities(roomIds);
 
       const response = {
         ...newApartment[0].toObject(),
@@ -140,16 +133,12 @@ export const apartmentCommands = {
       };
     });
     const [err, updatedApartment] = await to(
-      ApartmentModel.findByIdAndUpdate(
-        apartmentId,
-        {
-          title: updateData.title,
-          updatedBy,
-          rooms: roomsInApartment,
-          updatedAt: new Date(),
-        },
-        { new: true }
-      )
+      apartmentRepository.updateById(apartmentId, {
+        title: updateData.title,
+        updatedBy,
+        rooms: roomsInApartment,
+        updatedAt: new Date(),
+      })
     );
 
     if (err) {
@@ -175,12 +164,7 @@ export const apartmentCommands = {
     );
   },
   async deleteApartment(apartmentId: string, ownerId: string) {
-    const [err, deletedApartment] = await to(
-      ApartmentModel.findOneAndDelete({
-        _id: apartmentId,
-        owner: ownerId,
-      })
-    );
+    const [err, deletedApartment] = await to(apartmentRepository.deleteOwned(apartmentId, ownerId));
 
     if (err) {
       return new ServiceResponse(
@@ -200,11 +184,7 @@ export const apartmentCommands = {
       );
     }
 
-    const [errUpdateUser] = await to(
-      User.findByIdAndUpdate(ownerId, {
-        $pull: { createApartments: apartmentId },
-      })
-    );
+    const [errUpdateUser] = await to(apartmentRepository.pullCreatedApartment(ownerId, apartmentId));
 
     if (errUpdateUser) {
       return new ServiceResponse(ResponseStatus.Failed, 'Error updating user', null, StatusCodes.INTERNAL_SERVER_ERROR);
@@ -221,15 +201,11 @@ export const apartmentCommands = {
   },
   async removeRoomFromApartment(apartmentId: string, roomId: string, removedBy: string) {
     const [err, updatedApartment] = await to(
-      ApartmentModel.findByIdAndUpdate(
-        apartmentId,
-        {
-          $pull: { rooms: { _id: roomId } },
-          updatedBy: removedBy,
-          updatedAt: new Date(),
-        },
-        { new: true }
-      )
+      apartmentRepository.updateById(apartmentId, {
+        $pull: { rooms: { _id: roomId } },
+        updatedBy: removedBy,
+        updatedAt: new Date(),
+      })
     );
 
     if (err) {
