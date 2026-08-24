@@ -13,7 +13,26 @@ export const swaggerRouter: Router = (() => {
     res.send(openAPIDocument);
   });
 
-  router.use('/', swaggerUi.serve, swaggerUi.setup(openAPIDocument));
+  router.use(
+    '/',
+    swaggerUi.serve,
+    swaggerUi.setup(openAPIDocument, {
+      customSiteTitle: 'Rent Apartment API',
+      swaggerOptions: {
+        // Keep the Bearer token across page reloads while testing.
+        persistAuthorization: true,
+        // Group by tag in the order declared, collapse everything by default.
+        docExpansion: 'none',
+        tagsSorter: 'none',
+        operationsSorter: 'alpha',
+        displayRequestDuration: true,
+        filter: true,
+        tryItOutEnabled: false,
+        // Needed for the refresh-token cookie to be sent on "Try it out".
+        withCredentials: true,
+      },
+    })
+  );
 
   return router;
 })();

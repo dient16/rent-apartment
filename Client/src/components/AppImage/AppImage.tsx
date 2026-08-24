@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import clsx from 'clsx';
 import { FiImage } from 'react-icons/fi';
 
@@ -25,6 +25,24 @@ const AppImage: React.FC<AppImageProps> = ({
    const [loaded, setLoaded] = useState(false);
    const [failed, setFailed] = useState(false);
 
+   // New src: start over so the shimmer shows again instead of the stale image.
+   const [prevSrc, setPrevSrc] = useState(src);
+   if (prevSrc !== src) {
+      setPrevSrc(src);
+      setLoaded(false);
+      setFailed(false);
+   }
+
+   // The image can finish loading before React hydrates and attaches `onLoad`
+   // (SSR + browser cache on reload), so the `load` event is lost and the img
+   // would stay at opacity-0 forever. Read the element's own state when React
+   // attaches the ref instead.
+   const checkAlreadyComplete = useCallback((img: HTMLImageElement | null) => {
+      if (!img || !img.complete) return;
+      if (img.naturalWidth > 0) setLoaded(true);
+      else setFailed(true);
+   }, []);
+
    return (
       <span
          className={clsx(
@@ -45,6 +63,9 @@ const AppImage: React.FC<AppImageProps> = ({
          ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img
+               // Remount per src so the ref callback re-checks the new image.
+               key={typeof src === 'string' ? src : undefined}
+               ref={checkAlreadyComplete}
                src={src}
                alt={alt}
                loading={loading}

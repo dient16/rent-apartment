@@ -4,7 +4,7 @@ import express from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 
-import { createApiResponse } from '@/api-docs/openAPIResponseBuilders';
+import { createApiResponse, PUBLIC } from '@/api-docs/openAPIResponseBuilders';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 import { handleServiceResponse } from '@/utils/httpHandlers';
 
@@ -17,7 +17,10 @@ export const healthRouter: Router = (() => {
     method: 'get',
     path: '/health-check',
     tags: ['Health Check'],
-    responses: createApiResponse(z.null(), 'Success'),
+    summary: 'Liveness probe',
+    description: 'Returns 200 as long as the HTTP server is up. Does not check the database.',
+    security: PUBLIC,
+    responses: createApiResponse(z.null(), 'Service is healthy'),
   });
 
   router.get('/', (_req: Request, res: Response) => {

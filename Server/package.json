@@ -22,7 +22,8 @@
     "typecheck": "tsc --noEmit",
     "es:up": "docker compose up -d elasticsearch",
     "search:reindex": "tsx src/scripts/reindexApartments.ts",
-    "search:reindex:prod": "node dist/scripts/reindexApartments.js"
+    "search:reindex:prod": "node dist/scripts/reindexApartments.js",
+    "docs:openapi": "tsx scripts/dumpOpenApi.ts openapi.json"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",
