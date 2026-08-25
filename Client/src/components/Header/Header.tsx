@@ -6,7 +6,7 @@ import AuthModal from '@/components/Auth/AuthModal';
 import { NavLink, useNavigate } from '@/lib/router-compat';
 import { useIsHydrated } from '@/hooks';
 import { Flex, Button, Drawer, Image, Popover, Tooltip } from 'antd';
-import { FiHeart } from 'react-icons/fi';
+import { FiHeart, FiLogIn, FiUserPlus, FiX } from 'react-icons/fi';
 import { TbHomePlus } from 'react-icons/tb';
 import icons from '@/utils/icons';
 import { useAuth } from '@/hooks';
@@ -15,18 +15,17 @@ interface Props {
    isHost?: boolean;
 }
 const Header: React.FC<Props> = ({ isHost = false }) => {
-   const { SlClose, AiOutlineUsergroupAdd, PiSignInBold, CgMenuLeft, HiMenu } =
-      icons;
+   const { CgMenuLeft, HiMenu } = icons;
    const navigate = useNavigate();
    // SSR can't know the login state - render a neutral placeholder until the
    // client restores the session, so signed-in users never see Sign in flash.
    const hydrated = useIsHydrated();
    const [openNavigate, setOpenNavigate] = useState(false);
    const [menuOpen, setMenuOpen] = useState(false);
+   const [accountOpen, setAccountOpen] = useState(false);
    const {
       isAuthenticated,
       user: currentUser,
-      authModal,
       setAuthModal,
    } = useAuth();
 
@@ -145,99 +144,248 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                      </Button>
                   </Flex>
                ) : (
-                  <Popover
-                     placement="bottomRight"
-                     content={
-                        <MenuAccount
-                           isHost={isHost}
-                           onClose={() => setMenuOpen(false)}
-                        />
-                     }
-                     arrow={false}
-                     trigger="click"
-                     open={menuOpen}
-                     onOpenChange={setMenuOpen}
-                  >
-                     <span className="flex gap-2 justify-center items-center py-1.5 pr-1.5 pl-3 rounded-full border border-gray-300 transition-shadow cursor-pointer hover:shadow-card-lg">
+                  <>
+                     {/* Desktop: popover under the avatar pill */}
+                     <Popover
+                        placement="bottomRight"
+                        content={
+                           <MenuAccount
+                              isHost={isHost}
+                              onClose={() => setMenuOpen(false)}
+                           />
+                        }
+                        arrow={false}
+                        trigger="click"
+                        open={menuOpen}
+                        onOpenChange={setMenuOpen}
+                     >
+                        <span className="hidden gap-2 justify-center items-center py-1.5 pr-1.5 pl-3 rounded-full border border-gray-300 transition-shadow cursor-pointer lg:flex hover:shadow-card-lg">
+                           <HiMenu size={16} className="text-gray-600" />
+                           <UserAvatar
+                              size={30}
+                              src={currentUser?.avatar}
+                              name={currentUser?.firstname}
+                           />
+                        </span>
+                     </Popover>
+
+                     {/* Mobile/tablet: the same pill opens a right-hand sidebar */}
+                     <button
+                        type="button"
+                        aria-label="Account menu"
+                        onClick={() => setAccountOpen(true)}
+                        className="flex gap-2 justify-center items-center py-1.5 pr-1.5 pl-3 bg-transparent rounded-full border border-gray-300 cursor-pointer lg:hidden"
+                     >
                         <HiMenu size={16} className="text-gray-600" />
                         <UserAvatar
                            size={30}
                            src={currentUser?.avatar}
                            name={currentUser?.firstname}
                         />
-                     </span>
-                  </Popover>
+                     </button>
+                  </>
                )}
             </Flex>
          </div>
 
          <AuthModal />
+
+         {/* ===== Mobile account sidebar (right) ===== */}
          <Drawer
-            title={
-               <div
-                  className="flex justify-end items-center w-full cursor-pointer"
-                  onClick={() => setOpenNavigate(false)}
-               >
-                  <SlClose size={28} />
+            placement="right"
+            size={320}
+            onClose={() => setAccountOpen(false)}
+            open={accountOpen}
+            closeIcon={null}
+            styles={{ body: { padding: 0 }, header: { display: 'none' } }}
+         >
+            <div className="flex flex-col h-full select-none font-main">
+               <div className="flex justify-between items-center px-5 h-[60px] border-b border-gray-100">
+                  <div className="flex gap-3 items-center min-w-0">
+                     <UserAvatar
+                        size={36}
+                        src={currentUser?.avatar}
+                        name={currentUser?.firstname}
+                     />
+                     <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                           {[currentUser?.firstname, currentUser?.lastname]
+                              .filter(Boolean)
+                              .join(' ') || 'Your account'}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                           {currentUser?.email}
+                        </p>
+                     </div>
+                  </div>
+                  <button
+                     type="button"
+                     aria-label="Close menu"
+                     onClick={() => setAccountOpen(false)}
+                     className="flex flex-shrink-0 justify-center items-center w-9 h-9 text-gray-500 bg-gray-100 rounded-full border-none cursor-pointer hover:bg-gray-200"
+                  >
+                     <FiX size={20} />
+                  </button>
                </div>
-            }
+               <div className="overflow-y-auto flex-1 px-2 py-2">
+                  <MenuAccount
+                     variant="drawer"
+                     isHost={isHost}
+                     onClose={() => setAccountOpen(false)}
+                  />
+               </div>
+            </div>
+         </Drawer>
+
+         {/* ===== Mobile navigation drawer ===== */}
+         <Drawer
             placement="left"
-            size="100%"
+            size={320}
             onClose={() => setOpenNavigate(false)}
             open={openNavigate}
             closeIcon={null}
+            styles={{ body: { padding: 0 }, header: { display: 'none' } }}
          >
-            <div
-               className="flex flex-col gap-5 select-none"
-               onClick={() => setOpenNavigate(false)}
-            >
-               <Flex gap={20} vertical>
-                  {(isHost ? navigateHosts : navigates).map(
-                     (navigateItem, index) => (
-                        <NavLink
-                           className="flex gap-5 items-center font-medium font-main text-[22px]"
-                           key={index}
-                           to={navigateItem.path}
-                        >
-                           <span>{navigateItem.icon}</span>
-                           <span>{navigateItem.title}</span>
-                        </NavLink>
-                     ),
-                  )}
+            <div className="flex flex-col h-full select-none font-main">
+               {/* Brand + close */}
+               <div className="flex justify-between items-center px-5 h-[60px] border-b border-gray-100">
+                  <div className="flex gap-2 items-center">
+                     <Image
+                        src={logo.src}
+                        alt="Find House"
+                        width={28}
+                        height={28}
+                        preview={false}
+                     />
+                     <span className="text-base font-bold text-gray-900">
+                        Find House
+                     </span>
+                  </div>
+                  <button
+                     type="button"
+                     aria-label="Close menu"
+                     onClick={() => setOpenNavigate(false)}
+                     className="flex justify-center items-center w-9 h-9 text-gray-500 bg-gray-100 rounded-full border-none cursor-pointer hover:bg-gray-200"
+                  >
+                     <FiX size={20} />
+                  </button>
+               </div>
+
+               {/* Links */}
+               <nav
+                  className="flex flex-col flex-1 gap-1 px-3 py-4 overflow-y-auto"
+                  onClick={() => setOpenNavigate(false)}
+               >
+                  <p className="px-3 mb-2 text-[11px] font-semibold tracking-wider text-gray-400 uppercase">
+                     {isHost ? 'Host panel' : 'Menu'}
+                  </p>
+                  {(isHost ? navigateHosts : navigates).map((navigateItem) => (
+                     <NavLink
+                        key={navigateItem.title}
+                        to={navigateItem.path}
+                        end={navigateItem.path === path.HOME}
+                        className={({ isActive }) =>
+                           clsx(
+                              'flex gap-3 items-center px-3 py-2.5 text-[15px] font-medium rounded-xl transition-colors',
+                              isActive
+                                 ? 'bg-blue-50 text-blue-600'
+                                 : 'text-gray-800 hover:bg-gray-100',
+                           )
+                        }
+                     >
+                        {({ isActive }) => (
+                           <>
+                              <span
+                                 className={clsx(
+                                    'flex justify-center items-center w-9 h-9 text-lg rounded-lg',
+                                    isActive
+                                       ? 'bg-blue-100 text-blue-600'
+                                       : 'bg-gray-100 text-gray-600',
+                                 )}
+                              >
+                                 {navigateItem.icon}
+                              </span>
+                              <span>{navigateItem.title}</span>
+                           </>
+                        )}
+                     </NavLink>
+                  ))}
+
                   {!isHost && (
-                     <span
-                        className="flex gap-5 items-center font-medium cursor-pointer font-main text-[22px]"
+                     <button
+                        type="button"
                         onClick={goToHost}
+                        className="flex gap-3 items-center px-3 py-3 mt-4 text-left bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl border-none shadow-md cursor-pointer shadow-blue-500/20"
                      >
-                        <TbHomePlus />
-                        <span>Become a Host</span>
-                     </span>
-                  )}
-               </Flex>
-               {!isAuthenticated && (
-                  <Flex gap={20} vertical>
-                     <span
-                        className="flex gap-5 items-center font-medium cursor-pointer font-main text-[22px]"
-                        onClick={() =>
-                           setAuthModal({ isOpen: true, activeTab: 'signin' })
-                        }
-                     >
-                        <PiSignInBold />
-                        <span>Sign in</span>
-                     </span>
-                     <span
-                        className="flex gap-5 items-center font-medium cursor-pointer font-main text-[22px]"
-                        onClick={() =>
-                           setAuthModal({ isOpen: true, activeTab: 'signup' })
-                        }
-                     >
-                        <span>
-                           <AiOutlineUsergroupAdd />
+                        <span className="flex flex-shrink-0 justify-center items-center w-9 h-9 text-lg text-white rounded-lg bg-white/20">
+                           <TbHomePlus />
                         </span>
-                        <span> Sign up</span>
-                     </span>
-                  </Flex>
-               )}
+                        <span className="flex flex-col">
+                           <span className="text-[15px] font-semibold text-white">
+                              Become a Host
+                           </span>
+                           <span className="text-xs text-blue-100">
+                              List your place and start earning
+                           </span>
+                        </span>
+                     </button>
+                  )}
+               </nav>
+
+               {/* Account */}
+               <div className="px-4 py-4 border-t border-gray-100">
+                  {isAuthenticated ? (
+                     <div
+                        className="flex gap-3 items-center p-3 bg-gray-50 rounded-2xl cursor-pointer hover:bg-gray-100"
+                        onClick={() => {
+                           setOpenNavigate(false);
+                           navigate(
+                              `/${path.ACCOUNT_SETTINGS}/${path.PERSONAL_INFORMATION}`,
+                           );
+                        }}
+                     >
+                        <UserAvatar
+                           size={40}
+                           src={currentUser?.avatar}
+                           name={currentUser?.firstname}
+                        />
+                        <div className="min-w-0">
+                           <p className="text-sm font-semibold text-gray-900 truncate">
+                              {[currentUser?.firstname, currentUser?.lastname]
+                                 .filter(Boolean)
+                                 .join(' ') || 'Your account'}
+                           </p>
+                           <p className="text-xs text-gray-500 truncate">
+                              {currentUser?.email}
+                           </p>
+                        </div>
+                     </div>
+                  ) : (
+                     <div className="grid grid-cols-2 gap-2">
+                        <Button
+                           type="primary"
+                           icon={<FiLogIn />}
+                           className="h-11 font-semibold bg-blue-500 rounded-xl"
+                           onClick={() => {
+                              setOpenNavigate(false);
+                              setAuthModal({ isOpen: true, activeTab: 'signin' });
+                           }}
+                        >
+                           Sign in
+                        </Button>
+                        <Button
+                           icon={<FiUserPlus />}
+                           className="h-11 font-semibold rounded-xl"
+                           onClick={() => {
+                              setOpenNavigate(false);
+                              setAuthModal({ isOpen: true, activeTab: 'signup' });
+                           }}
+                        >
+                           Sign up
+                        </Button>
+                     </div>
+                  )}
+               </div>
             </div>
          </Drawer>
       </header>

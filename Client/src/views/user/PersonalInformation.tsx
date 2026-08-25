@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Avatar, Button, DatePicker, Input, Select, message, Upload } from 'antd';
+import { Avatar, Button, DatePicker, Input, Select, Skeleton, message, Upload } from 'antd';
 import {
    UserOutlined,
    EditOutlined,
@@ -28,19 +28,25 @@ interface FieldTileProps {
    icon: React.ReactNode;
    label: string;
    value?: React.ReactNode;
+   /** Long values (email, address) take the full row on mobile so they never wrap mid-word. */
+   wide?: boolean;
 }
 
 /** Read-mode info tile: square icon + uppercase label + value */
-const FieldTile: React.FC<FieldTileProps> = ({ icon, label, value }) => (
-   <div className="flex gap-4 items-start">
-      <span className="flex flex-shrink-0 justify-center items-center w-11 h-11 text-lg text-gray-500 bg-gray-100 rounded-xl">
+const FieldTile: React.FC<FieldTileProps> = ({ icon, label, value, wide }) => (
+   <div
+      className={`flex gap-2.5 items-start min-w-0 md:gap-4 ${
+         wide ? 'col-span-2 md:col-span-1' : ''
+      }`}
+   >
+      <span className="flex flex-shrink-0 justify-center items-center w-9 h-9 text-sm text-gray-500 bg-gray-100 rounded-xl md:w-11 md:h-11 md:text-lg">
          {icon}
       </span>
       <div className="min-w-0">
-         <p className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
+         <p className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase md:text-xs">
             {label}
          </p>
-         <p className="mt-1 text-sm font-semibold text-gray-900 break-words">
+         <p className="mt-0.5 text-sm font-semibold text-gray-900 break-words md:mt-1">
             {value || <span className="font-normal text-gray-400">—</span>}
          </p>
       </div>
@@ -48,6 +54,39 @@ const FieldTile: React.FC<FieldTileProps> = ({ icon, label, value }) => (
 );
 
 const inputClass = 'h-10 rounded-lg';
+
+/** Mirrors the read-mode card while the profile loads (no fullscreen spinner). */
+const ProfileSkeleton: React.FC = () => (
+   <div className="overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-card-sm">
+      <div className="flex gap-3 justify-between items-center p-4 border-b border-gray-100 md:p-8">
+         <div className="flex gap-3 items-center sm:gap-5">
+            <Skeleton.Avatar active size={56} />
+            <div className="flex flex-col gap-2">
+               <Skeleton.Input active size="small" className="w-36! h-5! min-w-0!" />
+               <Skeleton.Input active size="small" className="w-44! h-3! min-w-0!" />
+            </div>
+         </div>
+         <Skeleton.Button active className="w-9! h-9! min-w-0! rounded-lg! sm:w-32! sm:h-10!" />
+      </div>
+      <div className="p-4 md:p-8">
+         <Skeleton.Input active size="small" className="w-44! h-5! min-w-0!" />
+         <div className="mt-2 mb-5">
+            <Skeleton.Input active size="small" className="w-56! h-3.5! min-w-0!" />
+         </div>
+         <div className="grid grid-cols-2 gap-x-3 gap-y-4 md:gap-x-10 md:gap-y-7">
+            {Array.from({ length: 8 }).map((_, index) => (
+               <div key={index} className="flex gap-2.5 items-start">
+                  <Skeleton.Avatar active shape="square" size={36} className="rounded-xl!" />
+                  <div className="flex flex-col gap-2 pt-0.5">
+                     <Skeleton.Input active size="small" className="w-20! h-2.5! min-w-0!" />
+                     <Skeleton.Input active size="small" className="w-36! h-4! min-w-0!" />
+                  </div>
+               </div>
+            ))}
+         </div>
+      </div>
+   </div>
+);
 
 const PersonalInformation: React.FC = () => {
    const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -160,17 +199,23 @@ const PersonalInformation: React.FC = () => {
       { name: 'personalId', label: 'Personal ID', rules: {} },
    ];
 
+   if (isLoading) {
+      return (
+         <div className="pb-10 w-full font-main">
+            <ProfileSkeleton />
+         </div>
+      );
+   }
+
    return (
       <>
-         <FullscreenLoader
-            spinning={isLoading || editProfileMutator.isPending}
-         />
-         <div className="pb-10 w-full font-main">
+         <FullscreenLoader spinning={editProfileMutator.isPending} />
+         <div className="pb-6 w-full font-main md:pb-10">
             <form onSubmit={handleSubmit(handleEditUser)} className="w-full">
                <div className="overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-card-sm">
                   {/* ===== Header ===== */}
-                  <div className="flex flex-wrap gap-5 justify-between items-center p-6 border-b border-gray-100 md:p-8">
-                     <div className="flex gap-5 items-center min-w-0">
+                  <div className="flex gap-3 justify-between items-center p-4 border-b border-gray-100 sm:gap-5 md:p-8">
+                     <div className="flex gap-3 items-center min-w-0 sm:gap-5">
                         <div className="relative flex-shrink-0">
                            {isEditing ? (
                               <Controller
@@ -219,26 +264,31 @@ const PersonalInformation: React.FC = () => {
                            ) : (
                               <>
                                  <Avatar
-                                    size={84}
+                                    size={56}
                                     src={user?.avatar}
                                     icon={<UserOutlined />}
-                                    className="border-2 border-white shadow-card-sm"
+                                    className="border-2 border-white shadow-card-sm md:w-[84px]! md:h-[84px]!"
                                  />
-                                 <CheckCircleFilled className="absolute right-0.5 bottom-0.5 text-lg text-green-500 bg-white rounded-full" />
+                                 <CheckCircleFilled className="absolute right-0 bottom-0 text-base text-green-500 bg-white rounded-full md:text-lg" />
                               </>
                            )}
                         </div>
                         <div className="min-w-0">
                            <div className="flex flex-wrap gap-2 items-center">
-                              <h1 className="text-2xl font-bold text-gray-900 truncate">
+                              <h1 className="text-lg font-bold text-gray-900 truncate md:text-2xl">
                                  {fullName}
                               </h1>
-                              <span className="px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-blue-600 uppercase bg-blue-50 rounded-md">
+                              <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider text-blue-600 uppercase bg-blue-50 rounded-md md:px-2.5 md:text-[11px]">
                                  Member
                               </span>
                            </div>
-                           <p className="mt-1 text-sm text-gray-500 truncate">
-                              Member since {memberSince} · {user?.email}
+                           {/* Mobile: two short lines; desktop: one line */}
+                           <p className="mt-0.5 text-xs text-gray-500 md:mt-1 md:text-sm">
+                              Member since {memberSince}
+                              <span className="hidden md:inline"> · {user?.email}</span>
+                           </p>
+                           <p className="text-xs text-gray-500 break-all md:hidden">
+                              {user?.email}
                            </p>
                         </div>
                      </div>
@@ -246,51 +296,51 @@ const PersonalInformation: React.FC = () => {
                      {!isEditing ? (
                         <Button
                            type="primary"
-                           size="large"
                            icon={<EditOutlined />}
-                           className="h-10 bg-blue-500 rounded-lg"
+                           aria-label="Edit profile"
+                           className="flex-shrink-0 h-9 bg-blue-500 rounded-lg sm:h-10"
                            onClick={() => setIsEditing(true)}
                         >
-                           Edit Profile
+                           <span className="hidden sm:inline">Edit Profile</span>
                         </Button>
                      ) : (
-                        <div className="flex gap-3">
+                        <div className="flex flex-shrink-0 gap-2 sm:gap-3">
                            <Button
-                              size="large"
                               icon={<CloseOutlined />}
-                              className="h-10 rounded-lg"
+                              aria-label="Cancel"
+                              className="h-9 rounded-lg sm:h-10"
                               onClick={() => {
                                  setIsEditing(false);
                                  reset();
                               }}
                            >
-                              Cancel
+                              <span className="hidden sm:inline">Cancel</span>
                            </Button>
                            <Button
                               type="primary"
-                              size="large"
                               htmlType="submit"
                               icon={<SaveOutlined />}
+                              aria-label="Save changes"
                               loading={editProfileMutator.isPending}
-                              className="h-10 bg-blue-500 rounded-lg"
+                              className="h-9 bg-blue-500 rounded-lg sm:h-10"
                            >
-                              Save changes
+                              <span className="hidden sm:inline">Save changes</span>
                            </Button>
                         </div>
                      )}
                   </div>
 
                   {/* ===== Body ===== */}
-                  <div className="p-6 md:p-8">
-                     <h2 className="text-lg font-bold text-gray-900">
+                  <div className="p-4 md:p-8">
+                     <h2 className="text-base font-bold text-gray-900 md:text-lg">
                         Personal Information
                      </h2>
-                     <p className="mt-0.5 mb-7 text-sm text-gray-500">
+                     <p className="mt-0.5 mb-4 text-sm text-gray-500 md:mb-7">
                         Your account and contact details.
                      </p>
 
                      {!isEditing ? (
-                        <div className="grid gap-x-10 gap-y-7 md:grid-cols-2">
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-4 md:gap-x-10 md:gap-y-7">
                            <FieldTile
                               icon={<UserOutlined />}
                               label="Name"
@@ -300,6 +350,7 @@ const PersonalInformation: React.FC = () => {
                               icon={<MailOutlined />}
                               label="Email address"
                               value={user?.email}
+                              wide
                            />
                            <FieldTile
                               icon={<PhoneOutlined />}
@@ -331,6 +382,7 @@ const PersonalInformation: React.FC = () => {
                               icon={<HomeOutlined />}
                               label="Address"
                               value={user?.address}
+                              wide
                            />
                            <FieldTile
                               icon={<IdcardOutlined />}
@@ -339,7 +391,7 @@ const PersonalInformation: React.FC = () => {
                            />
                         </div>
                      ) : (
-                        <div className="grid gap-x-8 gap-y-5 md:grid-cols-2">
+                        <div className="grid gap-4 md:grid-cols-2 md:gap-x-8 md:gap-y-5">
                            {editableFields.map((fieldConfig) => (
                               <Controller
                                  key={fieldConfig.name}

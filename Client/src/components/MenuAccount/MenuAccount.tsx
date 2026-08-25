@@ -21,6 +21,8 @@ import {
 interface MenuAccountProps {
    isHost?: boolean;
    onClose?: () => void;
+   /** `popover` (desktop, fixed 240px) or `drawer` (mobile sidebar, fills its container). */
+   variant?: 'popover' | 'drawer';
 }
 
 interface MenuEntry {
@@ -94,9 +96,14 @@ const hostMenu: MenuEntry[] = [
    },
 ];
 
-const MenuAccount: FC<MenuAccountProps> = ({ isHost = false, onClose }) => {
+const MenuAccount: FC<MenuAccountProps> = ({
+   isHost = false,
+   onClose,
+   variant = 'popover',
+}) => {
    const { dispatch, user } = useAuth();
    const entries = isHost ? hostMenu : guestMenu;
+   const isDrawer = variant === 'drawer';
 
    // Unread count for the Messages badge
    const { data: conversationsData } = useQuery({
@@ -116,12 +123,14 @@ const MenuAccount: FC<MenuAccountProps> = ({ isHost = false, onClose }) => {
       }
    };
 
-   const itemClass =
-      'flex gap-3 items-center px-3 py-2.5 w-full text-sm font-medium rounded-xl transition-colors font-main';
+   const itemClass = isDrawer
+      ? 'flex gap-3 items-center px-3 py-3 w-full text-[15px] font-medium rounded-xl transition-colors font-main'
+      : 'flex gap-3 items-center px-3 py-2.5 w-full text-sm font-medium rounded-xl transition-colors font-main';
 
    return (
-      <div className="w-[240px] font-main">
-         {/* Greeting + current role */}
+      <div className={isDrawer ? 'w-full font-main' : 'w-[240px] font-main'}>
+         {/* Greeting + current role (the drawer already shows the user in its header) */}
+         {!isDrawer && (
          <div className="flex gap-3 items-center px-3 pt-1 pb-3 border-b border-gray-100">
             <span className="flex justify-center items-center w-9 h-9 text-blue-600 bg-blue-50 rounded-full">
                {isHost ? (
@@ -141,8 +150,14 @@ const MenuAccount: FC<MenuAccountProps> = ({ isHost = false, onClose }) => {
                </p>
             </div>
          </div>
+         )}
 
          <div className="py-2">
+            {isDrawer && (
+               <p className="px-3 pt-1 pb-2 text-[11px] font-semibold tracking-wider text-gray-400 uppercase">
+                  {isHost ? 'Hosting mode' : 'Traveling mode'}
+               </p>
+            )}
             {entries.map((entry) => (
                <Link
                   key={entry.label}

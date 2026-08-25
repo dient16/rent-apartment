@@ -47,14 +47,15 @@ const Search: React.FC = () => {
    };
 
    const segmentClass =
-      'flex flex-col justify-center gap-0.5 px-5 py-2.5 rounded-full transition-colors hover:bg-gray-100 cursor-pointer min-h-[58px]';
+      'flex flex-col justify-center gap-0.5 px-4 py-2.5 rounded-2xl transition-colors hover:bg-gray-100 cursor-pointer min-h-[56px] md:px-5 md:rounded-full md:min-h-[58px]';
    const labelClass =
       'text-xs font-bold tracking-wide text-gray-900 uppercase pointer-events-none leading-none';
 
    return (
       <form
          onSubmit={handleSubmit(handleSearch)}
-         className="flex flex-col gap-1 items-stretch p-2 w-full bg-white rounded-3xl border border-gray-200 shadow-lg md:flex-row md:items-center md:rounded-full md:gap-0 font-main max-w-[960px]"
+         // Mobile: one grey segment per row + full-width button. md+: single pill row.
+         className="flex flex-col gap-1.5 items-stretch p-2 w-full bg-white rounded-3xl border border-gray-200 shadow-lg md:flex-row md:items-center md:rounded-full md:gap-0 font-main max-w-[960px]"
       >
          {/* ===== Where ===== */}
          <Controller
@@ -74,7 +75,7 @@ const Search: React.FC = () => {
                      placement="bottom"
                   >
                   <label
-                     className={`${segmentClass} relative flex-[1.15] min-w-0 ${
+                     className={`${segmentClass} relative flex-[1.15] min-w-0 bg-gray-50 md:bg-transparent ${
                         error ? 'ring-1 ring-red-400 bg-red-50/40 rounded-full' : ''
                      }`}
                   >
@@ -183,7 +184,7 @@ const Search: React.FC = () => {
             control={control}
             defaultValue={[moment().toDate(), moment().add(1, 'days').toDate()]}
             render={({ field }) => (
-               <div className={`${segmentClass} relative flex-[1.1]`}>
+               <div className={`${segmentClass} relative flex-[1.1] min-w-0 bg-gray-50 md:bg-transparent`}>
                   <span className={labelClass}>When</span>
                   <CustomDatePicker
                      value={field.value}
@@ -211,7 +212,7 @@ const Search: React.FC = () => {
                const summary = (
                   <>
                      <span className={labelClass}>Who</span>
-                     <span className="text-[15px] text-gray-800 whitespace-nowrap">
+                     <span className="text-[15px] text-gray-800 truncate">
                         {field.value?.guests || 1} guest
                         {(field.value?.guests || 1) > 1 ? 's' : ''} ·{' '}
                         {field.value?.rooms || 1} room
@@ -243,7 +244,7 @@ const Search: React.FC = () => {
 
                      {/* Mobile/tablet: full-screen sheet */}
                      <div
-                        className={`${segmentClass} flex-1 lg:hidden`}
+                        className={`${segmentClass} flex-1 min-w-0 bg-gray-50 md:bg-transparent lg:hidden`}
                         onClick={() => setWhoOpen(true)}
                      >
                         {summary}
@@ -294,7 +295,7 @@ const Search: React.FC = () => {
          />
 
          {/* ===== Search button ===== */}
-         <div className="flex justify-center items-center pr-1 pl-2">
+         <div className="flex justify-center items-center mt-0.5 md:mt-0 md:pr-1 md:pl-2">
             <Button
                type="primary"
                htmlType="submit"

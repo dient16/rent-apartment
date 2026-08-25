@@ -16,7 +16,59 @@ import { Drawer, Button } from 'antd';
 import { useForm, FormProvider } from 'react-hook-form';
 import { SearchOutlined } from '@ant-design/icons';
 import moment from 'moment';
-import { FiFilter } from 'react-icons/fi';
+import clsx from 'clsx';
+import { FiSliders, FiX } from 'react-icons/fi';
+
+const SORT_OPTIONS = [
+   { value: 'price_asc', label: 'Price ↑' },
+   { value: 'price_desc', label: 'Price ↓' },
+   { value: 'rating', label: 'Top rated' },
+];
+
+/** Bottom sheet used for the mobile search / filter panels. */
+const MobileSheet: React.FC<{
+   title: string;
+   open: boolean;
+   onClose: () => void;
+   children: React.ReactNode;
+   footer?: React.ReactNode;
+}> = ({ title, open, onClose, children, footer }) => (
+   <Drawer
+      placement="bottom"
+      open={open}
+      onClose={onClose}
+      size="92%"
+      closeIcon={null}
+      zIndex={800}
+      className="lg:hidden"
+      styles={{
+         header: { display: 'none' },
+         body: { padding: 0 },
+         section: { borderRadius: '20px 20px 0 0' },
+      }}
+   >
+      <div className="flex flex-col h-full font-main">
+         <div className="flex flex-shrink-0 justify-between items-center px-4 pt-3 pb-3 border-b border-gray-100">
+            <span className="w-9" />
+            <span className="text-base font-semibold text-gray-900">{title}</span>
+            <button
+               type="button"
+               aria-label="Close"
+               onClick={onClose}
+               className="flex justify-center items-center w-9 h-9 text-gray-600 bg-gray-100 rounded-full border-none cursor-pointer"
+            >
+               <FiX size={18} />
+            </button>
+         </div>
+         <div className="overflow-y-auto flex-1 px-4 py-4">{children}</div>
+         {footer && (
+            <div className="flex-shrink-0 p-4 border-t border-gray-100 bg-white">
+               {footer}
+            </div>
+         )}
+      </div>
+   </Drawer>
+);
 
 const Listing: React.FC = () => {
    const [searchParams, setSearchParams] = useSearchParams();
@@ -39,6 +91,12 @@ const Listing: React.FC = () => {
       };
    }, [searchParams]);
 
+   const activeFilterCount =
+      (filterValues.searchPrice ? 1 : 0) +
+      (filterValues.minRating ? 1 : 0) +
+      (filterValues.bedType ? 1 : 0) +
+      filterValues.amenities.length;
+
    const methods = useForm({ defaultValues: filterValues });
 
    React.useEffect(() => {
@@ -60,9 +118,11 @@ const Listing: React.FC = () => {
       staleTime: 0,
    });
 
+   const totalResults: number = data?.data?.totalResults || 0;
    const roomNumber: number = +(searchParams.get('roomNumber') || 1) || 1;
    const numberOfGuest: number =
       +(searchParams.get('numberOfGuest') || 1) || 1;
+   const sortBy = searchParams.get('sortBy') || 'price_asc';
 
    const handleSearch = (formData: Record<string, any>) => {
       const queryParams = new URLSearchParams();
@@ -104,8 +164,8 @@ const Listing: React.FC = () => {
          queryParams.set('amenities', formData.amenities.join(','));
       }
       // Keep the current sort when searching again
-      const sortBy = searchParams.get('sortBy');
-      if (sortBy) queryParams.set('sortBy', sortBy);
+      const currentSort = searchParams.get('sortBy');
+      if (currentSort) queryParams.set('sortBy', currentSort);
 
       setSearchParams(queryParams);
       setDrawerVisible(false);
@@ -154,68 +214,127 @@ const Listing: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
    };
 
-   const handleSortChange = (sortBy: string) => {
+   const handleSortChange = (nextSort: string) => {
       const newSearchParams = new URLSearchParams(searchParams.toString());
-      newSearchParams.set('sortBy', sortBy);
+      newSearchParams.set('sortBy', nextSort);
       newSearchParams.delete('page');
       setSearchParams(newSearchParams);
    };
 
-   const searchAndFilterForm = (
-      <form onSubmit={methods.handleSubmit(handleSearch)}>
-         <SearchSection searchParams={searchParams} />
-         <Button
-            className="mt-3 px-5 w-full bg-blue-500 rounded-full font-main h-[48px]"
-            type="primary"
-            icon={<SearchOutlined />}
-            htmlType="submit"
-         >
-            Search
-         </Button>
-         <FilterSection onApply={applyFilters} />
-      </form>
-   );
+   const resultsProps = {
+      data,
+      isFetching: isLoading,
+      numberOfGuest,
+      roomNumber,
+      searchParams,
+      handleChangePage,
+      handleSortChange,
+   };
 
    return (
       <div className="flex flex-col justify-center items-center w-full bg-gray-50 font-main">
-         <div className="flex flex-col gap-6 px-5 mt-2 mb-5 w-full min-h-screen lg:flex-row lg:mt-4 max-w-main sm:px-5">
-            {/* Mobile: summary + filter button */}
-            <div className="flex justify-center items-center w-full lg:hidden">
-               <SummaryCard
-                  searchParams={searchParams}
-                  onClick={() => setDrawerVisible(true)}
-               />
-               <span
-                  onClick={() => setFilterDrawerVisible(true)}
-                  className="ml-2 text-2xl cursor-pointer filter-icon"
-               >
-                  <FiFilter size={30} />
-               </span>
+         <div className="flex flex-col gap-4 px-4 mb-5 w-full min-h-screen sm:px-5 lg:flex-row lg:gap-6 lg:mt-4 max-w-main">
+            {/* ===== Mobile / tablet: sticky search pill + toolbar ===== */}
+            <div className="sticky top-[60px] z-30 -mx-4 px-4 pt-2 pb-2 bg-gray-50/95 backdrop-blur sm:-mx-5 sm:px-5 lg:hidden">
+               <div className="flex gap-2 items-center">
+                  <SummaryCard
+                     searchParams={searchParams}
+                     onClick={() => setDrawerVisible(true)}
+                  />
+                  <button
+                     type="button"
+                     aria-label="Filters"
+                     onClick={() => setFilterDrawerVisible(true)}
+                     className={clsx(
+                        'flex relative flex-shrink-0 justify-center items-center w-12 h-12 rounded-full border shadow-card-sm cursor-pointer transition-colors',
+                        activeFilterCount > 0
+                           ? 'bg-blue-600 border-blue-600 text-white'
+                           : 'bg-white border-gray-200 text-gray-700',
+                     )}
+                  >
+                     <FiSliders size={18} />
+                     {activeFilterCount > 0 && (
+                        <span className="flex absolute -top-1 -right-1 justify-center items-center w-5 h-5 text-[11px] font-bold text-blue-600 bg-white rounded-full border-2 border-blue-600">
+                           {activeFilterCount}
+                        </span>
+                     )}
+                  </button>
+               </div>
+
+               {/* Map + sort chips */}
+               <div className="flex overflow-x-auto gap-2 items-center pt-2 -mx-4 px-4 scrollbar-none sm:-mx-5 sm:px-5">
+                  <MapExplore
+                     variant="chip"
+                     apartments={data?.data?.apartments || []}
+                     detailQuery={queryString}
+                  />
+                  <span className="flex-shrink-0 w-px h-6 bg-gray-200" />
+                  {SORT_OPTIONS.map((option) => (
+                     <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => handleSortChange(option.value)}
+                        className={clsx(
+                           'flex-shrink-0 px-3.5 h-9 text-sm font-medium rounded-full border transition-colors cursor-pointer whitespace-nowrap',
+                           sortBy === option.value
+                              ? 'bg-gray-900 text-white border-gray-900'
+                              : 'bg-white text-gray-700 border-gray-200',
+                        )}
+                     >
+                        {option.label}
+                     </button>
+                  ))}
+               </div>
             </div>
 
-            <Drawer
-               title="Search & Filter"
-               placement="bottom"
-               onClose={() => setDrawerVisible(false)}
+            <MobileSheet
+               title="Search"
                open={drawerVisible}
-               className="lg:hidden"
-               size="100%"
-               zIndex={800}
+               onClose={() => setDrawerVisible(false)}
             >
-               <FormProvider {...methods}>{searchAndFilterForm}</FormProvider>
-            </Drawer>
+               <FormProvider {...methods}>
+                  <form
+                     id="mobile-search-form"
+                     onSubmit={methods.handleSubmit(handleSearch)}
+                  >
+                     <SearchSection searchParams={searchParams} />
+                     <Button
+                        className="mt-4 w-full font-semibold bg-blue-500 rounded-2xl h-[48px]"
+                        type="primary"
+                        icon={<SearchOutlined />}
+                        htmlType="submit"
+                     >
+                        Search
+                     </Button>
+                  </form>
+               </FormProvider>
+            </MobileSheet>
 
-            <Drawer
-               title="Filter"
-               placement="bottom"
-               onClose={() => setFilterDrawerVisible(false)}
+            <MobileSheet
+               title="Filters"
                open={filterDrawerVisible}
-               size="100%"
+               onClose={() => setFilterDrawerVisible(false)}
+               footer={
+                  <Button
+                     type="primary"
+                     className="w-full font-semibold bg-blue-500 rounded-2xl h-[48px]"
+                     onClick={() => setFilterDrawerVisible(false)}
+                  >
+                     {isLoading
+                        ? 'Searching…'
+                        : `Show ${totalResults} stay${totalResults !== 1 ? 's' : ''}`}
+                  </Button>
+               }
             >
-               <FormProvider {...methods}>{searchAndFilterForm}</FormProvider>
-            </Drawer>
+               <FormProvider {...methods}>
+                  {/* Filters apply instantly (they update the URL); no submit needed. */}
+                  <div className="-mt-5">
+                     <FilterSection onApply={applyFilters} />
+                  </div>
+               </FormProvider>
+            </MobileSheet>
 
-            {/* Desktop: search bar on top, filters + results below */}
+            {/* ===== Desktop: search bar on top, filters + results below ===== */}
             <div className="hidden lg:flex flex-col gap-5 w-full min-w-0">
                <FormProvider {...methods}>
                   <form onSubmit={methods.handleSubmit(handleSearch)}>
@@ -234,31 +353,15 @@ const Listing: React.FC = () => {
                      </div>
 
                      <div className="w-full min-w-0">
-                        <Results
-                           data={data}
-                           isFetching={isLoading}
-                           numberOfGuest={numberOfGuest}
-                           roomNumber={roomNumber}
-                           searchParams={searchParams}
-                           handleChangePage={handleChangePage}
-                           handleSortChange={handleSortChange}
-                        />
+                        <Results {...resultsProps} />
                      </div>
                   </div>
                </FormProvider>
             </div>
 
-            {/* Mobile: results only (search/filter live in the drawers) */}
+            {/* ===== Mobile: results only (search/filter live in the sheets) ===== */}
             <div className="w-full min-w-0 lg:hidden">
-               <Results
-                  data={data}
-                  isFetching={isLoading}
-                  numberOfGuest={numberOfGuest}
-                  roomNumber={roomNumber}
-                  searchParams={searchParams}
-                  handleChangePage={handleChangePage}
-                  handleSortChange={handleSortChange}
-               />
+               <Results {...resultsProps} showSortBar={false} />
             </div>
          </div>
       </div>

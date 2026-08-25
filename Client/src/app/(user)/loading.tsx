@@ -6,7 +6,7 @@ import { Skeleton } from 'antd';
 export default function Loading() {
    return (
       <div className="flex justify-center w-full bg-gray-50 font-main">
-         <div className="w-full max-w-main px-5 py-8">
+         <div className="w-full max-w-main px-5 pt-3 pb-8">
             <Skeleton.Input active className="mb-6 w-64! h-8!" />
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                {[1, 2, 3, 4, 5, 6, 7, 8].map((index) => (

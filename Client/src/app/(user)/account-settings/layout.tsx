@@ -10,11 +10,12 @@ export default function AccountSettingsLayout({
 }) {
    return (
       <div className="min-h-screen bg-gray-50 font-main">
-         <div className="px-5 py-8 mx-auto w-full max-w-main lg:px-7">
-            <h1 className="mb-6 text-2xl font-bold text-gray-900 md:text-3xl">
+         <div className="px-4 pt-3 pb-8 mx-auto w-full max-w-main sm:px-5 lg:px-7">
+            {/* Mobile: the tab strip already names the page — skip the big title */}
+            <h1 className="hidden mb-6 text-2xl font-bold text-gray-900 lg:block md:text-3xl">
                Account settings
             </h1>
-            <div className="flex flex-col gap-6 items-start lg:flex-row">
+            <div className="flex flex-col gap-1.5 items-start lg:flex-row lg:gap-6">
                <div className="flex-shrink-0 w-full lg:w-[300px] lg:sticky lg:top-24">
                   <SideBarSetting />
                </div>

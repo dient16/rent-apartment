@@ -24,6 +24,8 @@ export const UserSchema = z.object({
   createApartments: z.array(z.string()).optional(),
   confirmationToken: z.string().optional(),
   emailConfirmed: z.boolean().default(false),
+  resetPasswordToken: z.string().optional(),
+  resetPasswordExpires: z.date().optional(),
   refreshToken: z.string().optional(),
   provider: z.enum(['Email', 'Google', 'Facebook']).default('Email'),
   createdAt: z.date().optional(),

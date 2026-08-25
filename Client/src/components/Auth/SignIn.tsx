@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { Button, Input, message } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
@@ -124,6 +125,15 @@ const SignIn: React.FC<SignInProps> = ({ setModalOpen, onSwitchToSignUp, onSigne
                               {errors.password.message}
                            </span>
                         )}
+                        <Link
+                           href="/forgot-password"
+                           onClick={() =>
+                              setModalOpen({ isOpen: false, activeTab: 'signin' })
+                           }
+                           className="self-end mt-0.5 text-xs font-semibold text-blue-600 hover:underline"
+                        >
+                           Forgot password?
+                        </Link>
                      </div>
                   )}
                />

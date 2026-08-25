@@ -13,6 +13,8 @@ interface ResultsProps {
    searchParams: URLSearchParams;
    handleChangePage: (page: number) => void;
    handleSortChange?: (sortBy: string) => void;
+   /** Mobile puts sort in its toolbar, so the header card is replaced by a plain count. */
+   showSortBar?: boolean;
 }
 
 const Results: React.FC<ResultsProps> = ({
@@ -23,18 +25,21 @@ const Results: React.FC<ResultsProps> = ({
    searchParams,
    handleChangePage,
    handleSortChange,
+   showSortBar = true,
 }) => {
    const apartments: any[] = data?.data?.apartments || [];
    const totalResults: number = data?.data?.totalResults || 0;
+   const countLabel = isFetching
+      ? 'Searching...'
+      : `${totalResults} stay${totalResults !== 1 ? 's' : ''} found`;
 
    return (
       <div className="flex flex-col gap-3 w-full">
          {/* Header: result count + sort */}
+         {showSortBar ? (
          <div className="flex flex-wrap gap-3 justify-between items-center px-5 py-3.5 bg-white rounded-2xl border border-gray-100 shadow-card-sm">
             <div className="text-sm font-semibold text-gray-900 md:text-base">
-               {isFetching
-                  ? 'Searching...'
-                  : `${totalResults} stay${totalResults !== 1 ? 's' : ''} found`}
+               {countLabel}
             </div>
             <Select
                className="min-w-[180px]"
@@ -47,6 +52,9 @@ const Results: React.FC<ResultsProps> = ({
                ]}
             />
          </div>
+         ) : (
+            <p className="px-1 text-sm font-semibold text-gray-900">{countLabel}</p>
+         )}
 
          <div className="flex flex-col gap-4 w-full">
             {isFetching ? (

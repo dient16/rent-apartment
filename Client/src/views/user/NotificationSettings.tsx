@@ -75,7 +75,7 @@ const NotificationSettings: React.FC = () => {
    return (
       <div className="w-full font-main">
          <div className="overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-card-sm">
-            <div className="p-6 border-b border-gray-100 md:p-8">
+            <div className="p-4 border-b border-gray-100 md:p-8">
                <h1 className="text-xl font-bold text-gray-900 md:text-2xl">
                   Notifications
                </h1>
@@ -84,11 +84,11 @@ const NotificationSettings: React.FC = () => {
                </p>
             </div>
 
-            <div className="p-6 md:p-8">
+            <div className="p-4 md:p-8">
                {groups.map((group, groupIndex) => (
                   <div
                      key={group.title}
-                     className={groupIndex > 0 ? 'mt-8' : ''}
+                     className={groupIndex > 0 ? 'mt-6 md:mt-8' : ''}
                   >
                      <h2 className="mb-3 text-xs font-semibold tracking-wider text-gray-400 uppercase">
                         {group.title}
@@ -97,7 +97,7 @@ const NotificationSettings: React.FC = () => {
                         {group.items.map((item) => (
                            <div
                               key={item.key}
-                              className="flex gap-4 justify-between items-center px-5 py-4"
+                              className="flex gap-4 justify-between items-center px-4 py-3.5 md:px-5 md:py-4"
                            >
                               <div className="min-w-0">
                                  <p className="text-sm font-semibold text-gray-900">
@@ -117,10 +117,10 @@ const NotificationSettings: React.FC = () => {
                   </div>
                ))}
 
-               <div className="flex justify-end mt-8">
+               <div className="flex justify-end mt-6 md:mt-8">
                   <Button
                      type="primary"
-                     className="px-7 h-10 bg-blue-500 rounded-full"
+                     className="w-full h-10 bg-blue-500 rounded-full sm:px-7 sm:w-auto"
                      onClick={() =>
                         message.info('Saving preferences is coming soon')
                      }

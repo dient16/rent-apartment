@@ -19,15 +19,29 @@ const ExploreMap = dynamic(() => import('./ExploreMap'), {
 interface MapExploreProps {
    apartments: any[];
    detailQuery: string;
+   /** `card`: sidebar teaser (desktop). `chip`: small pill for the mobile toolbar. */
+   variant?: 'card' | 'chip';
 }
 
 /** Sidebar teaser card + fullscreen map modal with price markers. */
-const MapExplore: React.FC<MapExploreProps> = ({ apartments, detailQuery }) => {
+const MapExplore: React.FC<MapExploreProps> = ({
+   apartments,
+   detailQuery,
+   variant = 'card',
+}) => {
    const [open, setOpen] = useState(false);
 
    return (
       <>
-         {/* Teaser card */}
+         {variant === 'chip' ? (
+            <button
+               type="button"
+               onClick={() => setOpen(true)}
+               className="flex flex-shrink-0 gap-1.5 items-center px-3.5 h-9 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-500 rounded-full border-none shadow-sm cursor-pointer whitespace-nowrap"
+            >
+               <FaMapMarkedAlt size={14} /> Map
+            </button>
+         ) : (
          <button
             type="button"
             onClick={() => setOpen(true)}
@@ -60,6 +74,7 @@ const MapExplore: React.FC<MapExploreProps> = ({ apartments, detailQuery }) => {
                </span>
             </div>
          </button>
+         )}
 
          {/* Fullscreen map */}
          <Modal

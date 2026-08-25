@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { DateRangePicker, Range, RangeKeyDict } from 'react-date-range';
-import { Button, Drawer, Popover, Select } from 'antd';
+import { Button, Drawer, Popover } from 'antd';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import moment from 'moment';
 import { DownOutlined, CalendarOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
 import { HiOutlineArrowLongRight } from 'react-icons/hi2';
+import { FiChevronDown } from 'react-icons/fi';
 
 interface CustomDatePickerProps {
    value: [Date, Date];
@@ -54,6 +55,9 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
    };
    const [dates, setDates] = useState<[Date, Date]>(value);
    const [selectingEndDate, setSelectingEndDate] = useState(false);
+   // Month/year jump panel in the calendar header
+   const [navOpen, setNavOpen] = useState(false);
+   const [navYear, setNavYear] = useState(() => moment().year());
    const isMobileOrTablet = useMediaQuery({ query: '(max-width: 1023px)' });
    const isMobile = useMediaQuery({ query: '(max-width: 440px)' });
    const handleDateChange = (ranges: RangeKeyDict) => {
@@ -96,11 +100,6 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                   { length: maxDate.getFullYear() - rangeStart.getFullYear() + 1 },
                   (_, i) => rangeStart.getFullYear() + i,
                );
-               // Months outside [minDate, maxDate] stay listed but greyed out.
-               const isMonthDisabled = (month: number) =>
-                  (shownYear === rangeStart.getFullYear() &&
-                     month < rangeStart.getMonth()) ||
-                  (shownYear === maxDate.getFullYear() && month > maxDate.getMonth());
                return (
                   <div className="flex gap-2 justify-between items-center px-4 pt-3 pb-1">
                      <button
@@ -111,31 +110,91 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                      >
                         <LeftOutlined />
                      </button>
-                     <div className="flex gap-2 items-center">
-                        <Select
-                           size="small"
-                           variant="borderless"
-                           popupMatchSelectWidth={150}
-                           classNames={{ popup: { root: 'datepicker-nav-popup' } }}
-                           value={focusedDate.getMonth()}
-                           onChange={(month) => changeShownDate(month, 'setMonth')}
-                           options={moment.months().map((label, value) => ({
-                              label,
-                              value,
-                              disabled: isMonthDisabled(value),
-                           }))}
-                           className="datepicker-nav-select"
-                        />
-                        <Select
-                           size="small"
-                           variant="borderless"
-                           popupMatchSelectWidth={110}
-                           classNames={{ popup: { root: 'datepicker-nav-popup' } }}
-                           value={focusedDate.getFullYear()}
-                           onChange={(year) => changeShownDate(year, 'setYear')}
-                           options={years.map((year) => ({ label: String(year), value: year }))}
-                           className="datepicker-nav-select"
-                        />
+                     {/* Month/year jump: plain buttons (no inputs, so phones never pop the keyboard) */}
+                     <div className="relative">
+                        <button
+                           type="button"
+                           onClick={() => {
+                              setNavYear(shownYear);
+                              setNavOpen((current) => !current);
+                           }}
+                           className="datepicker-nav-title"
+                        >
+                           {moment(focusedDate).format('MMMM YYYY')}
+                           <FiChevronDown
+                              size={16}
+                              className={`text-gray-500 transition-transform ${
+                                 navOpen ? 'rotate-180' : ''
+                              }`}
+                           />
+                        </button>
+
+                        {navOpen && (
+                           <>
+                              {/* Click-away layer */}
+                              <div
+                                 className="fixed inset-0 z-10"
+                                 onClick={() => setNavOpen(false)}
+                              />
+                              <div className="absolute left-1/2 top-full z-20 p-3 mt-2 w-64 bg-white rounded-2xl border border-gray-100 shadow-xl -translate-x-1/2">
+                                 <div className="flex justify-between items-center mb-2">
+                                    <button
+                                       type="button"
+                                       aria-label="Previous year"
+                                       className="datepicker-nav-btn"
+                                       disabled={navYear <= years[0]}
+                                       onClick={() => setNavYear((year) => year - 1)}
+                                    >
+                                       <LeftOutlined />
+                                    </button>
+                                    <span className="text-sm font-bold text-gray-900">
+                                       {navYear}
+                                    </span>
+                                    <button
+                                       type="button"
+                                       aria-label="Next year"
+                                       className="datepicker-nav-btn"
+                                       disabled={navYear >= years[years.length - 1]}
+                                       onClick={() => setNavYear((year) => year + 1)}
+                                    >
+                                       <RightOutlined />
+                                    </button>
+                                 </div>
+                                 <div className="grid grid-cols-3 gap-1.5">
+                                    {moment.monthsShort().map((label, month) => {
+                                       const disabled =
+                                          (navYear === rangeStart.getFullYear() &&
+                                             month < rangeStart.getMonth()) ||
+                                          (navYear === maxDate.getFullYear() &&
+                                             month > maxDate.getMonth());
+                                       const active =
+                                          navYear === shownYear &&
+                                          month === focusedDate.getMonth();
+                                       return (
+                                          <button
+                                             key={label}
+                                             type="button"
+                                             disabled={disabled}
+                                             onClick={() => {
+                                                changeShownDate(new Date(navYear, month, 1), 'set');
+                                                setNavOpen(false);
+                                             }}
+                                             className={`h-9 text-sm font-medium rounded-lg border-none transition-colors ${
+                                                active
+                                                   ? 'bg-blue-500 text-white'
+                                                   : disabled
+                                                     ? 'text-gray-300 bg-transparent cursor-not-allowed'
+                                                     : 'text-gray-700 bg-gray-50 cursor-pointer hover:bg-blue-50 hover:text-blue-600'
+                                             }`}
+                                          >
+                                             {label}
+                                          </button>
+                                       );
+                                    })}
+                                 </div>
+                              </div>
+                           </>
+                        )}
                      </div>
                      <button
                         type="button"
@@ -168,22 +227,23 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
             minDate={minDate}
             maxDate={maxDate}
          />
-         <div className="pt-4 px-4 pb-5 w-full bg-white border-t border-gray-100 lg:hidden">
-            <div className="grid grid-cols-2 gap-3 mb-4">
-               <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                  <p className="mb-0.5 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
+         <div className="pt-3 px-4 pb-5 w-full bg-white border-t border-gray-100 lg:hidden">
+            <div className="flex gap-2 items-center mb-3">
+               <div className="flex-1 px-3 py-2 min-w-0 bg-gray-50 rounded-xl border border-gray-100">
+                  <p className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
                      Check-in
                   </p>
-                  <p className="text-sm font-semibold text-gray-900">
-                     {moment(dates[0]).format('ddd, MMM D, YYYY')}
+                  <p className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                     {moment(dates[0]).format('ddd, D MMM')}
                   </p>
                </div>
-               <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                  <p className="mb-0.5 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
+               <HiOutlineArrowLongRight size={18} className="flex-shrink-0 text-gray-400" />
+               <div className="flex-1 px-3 py-2 min-w-0 bg-gray-50 rounded-xl border border-gray-100">
+                  <p className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
                      Check-out
                   </p>
-                  <p className="text-sm font-semibold text-gray-900">
-                     {moment(dates[1]).format('ddd, MMM D, YYYY')}
+                  <p className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                     {moment(dates[1]).format('ddd, D MMM')}
                   </p>
                </div>
             </div>
@@ -314,6 +374,9 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                open={drawerVisible}
                size="100%"
                zIndex={1000}
+               // Default autoFocus lands on the month <Select>'s hidden input and
+               // pops the soft keyboard on phones.
+               autoFocus={false}
             >
                {dateRangePicker}
             </Drawer>

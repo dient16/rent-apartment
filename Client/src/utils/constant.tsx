@@ -1,7 +1,14 @@
-import { RiHome4Line, RiContactsFill } from 'react-icons/ri';
-import { BiCompass } from 'react-icons/bi';
-import { IoInformationCircleOutline } from 'react-icons/io5';
-import { FaHome, FaCalendarAlt, FaListUl, FaComments, FaRegCalendarCheck } from 'react-icons/fa';
+import {
+   FiCalendar,
+   FiClipboard,
+   FiCompass,
+   FiGrid,
+   FiHome,
+   FiInfo,
+   FiMail,
+   FiMessageCircle,
+   FiKey,
+} from 'react-icons/fi';
 
 export const path: { [key: string]: string } = {
    ROOT: '/',
@@ -19,7 +26,9 @@ export const path: { [key: string]: string } = {
    PAYMENT_INFORMATION: 'payment',
    NOTIFICATION_SETTINGS: 'notification',
    SETTINGS: 'settings',
-   SET_PASSWORD: 'set-password/:userId',
+   SET_PASSWORD: 'set-password/:token',
+   FORGOT_PASSWORD: 'forgot-password',
+   RESET_PASSWORD: 'reset-password/:token',
    SIGNIN_GOOGLE_SUCCESS: 'signin-success/:userId',
    MY_BOOKING: 'my-booking',
    NOTIFICATIONS: 'notifications',
@@ -51,10 +60,10 @@ export const navigates: {
    path: string;
    icon: React.ReactNode;
 }[] = [
-   { title: 'Home', path: path.HOME, icon: <RiHome4Line /> },
-   { title: 'Explore', path: path.LISTING, icon: <BiCompass /> },
-   { title: 'About', path: path.ABOUT, icon: <IoInformationCircleOutline /> },
-   { title: 'Contact', path: path.CONTACT, icon: <RiContactsFill /> },
+   { title: 'Home', path: path.HOME, icon: <FiHome /> },
+   { title: 'Explore', path: path.LISTING, icon: <FiCompass /> },
+   { title: 'About', path: path.ABOUT, icon: <FiInfo /> },
+   { title: 'Contact', path: path.CONTACT, icon: <FiMail /> },
 ];
 
 export const navigateHosts: {
@@ -65,10 +74,10 @@ export const navigateHosts: {
    {
       title: 'Dashboard',
       path: `${path.HOST_ROOT}${path.HOST_DASHBOARD}`,
-      icon: <FaHome />,
+      icon: <FiGrid />,
    },
-   { title: 'Bookings', path: `${path.HOST_ROOT}${path.HOST_BOOKINGS}`, icon: <FaRegCalendarCheck /> },
-   { title: 'Calendar', path: `${path.HOST_ROOT}${path.HOST_CALENDAR}`, icon: <FaCalendarAlt /> },
-   { title: 'Rental Listings', path: `${path.HOST_ROOT}${path.HOST_LISTINGS}`, icon: <FaListUl /> },
-   { title: 'Messages', path: `${path.HOST_ROOT}${path.HOST_MESSAGES}`, icon: <FaComments /> },
+   { title: 'Bookings', path: `${path.HOST_ROOT}${path.HOST_BOOKINGS}`, icon: <FiClipboard /> },
+   { title: 'Calendar', path: `${path.HOST_ROOT}${path.HOST_CALENDAR}`, icon: <FiCalendar /> },
+   { title: 'Rental Listings', path: `${path.HOST_ROOT}${path.HOST_LISTINGS}`, icon: <FiKey /> },
+   { title: 'Messages', path: `${path.HOST_ROOT}${path.HOST_MESSAGES}`, icon: <FiMessageCircle /> },
 ];

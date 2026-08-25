@@ -3,7 +3,7 @@ import AppImage from '@/components/AppImage/AppImage';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from '@/lib/router-compat';
 import { apiGetApartmentDetails } from '@/apis';
-import { Button, Carousel, Skeleton, Tag } from 'antd';
+import { Button, Carousel, Tag } from 'antd';
 import {
    ArrowLeftOutlined,
    CalendarOutlined,
@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import { FaBed, FaDoorOpen, FaRulerCombined } from 'react-icons/fa';
 import { path } from '@/utils/constant';
+import { RoomDetailSkeleton } from './HostSkeletons';
 
 interface RoomInfo {
    _id: string;
@@ -75,7 +76,7 @@ const HostRoomDetail: React.FC = () => {
 
    return (
       <div className="min-h-screen bg-gray-50 font-main">
-         <div className="px-5 py-8 mx-auto w-full max-w-main lg:px-7">
+         <div className="px-5 pt-3 pb-8 mx-auto w-full max-w-main lg:px-7">
             <Link
                to={`${path.HOST_ROOT}${path.HOST_LISTINGS}`}
                className="inline-flex gap-2 items-center mb-5 text-sm font-medium text-gray-500 hover:text-blue-600"
@@ -84,9 +85,7 @@ const HostRoomDetail: React.FC = () => {
             </Link>
 
             {isLoading ? (
-               <div className="p-6 bg-white rounded-2xl shadow-card-sm">
-                  <Skeleton active paragraph={{ rows: 8 }} />
-               </div>
+               <RoomDetailSkeleton />
             ) : apartment ? (
                <>
                   {/* ===== Gallery ===== */}
@@ -109,7 +108,7 @@ const HostRoomDetail: React.FC = () => {
                   )}
 
                   {/* ===== Header + stats ===== */}
-                  <div className="p-6 mb-6 bg-white rounded-2xl border border-gray-100 shadow-card-sm md:p-8">
+                  <div className="p-4 mb-6 bg-white rounded-2xl border border-gray-100 shadow-card-sm md:p-8">
                      <div className="flex flex-wrap gap-4 justify-between items-start">
                         <div className="min-w-0">
                            <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
@@ -123,7 +122,7 @@ const HostRoomDetail: React.FC = () => {
                         <Button
                            size="large"
                            icon={<CalendarOutlined />}
-                           className="h-11 rounded-full"
+                           className="w-full h-11 rounded-full sm:w-auto"
                            onClick={() =>
                               navigate(`${path.HOST_ROOT}${path.HOST_CALENDAR}`)
                            }

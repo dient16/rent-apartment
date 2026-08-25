@@ -17,7 +17,7 @@ const PaymentInformation: React.FC = () => {
    return (
       <div className="w-full font-main">
          <div className="overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-card-sm">
-            <div className="flex flex-wrap gap-4 justify-between items-center p-6 border-b border-gray-100 md:p-8">
+            <div className="flex flex-wrap gap-4 justify-between items-center p-4 border-b border-gray-100 md:p-8">
                <div>
                   <h1 className="text-xl font-bold text-gray-900 md:text-2xl">
                      Payment information
@@ -30,7 +30,7 @@ const PaymentInformation: React.FC = () => {
                   <Button
                      type="primary"
                      icon={<PlusOutlined />}
-                     className="h-10 bg-blue-500 rounded-full"
+                     className="hidden h-10 bg-blue-500 rounded-full sm:inline-flex"
                      onClick={() => setShowForm(true)}
                   >
                      Add card
@@ -38,9 +38,9 @@ const PaymentInformation: React.FC = () => {
                )}
             </div>
 
-            <div className="p-6 md:p-8">
+            <div className="p-4 md:p-8">
                {!showForm ? (
-                  <div className="flex flex-col items-center py-14 text-center">
+                  <div className="flex flex-col items-center py-8 text-center md:py-14">
                      <span className="flex justify-center items-center mb-5 w-16 h-16 text-2xl text-blue-500 bg-blue-50 rounded-full">
                         <CreditCardOutlined />
                      </span>
@@ -117,7 +117,7 @@ const PaymentInformation: React.FC = () => {
                         we never store your full card number.
                      </p>
 
-                     <div className="flex gap-3 mt-6">
+                     <div className="grid grid-cols-2 gap-3 mt-6 sm:flex">
                         <Button
                            className="h-10 rounded-full"
                            onClick={() => setShowForm(false)}
@@ -126,7 +126,7 @@ const PaymentInformation: React.FC = () => {
                         </Button>
                         <Button
                            type="primary"
-                           className="px-7 h-10 bg-blue-500 rounded-full"
+                           className="h-10 bg-blue-500 rounded-full sm:px-7"
                            onClick={handleSave}
                         >
                            Save card

@@ -169,7 +169,7 @@ const ApartmentDetail: React.FC = () => {
             />
             <form
                onSubmit={methods.handleSubmit(handleBooking)}
-               className="flex flex-col gap-5 justify-center w-full max-w-main mx-auto px-5 lg:px-7"
+               className="flex flex-col gap-5 justify-center px-4 mx-auto w-full max-w-main pb-20 sm:px-5 lg:px-7 xl:pb-0"
             >
                <ImageGallery images={galleryImages} />
                <div className="flex gap-8 items-start lg:mt-5">
@@ -177,17 +177,19 @@ const ApartmentDetail: React.FC = () => {
                      {/* ===== Title + meta ===== */}
                      <div className="flex flex-col gap-2 justify-center mt-3 lg:mt-4">
                         <div className="flex gap-3 justify-between items-start">
-                           <h1 className="text-2xl font-semibold text-gray-900 lg:text-3xl">
+                           <h1 className="text-xl font-semibold leading-snug text-gray-900 sm:text-2xl lg:text-3xl">
                               {apartment?.title}
                            </h1>
                            <div className="flex flex-shrink-0 gap-2 items-center">
+                              {/* Icon-only on phones; the host card below has the full "Contact host" button */}
                               <button
                                  type="button"
                                  onClick={handleMessageHost}
-                                 className="flex gap-2 items-center px-4 h-10 text-sm font-medium text-gray-700 bg-white rounded-full border border-gray-300 transition-colors cursor-pointer hover:border-blue-500 hover:text-blue-600"
+                                 aria-label="Message host"
+                                 className="flex gap-2 justify-center items-center w-10 h-10 text-sm font-medium text-gray-700 bg-white rounded-full border border-gray-300 transition-colors cursor-pointer sm:px-4 sm:w-auto hover:border-blue-500 hover:text-blue-600"
                               >
                                  <IoChatbubbleEllipsesOutline size={17} />
-                                 Message host
+                                 <span className="hidden sm:inline">Message host</span>
                               </button>
                               <FavoriteButton apartmentId={apartmentId as string} />
                            </div>
@@ -218,28 +220,28 @@ const ApartmentDetail: React.FC = () => {
                      <NavigationBarRoom />
 
                      {/* ===== Amenities ===== */}
-                     <div id="overview" className="pt-6 lg:pt-8">
-                        <h3 id="amenities" className="text-xl font-semibold text-gray-900">
+                     <div id="overview" className="pt-5 lg:pt-8">
+                        <h3 id="amenities" className="text-lg font-semibold text-gray-900 md:text-xl">
                            What this place offers
                         </h3>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-3 mt-4 md:grid-cols-3">
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-3 md:grid-cols-3 md:gap-x-8 md:gap-y-3 md:mt-4">
                            {apartment.rooms[0]?.amenities.map(
                               (
                                  amenity: { name: string; icon: string },
                                  index: number,
                               ) => (
                                  <div
-                                    className="flex gap-3 items-center py-1.5 text-gray-700"
+                                    className="flex gap-2.5 items-center py-1 min-w-0 text-gray-700 md:gap-3 md:py-1.5"
                                     key={index}
                                  >
-                                    <span className="flex flex-shrink-0 justify-center items-center w-12 h-12 bg-gray-100 rounded-xl border border-gray-200">
+                                    <span className="flex flex-shrink-0 justify-center items-center w-10 h-10 bg-gray-100 rounded-xl border border-gray-200 md:w-12 md:h-12">
                                        <img
-                                          className="h-6 object-contain"
+                                          className="object-contain h-5 md:h-6"
                                           src={amenity.icon}
                                           alt=""
                                        />
                                     </span>
-                                    <span className="text-[15px]">{amenity.name}</span>
+                                    <span className="text-sm truncate md:text-[15px]">{amenity.name}</span>
                                  </div>
                               ),
                            )}
@@ -247,8 +249,8 @@ const ApartmentDetail: React.FC = () => {
                      </div>
 
                      {/* ===== Description ===== */}
-                     <div className="pt-6 mt-6 border-t border-gray-100">
-                        <h3 className="mb-3 text-xl font-semibold text-gray-900">
+                     <div className="pt-5 mt-5 border-t border-gray-100 md:pt-6 md:mt-6">
+                        <h3 className="mb-2 text-lg font-semibold text-gray-900 md:mb-3 md:text-xl">
                            About this place
                         </h3>
                         <div
@@ -271,12 +273,12 @@ const ApartmentDetail: React.FC = () => {
 
                      {/* ===== Host ===== */}
                      {apartment.owner && (
-                        <div className="flex gap-3 justify-between items-center p-5 mt-6 bg-gray-50 rounded-2xl border border-gray-100">
-                           <div className="flex gap-4 items-center min-w-0">
+                        <div className="flex flex-col gap-3 p-4 mt-5 bg-gray-50 rounded-2xl border border-gray-100 sm:flex-row sm:justify-between sm:items-center sm:p-5 md:mt-6">
+                           <div className="flex gap-3 items-center min-w-0 sm:gap-4">
                               <UserAvatar
                                  src={apartment.owner.avatar}
                                  name={`${apartment.owner.firstname || ''} ${apartment.owner.lastname || ''}`}
-                                 size={52}
+                                 size={48}
                               />
                               <div className="min-w-0">
                                  <p className="font-semibold text-gray-900 truncate">
@@ -291,7 +293,7 @@ const ApartmentDetail: React.FC = () => {
                            <Button
                               size="large"
                               onClick={handleMessageHost}
-                              className="flex-shrink-0"
+                              className="flex-shrink-0 w-full rounded-xl sm:w-auto"
                            >
                               Contact host
                            </Button>
@@ -301,7 +303,7 @@ const ApartmentDetail: React.FC = () => {
                      {/* ===== Rooms ===== */}
                      <h3
                         id="rooms"
-                        className="pt-6 mt-6 mb-4 text-xl font-semibold text-gray-900 border-t border-gray-100"
+                        className="pt-5 mt-5 mb-3 text-lg font-semibold text-gray-900 border-t border-gray-100 md:pt-6 md:mt-6 md:mb-4 md:text-xl"
                      >
                         Choose your room
                      </h3>
@@ -329,14 +331,14 @@ const ApartmentDetail: React.FC = () => {
                </div>
 
                {/* ===== Location ===== */}
-               <div className="pt-6 mt-2 border-t border-gray-100">
-                  <h3 id="location" className="mb-4 text-xl font-semibold text-gray-900">
+               <div className="pt-5 mt-2 border-t border-gray-100 md:pt-6">
+                  <h3 id="location" className="mb-3 text-lg font-semibold text-gray-900 md:mb-4 md:text-xl">
                      Where you&apos;ll be
                   </h3>
-                  <p className="mb-4 text-sm text-gray-600">
+                  <p className="mb-3 text-sm text-gray-600 md:mb-4">
                      {[apartment.location.street, apartment.location.ward, apartment.location.district, apartment.location.province].filter(Boolean).join(', ')}
                   </p>
-                  <div className="relative z-0 w-full overflow-hidden rounded-2xl border border-gray-100 shadow-sm lg:h-[480px] h-[300px]">
+                  <div className="relative z-0 w-full overflow-hidden rounded-2xl border border-gray-100 shadow-sm h-[240px] sm:h-[300px] lg:h-[480px]">
                      <GoogleMapEmbed
                         lat={apartment.location.lat}
                         lng={apartment.location.long}
@@ -346,12 +348,12 @@ const ApartmentDetail: React.FC = () => {
                </div>
 
                {/* ===== Policies ===== */}
-               <div id="policies" className="pt-6 mt-4 border-t border-gray-100">
+               <div id="policies" className="pt-5 mt-3 border-t border-gray-100 md:pt-6 md:mt-4">
                   <RoomPolices apartment={apartment} />
                </div>
 
                {/* ===== Reviews ===== */}
-               <div id="reviews" className="pt-6 mt-4 mb-10 border-t border-gray-100">
+               <div id="reviews" className="pt-5 mt-3 mb-6 border-t border-gray-100 md:pt-6 md:mt-4 md:mb-10">
                   <Reviews apartmentId={apartmentId as string} />
                </div>
             </form>

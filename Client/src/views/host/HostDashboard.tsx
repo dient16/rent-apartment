@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link } from '@/lib/router-compat';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Avatar, Button, message, Skeleton } from 'antd';
+import { Avatar, Button, message } from 'antd';
 import {
    ArrowRightOutlined,
    CalendarOutlined,
@@ -21,16 +21,23 @@ import {
 } from '@/apis';
 import StatusBadge from '@/components/StatusBadge/StatusBadge';
 import { path } from '@/utils/constant';
+import {
+   BookingRowsSkeleton,
+   ListingRowsSkeleton,
+   StatValueSkeleton,
+} from './HostDashboardSkeleton';
 
 const HostDashboard: React.FC = () => {
    const queryClient = useQueryClient();
 
    const { data: bookingsData, isLoading: bookingsLoading } = useQuery({
-      queryKey: ['bookings-host', 1, 'all', ''],
+      // `limit` is part of the key: the bookings page uses the same prefix with a
+      // different page size, and sharing a cache entry showed it only 5 rows.
+      queryKey: ['bookings-host', { page: 1, limit: 5, status: 'all', search: '' }],
       queryFn: () => apiGetUserBookings({ page: 1, limit: 5, status: 'all', search: '' }),
    });
    const { data: apartmentsData, isLoading: apartmentsLoading } = useQuery({
-      queryKey: ['apartments-host', 1, ''],
+      queryKey: ['apartments-host', { page: 1, limit: 5, search: '' }],
       queryFn: () => apiGetApartmentByUser({ page: 1, limit: 5, search: '' }),
    });
 
@@ -89,7 +96,7 @@ const HostDashboard: React.FC = () => {
 
    return (
       <div className="min-h-screen bg-gray-50 font-main">
-         <div className="px-5 py-8 mx-auto w-full max-w-main lg:px-7">
+         <div className="px-5 pt-3 pb-8 mx-auto w-full max-w-main lg:px-7">
             <div className="flex flex-wrap gap-4 justify-between items-center mb-7">
                <div>
                   <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
@@ -113,19 +120,23 @@ const HostDashboard: React.FC = () => {
                {statCards.map((card) => (
                   <div
                      key={card.label}
-                     className="p-5 bg-white rounded-2xl border border-gray-100 shadow-card-sm"
+                     className="p-4 bg-white rounded-2xl border border-gray-100 shadow-card-sm md:p-5"
                   >
                      <span
-                        className={`flex justify-center items-center mb-4 w-11 h-11 text-lg rounded-xl ${card.tone}`}
+                        className={`flex justify-center items-center mb-3 w-10 h-10 text-base rounded-xl md:mb-4 md:w-11 md:h-11 md:text-lg ${card.tone}`}
                      >
                         {card.icon}
                      </span>
                      <p className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
                         {card.label}
                      </p>
-                     <p className="mt-1 text-xl font-bold text-gray-900 truncate">
-                        {isLoading ? '—' : card.value}
-                     </p>
+                     {isLoading ? (
+                        <StatValueSkeleton />
+                     ) : (
+                        <p className="mt-1 text-lg font-bold text-gray-900 truncate md:text-xl">
+                           {card.value}
+                        </p>
+                     )}
                   </div>
                ))}
             </div>
@@ -146,9 +157,7 @@ const HostDashboard: React.FC = () => {
                   </div>
 
                   {isLoading ? (
-                     <div className="p-5">
-                        <Skeleton active paragraph={{ rows: 5 }} />
-                     </div>
+                     <BookingRowsSkeleton />
                   ) : recentBookings.length === 0 ? (
                      <div className="py-16 text-center text-gray-400">
                         No bookings yet — they will appear here.
@@ -218,9 +227,7 @@ const HostDashboard: React.FC = () => {
                      </Link>
                   </div>
                   {isLoading ? (
-                     <div className="p-5">
-                        <Skeleton active paragraph={{ rows: 4 }} />
-                     </div>
+                     <ListingRowsSkeleton />
                   ) : apartments.length === 0 ? (
                      <div className="px-5 py-16 text-center">
                         <p className="mb-4 text-gray-400">

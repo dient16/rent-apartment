@@ -39,12 +39,25 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
+/**
+ * Opened from the email link, so it answers with a redirect rather than JSON.
+ * The client page verifies the token again and renders the invalid state itself.
+ */
 export const confirmEmail = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { token } = req.query as { token: string };
-    const serviceResponse = await authCommands.confirmEmail(token);
-    const userId = serviceResponse?.data?._id;
-    if (userId) return res.redirect(`${CLIENT_URL}/set-password/${userId}`);
+    const { token } = req.query as { token?: string };
+    const serviceResponse = await authCommands.confirmEmail(token ?? '');
+    const target = serviceResponse.success && token ? token : 'invalid';
+    return res.redirect(`${CLIENT_URL}/set-password/${encodeURIComponent(target)}`);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifySetPasswordToken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token } = req.params;
+    const serviceResponse = await authCommands.verifySetPasswordToken(token);
     serviceResponse.send(res);
   } catch (error) {
     next(error);
@@ -53,8 +66,55 @@ export const confirmEmail = async (req: Request, res: Response, next: NextFuncti
 
 export const setPassword = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { userId, password } = req.body;
-    const serviceResponse = await authCommands.setPassword(userId, password);
+    const { token, password } = req.body;
+    const serviceResponse = await authCommands.setPassword(token, password);
+    if (serviceResponse.success && serviceResponse.data) {
+      attachRefreshCookie(res, serviceResponse.data);
+    }
+    serviceResponse.send(res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body;
+    const serviceResponse = await authCommands.forgotPassword(email);
+    serviceResponse.send(res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyResetToken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token } = req.params;
+    const serviceResponse = await authCommands.verifyResetToken(token);
+    serviceResponse.send(res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token, password } = req.body;
+    const serviceResponse = await authCommands.resetPassword(token, password);
+    if (serviceResponse.success && serviceResponse.data) {
+      attachRefreshCookie(res, serviceResponse.data);
+    }
+    serviceResponse.send(res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { _id: userId } = req.user as UserDecode;
+    const { currentPassword, newPassword } = req.body;
+    const serviceResponse = await authCommands.changePassword(userId, currentPassword, newPassword);
     serviceResponse.send(res);
   } catch (error) {
     next(error);

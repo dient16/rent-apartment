@@ -4,6 +4,8 @@ export { default as ApartmentDetail } from './ApartmentDetail';
 export { default as BookingConfirm } from './BookingConfirm';
 export { default as BookingCompletion } from './BookingCompletion';
 export { default as SetPassword } from './SetPassword';
+export { default as ForgotPassword } from './ForgotPassword';
+export { default as ResetPassword } from './ResetPassword';
 export { default as LoginSuccess } from './LoginSuccess';
 export { default as NotFound } from './NotFound';
 export { default as Contact } from './Contact';

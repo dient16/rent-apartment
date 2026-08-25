@@ -13,6 +13,9 @@ const Providers: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                queries: {
                   // 30s: data revalidates on its own when the user returns to a page
                   staleTime: 30_000,
+                  // Switching tabs/windows was re-hitting every list endpoint;
+                  // data refreshes on navigation and after mutations instead.
+                  refetchOnWindowFocus: false,
                   retry: (failureCount, error) => {
                      const status = (error as AxiosError)?.response?.status;
                      if (status === 400 || status === 401) return false;

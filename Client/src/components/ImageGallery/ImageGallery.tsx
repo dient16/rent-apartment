@@ -55,7 +55,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
          </div>
 
          {/* Mobile: swipeable carousel */}
-         <div className="lg:hidden mt-6">
+         <div className="mt-3 lg:hidden">
             <div className="overflow-hidden relative rounded-2xl">
                <Carousel arrows swipeToSlide draggable>
                   {images.map((image, index) => (

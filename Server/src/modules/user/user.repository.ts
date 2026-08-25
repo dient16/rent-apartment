@@ -9,7 +9,7 @@ export const userRepository = {
 
   findPublicById: (userId: string) =>
     UserModel.findById(userId)
-      .select('-confirmationToken -password -createApartments -emailConfirmed -provider -isAdmin -refreshToken')
+      .select('-confirmationToken -password -createApartments -emailConfirmed -provider -isAdmin -refreshToken -resetPasswordToken -resetPasswordExpires')
       .exec(),
 
   updateById: (userId: string, data: Partial<User>) => UserModel.findByIdAndUpdate(userId, data, { new: true }).exec(),

@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import AppImage from '@/components/AppImage/AppImage';
-import { Button, Empty, Input, Skeleton, Tooltip } from 'antd';
+import { Button, Empty, Input, Tooltip } from 'antd';
 import {
    CalendarOutlined,
    EnvironmentOutlined,
@@ -9,12 +9,13 @@ import {
    PlusOutlined,
    SearchOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate, useSearchParams } from '@/lib/router-compat';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { path } from '@/utils/constant';
 import { apiGetApartmentByUser } from '@/apis';
 import { useDebounce } from '@/hooks';
 import PaginationBar from '@/components/SearchResult/PaginationBar';
+import { ListingCardsSkeleton } from './HostSkeletons';
 
 interface HostListing {
    _id: string;
@@ -34,20 +35,46 @@ const PAGE_SIZE = 12;
 
 const HostListings: React.FC = () => {
    const navigate = useNavigate();
-   const [search, setSearch] = useState('');
-   const [page, setPage] = useState(1);
+
+   /* ---- URL is the source of truth: ?page=2&q=… ---- */
+   const [params, setParams] = useSearchParams();
+   const page = Math.max(1, Number(params.get('page')) || 1);
+   const urlSearch = params.get('q') || '';
+
+   const updateParams = (next: { page?: number; q?: string }) => {
+      const query = new URLSearchParams(params);
+      if (next.page !== undefined) {
+         if (next.page === 1) query.delete('page');
+         else query.set('page', String(next.page));
+      }
+      if (next.q !== undefined) {
+         if (next.q === '') query.delete('q');
+         else query.set('q', next.q);
+      }
+      setParams(query);
+   };
+   const setPage = (next: number) => updateParams({ page: next });
+
+   // The input reacts instantly; the URL (and the query) follow after the debounce.
+   const [search, setSearch] = useState(urlSearch);
    const debouncedSearch = useDebounce(search, 350);
 
-   const [lastSearch, setLastSearch] = useState(debouncedSearch);
-   if (lastSearch !== debouncedSearch) {
-      setLastSearch(debouncedSearch);
-      setPage(1);
+   useEffect(() => {
+      if (debouncedSearch !== urlSearch) updateParams({ q: debouncedSearch, page: 1 });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [debouncedSearch]);
+
+   // Back/forward navigation changes the URL underneath us: reflect it in the input.
+   const [lastUrlSearch, setLastUrlSearch] = useState(urlSearch);
+   if (lastUrlSearch !== urlSearch) {
+      setLastUrlSearch(urlSearch);
+      setSearch(urlSearch);
    }
 
    const { data, isLoading } = useQuery({
-      queryKey: ['apartments-host', page, debouncedSearch],
+      queryKey: ['apartments-host', { page, limit: PAGE_SIZE, search: urlSearch }],
       queryFn: () =>
-         apiGetApartmentByUser({ page, limit: PAGE_SIZE, search: debouncedSearch }),
+         apiGetApartmentByUser({ page, limit: PAGE_SIZE, search: urlSearch }),
       placeholderData: keepPreviousData,
    });
 
@@ -62,7 +89,7 @@ const HostListings: React.FC = () => {
 
    return (
       <div className="min-h-screen bg-gray-50 font-main">
-         <div className="px-5 py-8 mx-auto w-full max-w-main lg:px-7">
+         <div className="px-5 pt-3 pb-8 mx-auto w-full max-w-main lg:px-7">
             <div className="flex flex-wrap gap-4 justify-between items-center mb-6">
                <div>
                   <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
@@ -99,27 +126,10 @@ const HostListings: React.FC = () => {
             </div>
 
             {isLoading ? (
-               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {[1, 2, 3].map((index) => (
-                     <div
-                        key={index}
-                        className="p-4 bg-white rounded-2xl shadow-card-sm"
-                     >
-                        <Skeleton.Image
-                           active
-                           className="w-full! h-44! rounded-xl!"
-                        />
-                        <Skeleton
-                           active
-                           paragraph={{ rows: 2 }}
-                           className="mt-4"
-                        />
-                     </div>
-                  ))}
-               </div>
+               <ListingCardsSkeleton />
             ) : visible.length === 0 ? (
                <div className="flex flex-col items-center py-24 text-center bg-white rounded-2xl border border-gray-100 shadow-card-sm">
-                  {!debouncedSearch ? (
+                  {!urlSearch ? (
                      <>
                         <span className="flex justify-center items-center mb-5 w-16 h-16 text-2xl text-blue-500 bg-blue-50 rounded-full">
                            <HomeOutlined />

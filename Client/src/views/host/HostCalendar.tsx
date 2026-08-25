@@ -1,14 +1,17 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import AppImage from '@/components/AppImage/AppImage';
+import { useSearchParams } from '@/lib/router-compat';
+import { useMediaQuery } from 'react-responsive';
 import {
    Button,
    InputNumber,
    message,
    Popover,
-   Skeleton,
+   Drawer,
    Spin,
    Tooltip,
 } from 'antd';
+import { CalendarGridSkeleton, CalendarRailSkeleton } from './HostSkeletons';
 import {
    CalendarOutlined,
    DollarOutlined,
@@ -59,22 +62,54 @@ const buildDays = (month: Dayjs): Dayjs[] => {
 
 const HostCalendar: React.FC = () => {
    const queryClient = useQueryClient();
-   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
-   const [currentMonth, setCurrentMonth] = useState<Dayjs>(() =>
-      dayjs().startOf('month'),
-   );
-   const [viewMode, setViewMode] = useState<'month' | 'year'>('month');
+
+   /* ---- URL is the source of truth: ?room=…&month=YYYY-MM&view=year&rail=2 ---- */
+   const [params, setParams] = useSearchParams();
+   const updateParams = (
+      next: Record<string, string | number | null | undefined>,
+   ) => {
+      const query = new URLSearchParams(params);
+      Object.entries(next).forEach(([key, value]) => {
+         // null / '' = back to the default, which is left out of the URL
+         if (value === null || value === undefined || value === '') query.delete(key);
+         else query.set(key, String(value));
+      });
+      setParams(query);
+   };
+
+   const thisMonthKey = dayjs().format('YYYY-MM');
+   const selectedRoom = params.get('room');
+   const setSelectedRoom = (roomId: string | null) => updateParams({ room: roomId });
+
+   const monthParam = params.get('month');
+   const currentMonth: Dayjs = useMemo(() => {
+      const parsed = /^\d{4}-\d{2}$/.test(monthParam || '') ? dayjs(`${monthParam}-01`) : null;
+      return parsed?.isValid() ? parsed.startOf('month') : dayjs().startOf('month');
+   }, [monthParam]);
+   const setCurrentMonth = (next: Dayjs | ((month: Dayjs) => Dayjs)) => {
+      const value = typeof next === 'function' ? next(currentMonth) : next;
+      const key = value.format('YYYY-MM');
+      updateParams({ month: key === thisMonthKey ? null : key });
+   };
+
+   const viewMode: 'month' | 'year' = params.get('view') === 'year' ? 'year' : 'month';
+   const setViewMode = (mode: 'month' | 'year') =>
+      updateParams({ view: mode === 'month' ? null : mode });
+
+   const railPage = Math.max(1, Number(params.get('rail')) || 1);
+   const setRailPage = (page: number) => updateParams({ rail: page === 1 ? null : page });
+
    const [pickerOpen, setPickerOpen] = useState(false);
    const [pickerYear, setPickerYear] = useState(() => dayjs().year());
    const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
    const [draftPrice, setDraftPrice] = useState<number | null>(null);
-
-   const [railPage, setRailPage] = useState(1);
+   // Below lg the sidebar sits under the calendar, so the price editor opens as a bottom sheet instead
+   const isCompact = useMediaQuery({ query: '(max-width: 1023px)' });
 
    // One request for the whole rail: /apartment/by-user now returns each apartment with
    // its rooms populated, replacing the previous request-per-apartment fan-out.
    const { data: apartments, isLoading: isLoadingApartments } = useQuery({
-      queryKey: ['apartments-host', railPage, ''],
+      queryKey: ['apartments-host', { page: railPage, limit: RAIL_PAGE_SIZE, search: '' }],
       queryFn: () =>
          apiGetApartmentByUser({ page: railPage, limit: RAIL_PAGE_SIZE, search: '' }),
       placeholderData: keepPreviousData,
@@ -101,11 +136,12 @@ const HostCalendar: React.FC = () => {
       (room) => room._id === selectedRoom,
    );
 
-   // Auto-select the first room once data is ready
-   if (!selectedRoom) {
-      const first = groups.find((group) => group.rooms.length > 0)?.rooms[0]?._id;
-      if (first) setSelectedRoom(first);
-   }
+   // Auto-select the first room once data is ready (writes ?room= to the URL)
+   const firstRoomId = groups.find((group) => group.rooms.length > 0)?.rooms[0]?._id;
+   useEffect(() => {
+      if (!selectedRoom && firstRoomId) setSelectedRoom(firstRoomId);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [selectedRoom, firstRoomId]);
 
    const { data: pricingData, isLoading: isLoadingPricing } = useQuery({
       queryKey: ['pricing', selectedRoom],
@@ -252,7 +288,7 @@ const HostCalendar: React.FC = () => {
             onClick={() => selectDay(day)}
             disabled={isPast}
             className={clsx(
-               'flex flex-col justify-between items-start p-2 md:p-3 min-h-[84px] md:min-h-[104px] rounded-xl border text-left transition-all duration-150',
+               'flex flex-col justify-between items-start p-1.5 md:p-3 min-h-[64px] md:min-h-[104px] rounded-xl border text-left transition-all duration-150',
                isPast
                   ? 'bg-gray-50 border-gray-100 cursor-not-allowed'
                   : 'bg-white border-gray-200 cursor-pointer hover:border-gray-900',
@@ -378,9 +414,61 @@ const HostCalendar: React.FC = () => {
       </div>
    );
 
+   /** Price editor for the selected date — sidebar card on desktop, bottom sheet below lg */
+   const selectedDatePanel = selectedDate && (
+      <div className="p-5 lg:p-0">
+         <p className="flex gap-2 items-center text-xs font-semibold tracking-wider text-gray-400 uppercase">
+            <CalendarOutlined /> Selected date
+         </p>
+         <h3 className="mt-1 mb-1 text-lg font-bold text-gray-900">
+            {selectedDate.format('ddd, DD MMM YYYY')}
+         </h3>
+         <p className="mb-5 text-xs text-gray-400 truncate">
+            {activeGroup?.apartment.title} · {activeRoom?.roomType}
+         </p>
+         <label className="block mb-1.5 text-xs font-semibold tracking-wider text-gray-400 uppercase">
+            Price per night
+         </label>
+         <InputNumber
+            min={1000}
+            className="w-full"
+            size="large"
+            suffix="VND"
+            value={draftPrice ?? undefined}
+            onChange={(value) => setDraftPrice(value)}
+            formatter={(value) =>
+               value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''
+            }
+            parser={(value) =>
+               // Same as the room form: drop any separator, not just commas.
+               value ? Number(value.replace(/[^\d]/g, '')) : 0
+            }
+         />
+         <div className="flex gap-3 mt-5">
+            <Button
+               className="flex-1 h-10 rounded-full"
+               onClick={() => setSelectedDate(null)}
+            >
+               Cancel
+            </Button>
+            <Button
+               type="primary"
+               className={`flex-1 h-10 rounded-full ${
+                  draftPrice ? 'bg-blue-500' : 'bg-gray-100! text-gray-400!'
+               }`}
+               loading={updatePricingMutation.isPending}
+               disabled={!draftPrice}
+               onClick={saveDraftPrice}
+            >
+               Save
+            </Button>
+         </div>
+      </div>
+   );
+
    return (
       <div className="min-h-screen bg-gray-50 font-main">
-         <div className="px-5 py-8 mx-auto w-full max-w-main lg:px-7">
+         <div className="px-5 pt-3 pb-8 mx-auto w-full max-w-main lg:px-7">
             <h1 className="mb-6 text-2xl font-bold text-gray-900 md:text-3xl">
                Pricing calendar
             </h1>
@@ -389,7 +477,7 @@ const HostCalendar: React.FC = () => {
                {/* ===== Left rail: room thumbnails grouped by apartment ===== */}
                <div className="flex overflow-x-auto flex-row flex-shrink-0 gap-3 p-3 w-full bg-white rounded-2xl border border-gray-100 lg:overflow-x-visible lg:flex-col lg:w-24 lg:items-center shadow-card-sm lg:sticky lg:top-24">
                   {isLoadingApartments || isLoadingRooms ? (
-                     <Skeleton.Avatar active shape="square" size={56} />
+                     <CalendarRailSkeleton />
                   ) : (
                      groups.map((group, groupIndex) => (
                         <div
@@ -558,7 +646,7 @@ const HostCalendar: React.FC = () => {
                   </div>
 
                   {isLoadingPricing && selectedRoom ? (
-                     <Skeleton active paragraph={{ rows: 8 }} />
+                     <CalendarGridSkeleton />
                   ) : viewMode === 'month' ? (
                      <>
                         <div className="grid grid-cols-7 pb-2 border-b border-gray-100">
@@ -571,7 +659,7 @@ const HostCalendar: React.FC = () => {
                               </div>
                            ))}
                         </div>
-                        <div className="overflow-y-auto pt-3 pr-1 -mr-1 space-y-8 min-h-[560px] max-h-[calc(100vh-11rem)]">
+                        <div className="overflow-y-auto pt-3 pr-1 -mr-1 space-y-6 min-h-[420px] max-h-[calc(100vh-11rem)] md:space-y-8 md:min-h-[560px]">
                            {monthsWindow.map((month) => (
                               <div key={month.format('YYYY-MM')}>
                                  <h3 className="mb-2 text-base font-bold text-gray-900">
@@ -593,62 +681,27 @@ const HostCalendar: React.FC = () => {
                   )}
                </div>
 
+               {/* Mobile/tablet: price editor as a bottom sheet */}
+               <Drawer
+                  placement="bottom"
+                  size="auto"
+                  open={Boolean(selectedDate) && isCompact}
+                  onClose={() => setSelectedDate(null)}
+                  closeIcon={null}
+                  styles={{
+                     header: { display: 'none' },
+                     body: { padding: 0 },
+                     section: { borderRadius: '20px 20px 0 0' },
+                  }}
+               >
+                  {selectedDate && selectedDatePanel}
+               </Drawer>
+
                {/* ===== Sidebar phai ===== */}
                <div className="flex-shrink-0 space-y-5 w-full lg:w-72 lg:sticky lg:top-24">
-                  {selectedDate ? (
+                  {selectedDate && !isCompact ? (
                      <div className="p-6 bg-white rounded-2xl border border-gray-100 shadow-card-sm">
-                        <p className="flex gap-2 items-center text-xs font-semibold tracking-wider text-gray-400 uppercase">
-                           <CalendarOutlined /> Selected date
-                        </p>
-                        <h3 className="mt-1 mb-1 text-lg font-bold text-gray-900">
-                           {selectedDate.format('ddd, DD MMM YYYY')}
-                        </h3>
-                        <p className="mb-5 text-xs text-gray-400 truncate">
-                           {activeGroup?.apartment.title} ·{' '}
-                           {activeRoom?.roomType}
-                        </p>
-                        <label className="block mb-1.5 text-xs font-semibold tracking-wider text-gray-400 uppercase">
-                           Price per night
-                        </label>
-                        <InputNumber
-                           min={1000}
-                           className="w-full"
-                           size="large"
-                           suffix="VND"
-                           value={draftPrice ?? undefined}
-                           onChange={(value) => setDraftPrice(value)}
-                           formatter={(value) =>
-                              value
-                                 ? `${value}`.replace(
-                                      /\B(?=(\d{3})+(?!\d))/g,
-                                      ',',
-                                   )
-                                 : ''
-                           }
-                           parser={(value) =>
-                              // Same as the room form: drop any separator, not just commas.
-                              value ? Number(value.replace(/[^\d]/g, '')) : 0
-                           }
-                        />
-                        <div className="flex gap-3 mt-5">
-                           <Button
-                              className="flex-1 h-10 rounded-full"
-                              onClick={() => setSelectedDate(null)}
-                           >
-                              Cancel
-                           </Button>
-                           <Button
-                              type="primary"
-                              className={`flex-1 h-10 rounded-full ${
-                                 draftPrice ? 'bg-blue-500' : 'bg-gray-100! text-gray-400!'
-                              }`}
-                              loading={updatePricingMutation.isPending}
-                              disabled={!draftPrice}
-                              onClick={saveDraftPrice}
-                           >
-                              Save
-                           </Button>
-                        </div>
+                        {selectedDatePanel}
                      </div>
                   ) : (
                      <div className="p-6 bg-white rounded-2xl border border-gray-100 shadow-card-sm">

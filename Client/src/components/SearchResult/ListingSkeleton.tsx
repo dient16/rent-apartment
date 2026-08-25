@@ -25,9 +25,9 @@ const Chip: React.FC<{ className?: string }> = ({ className }) => (
 /** One result card: 288x256 image on desktop (full-width 208px on mobile) + text column. */
 export const ResultCardSkeleton: React.FC = () => (
    <div className="flex overflow-hidden flex-col bg-white rounded-2xl border border-gray-100 md:flex-row shadow-card-sm">
-      <Bone className="flex-shrink-0 w-full h-52 rounded-none md:w-72 md:h-64" />
+      <Bone className="flex-shrink-0 w-full h-44 rounded-none md:w-72 md:h-64" />
 
-      <div className="flex flex-col flex-1 p-5 min-w-0">
+      <div className="flex flex-col flex-1 p-4 min-w-0 md:p-5">
          <div className="flex gap-4 justify-between items-start">
             <div className="flex-1 min-w-0">
                <Bone className="w-3/5 h-6" />

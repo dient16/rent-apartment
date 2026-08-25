@@ -31,7 +31,7 @@ const SearchInfoBar: React.FC<SearchInfoBarProps> = ({
 
    return (
       <div className="sticky lg:top-[80px] top-[60px] left-0 right-0 z-40 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
-         <div className="flex gap-3 items-center justify-between px-5 lg:px-7 py-1.5 mx-auto max-w-main">
+         <div className="flex gap-2 items-center justify-between px-4 py-1.5 mx-auto max-w-main sm:gap-3 sm:px-5 lg:px-7">
             <Controller
                name="searchDate"
                control={control}
@@ -44,7 +44,7 @@ const SearchInfoBar: React.FC<SearchInfoBarProps> = ({
                      placement="bottom"
                   >
                      {/* Same field style as the listing search bar */}
-                     <div className="flex items-center gap-2 px-3.5 h-[40px] min-w-[220px] bg-white border-[1.5px] border-gray-300 rounded-xl transition-colors cursor-pointer hover:border-gray-500 focus-within:border-blue-500">
+                     <div className="flex flex-1 items-center gap-2 px-3 h-[40px] min-w-0 bg-white border-[1.5px] border-gray-300 rounded-xl transition-colors cursor-pointer sm:flex-none sm:px-3.5 sm:min-w-[220px] hover:border-gray-500 focus-within:border-blue-500">
                         <div className="flex-1 min-w-0">
                            <CustomDatePicker
                               value={field.value}
@@ -62,11 +62,11 @@ const SearchInfoBar: React.FC<SearchInfoBarProps> = ({
                   </Tooltip>
                )}
             />
-            <div className="flex items-center gap-1.5 md:gap-2">
+            <div className="flex flex-shrink-0 items-center gap-1 sm:gap-1.5 md:gap-2">
                {stats.map((stat) => (
                   <div
                      key={stat.label}
-                     className="flex items-center gap-1.5 px-2.5 py-1 text-xs md:text-sm text-gray-700 bg-gray-50 rounded-full border border-gray-100"
+                     className="flex items-center gap-1 px-2 py-1 text-xs md:text-sm text-gray-700 bg-gray-50 rounded-full border border-gray-100 sm:gap-1.5 sm:px-2.5"
                   >
                      <span className="text-gray-400">{stat.icon}</span>
                      <span className="font-semibold text-gray-900">{stat.value}</span>

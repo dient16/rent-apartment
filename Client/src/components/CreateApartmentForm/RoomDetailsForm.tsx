@@ -53,7 +53,7 @@ const RoomDetailsForm: React.FC<RoomDetailsFormProps> = ({ index }) => {
                rules={{ required: 'Room type is required' }}
             />
          </div>
-         <div className="grid grid-cols-3 gap-3 mb-3">
+         <div className="grid grid-cols-1 gap-3 mb-3 sm:grid-cols-3">
             <InputField
                name={`rooms.${index}.size`}
                label="Size"
@@ -90,7 +90,7 @@ const RoomDetailsForm: React.FC<RoomDetailsFormProps> = ({ index }) => {
                rules={{ required: 'Bed Type is required' }}
             />
          </div>
-         <div className="grid grid-cols-2 gap-3 mb-3">
+         <div className="grid grid-cols-1 gap-3 mb-3 sm:grid-cols-2">
             <InputField
                name={`rooms.${index}.numberOfGuest`}
                label="Maximum Number of Guests"

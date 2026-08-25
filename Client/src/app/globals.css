@@ -73,55 +73,31 @@
    padding-top: 4px;
    height: 48px;
 }
-/* Month/year use antd Select (navigatorRenderer): the native popup cannot be styled.
-   Styled as plain text + chevron so the header reads as a title, not two input boxes. */
-.datepicker-nav-select .ant-select-selector {
-   height: 32px !important;
-   padding: 0 6px 0 10px !important;
-   border: none !important;
-   border-radius: 8px !important;
-   background-color: transparent !important;
-   box-shadow: none !important;
+/* Calendar header title: plain button that opens the month/year jump panel
+   (no inputs, so phones never pop the keyboard). */
+.datepicker-nav-title {
+   display: inline-flex;
+   align-items: center;
+   gap: 6px;
+   height: 34px;
+   padding: 0 10px 0 12px;
+   font-size: 15px;
+   font-weight: 600;
+   color: #0f172a;
+   background-color: transparent;
+   border: none;
+   border-radius: 10px;
+   cursor: pointer;
    transition: background-color 0.15s ease;
 }
-.datepicker-nav-select .ant-select-selection-item {
-   padding-inline-end: 16px !important;
-   font-size: 14px;
-   font-weight: 600;
-   line-height: 32px;
-   color: #0f172a !important;
-   opacity: 1 !important;
-}
-/* antd greys the label and rings the box while the popup is open. */
-.datepicker-nav-select.ant-select-open .ant-select-selection-item,
-.datepicker-nav-select.ant-select-focused .ant-select-selection-item {
-   color: #0f172a !important;
-   opacity: 1 !important;
-}
-.datepicker-nav-select.ant-select-open .ant-select-selector,
-.datepicker-nav-select.ant-select-focused .ant-select-selector {
-   border-color: transparent !important;
-   outline: none !important;
-   box-shadow: none !important;
-   background-color: #f3f4f6 !important;
-}
-.datepicker-nav-select .ant-select-arrow {
-   inset-inline-end: 8px;
-   font-size: 11px;
-   color: #4b5563;
-   opacity: 1 !important;
-   transition: color 0.15s ease;
-}
-.datepicker-nav-select:hover .ant-select-selector {
+.datepicker-nav-title:hover {
    background-color: #f3f4f6;
 }
-.datepicker-nav-select:hover .ant-select-arrow {
-   color: #1f2937;
-}
-.datepicker-nav-popup {
-   padding: 6px;
-   border-radius: 10px;
-   box-shadow: 0 12px 32px rgb(0 0 0 / 12%);
+.datepicker-nav-btn:disabled {
+   color: #d1d5db;
+   border-color: #f3f4f6;
+   background-color: #fff;
+   cursor: not-allowed;
 }
 /* Without this the page keeps scrolling once an option list hits its end. */
 .ant-select-dropdown,
@@ -130,15 +106,6 @@
 .ant-dropdown-menu,
 .ant-picker-dropdown {
    overscroll-behavior: contain;
-}
-.datepicker-nav-popup .ant-select-item {
-   min-height: 32px;
-   padding: 5px 12px;
-   border-radius: 6px;
-   font-size: 13px;
-}
-.datepicker-nav-popup .ant-select-item-option-selected {
-   font-weight: 600;
 }
 .datepicker-nav-btn {
    display: flex;
@@ -446,39 +413,6 @@
    transform: scale(1.1);
 }
 
-/* Kill every focus box antd draws on the month/year selects — text-only header */
-.datepicker-nav-select,
-.datepicker-nav-select:focus,
-.datepicker-nav-select:focus-within,
-.datepicker-nav-select.ant-select-focused,
-.datepicker-nav-select.ant-select-open {
-   outline: none !important;
-   box-shadow: none !important;
-   border: none !important;
-}
-.datepicker-nav-select .ant-select-selector,
-.datepicker-nav-select:focus-within .ant-select-selector,
-.datepicker-nav-select .ant-select-selector:focus,
-.datepicker-nav-select .ant-select-selector:focus-visible {
-   border: none !important;
-   outline: none !important;
-   box-shadow: none !important;
-}
-
-/* Some antd states dim the value text (e.g. right after closing the popup) */
-.datepicker-nav-select .ant-select-selection-item,
-.datepicker-nav-select .ant-select-selection-wrap,
-.datepicker-nav-select span[title] {
-   color: #0f172a !important;
-   opacity: 1 !important;
-}
-
-/* antd v6 fades the value to 0.25 while the popup is open — keep it solid here */
-.datepicker-nav-select.ant-select-open .ant-select-content-has-value {
-   opacity: 0.75 !important;
-   color: #0f172a !important;
-}
-
 /* react-date-range squares the pill corners at week/month boundaries (1.042em)
    — keep the full round shape so edge days don't look clipped */
 .custom-datepicker .rdrDayEndOfWeek .rdrInRange,
@@ -556,5 +490,13 @@
    }
    to {
       background-position: -80% 0;
+   }
+}
+
+/* Horizontal card rows on mobile scroll without a visible scrollbar */
+@utility scrollbar-none {
+   scrollbar-width: none;
+   &::-webkit-scrollbar {
+      display: none;
    }
 }

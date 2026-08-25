@@ -75,7 +75,7 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({
                <AppImage
                   alt={roomOption.roomType}
                   src={roomOption.images[0]}
-                  wrapperClassName="w-full h-[200px] md:h-full object-cover"
+                  wrapperClassName="w-full h-[180px] md:h-full object-cover"
                />
                <span className="flex absolute top-3 left-3 gap-1.5 items-center px-2.5 py-1 text-xs font-medium text-gray-800 bg-white/90 rounded-full backdrop-blur">
                   <FaRulerCombined size={11} />
@@ -90,9 +90,9 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({
             </div>
 
             {/* Info */}
-            <div className="flex flex-col flex-1 gap-3 p-5 min-w-0">
+            <div className="flex flex-col flex-1 gap-2.5 p-4 min-w-0 md:gap-3 md:p-5">
                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-base font-semibold text-gray-900 md:text-lg">
                      {roomOption.roomType}
                   </h3>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-sm text-gray-600">
@@ -150,19 +150,28 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({
                </button>
             </div>
 
-            {/* Price + stepper */}
-            <div className="flex flex-col gap-3 justify-center items-stretch p-5 md:w-[220px] flex-shrink-0 bg-gray-50/70 border-t md:border-t-0 md:border-l border-gray-100">
-               <div className="text-right">
-                  <p className="text-xl font-bold text-gray-900">
+            {/* Price + stepper: one row on phones, a column on md+ */}
+            <div className="flex flex-row flex-shrink-0 gap-3 justify-between items-center p-4 bg-gray-50/70 border-t border-gray-100 md:flex-col md:items-stretch md:p-5 md:w-[220px] md:border-t-0 md:border-l">
+               <div className="min-w-0 text-left md:text-right">
+                  <p className="text-lg font-bold text-gray-900 md:text-xl">
                      {roomOption.totalPrice.toLocaleString()}{' '}
                      <span className="text-sm font-medium text-gray-500">VND</span>
                   </p>
                   <p className="text-xs text-gray-400">
                      per night · taxes included
                   </p>
+                  <p
+                     className={`mt-0.5 text-xs md:hidden ${
+                        roomOption.quantity <= 3 ? 'font-medium text-red-500' : 'text-gray-400'
+                     }`}
+                  >
+                     {roomOption.quantity <= 3
+                        ? `Only ${roomOption.quantity} left!`
+                        : `${roomOption.quantity} available`}
+                  </p>
                </div>
 
-               <div className="flex justify-between items-center px-2 py-1.5 bg-white rounded-xl border border-gray-200">
+               <div className="flex flex-shrink-0 justify-between items-center px-2 py-1.5 bg-white rounded-xl border border-gray-200">
                   <button
                      type="button"
                      onClick={decrement}
@@ -175,7 +184,7 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({
                   >
                      <FaMinus size={11} />
                   </button>
-                  <span className="w-10 text-lg font-semibold text-center text-gray-900 select-none">
+                  <span className="w-8 text-lg font-semibold text-center text-gray-900 select-none md:w-10">
                      {count}
                   </span>
                   <button
@@ -193,7 +202,7 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({
                </div>
 
                <p
-                  className={`text-xs text-center ${
+                  className={`hidden text-xs text-center md:block ${
                      roomOption.quantity <= 3
                         ? 'font-medium text-red-500'
                         : 'text-gray-400'

@@ -68,7 +68,7 @@ const ResultItem: React.FC<SearchItemProps> = ({
             <AppImage
                src={room.image}
                alt={room.name}
-               wrapperClassName="object-cover w-full h-52 transition-transform duration-500 md:h-64 group-hover:scale-105"
+               wrapperClassName="object-cover w-full h-44 transition-transform duration-500 md:h-64 group-hover:scale-105"
             />
             <FavoriteButton
                apartmentId={room._id}
@@ -83,11 +83,11 @@ const ResultItem: React.FC<SearchItemProps> = ({
          </div>
 
          {/* Noi dung */}
-         <div className="flex flex-col flex-1 p-5 min-w-0">
+         <div className="flex flex-col flex-1 p-4 min-w-0 md:p-5">
             <div className="flex gap-4 justify-between items-start">
                <div className="min-w-0">
                   <Tooltip title={room.name}>
-                     <h3 className="text-lg font-semibold text-gray-900 transition-colors line-clamp-1 group-hover:text-blue-600">
+                     <h3 className="text-base font-semibold text-gray-900 transition-colors line-clamp-1 md:text-lg group-hover:text-blue-600">
                         {room.name}
                      </h3>
                   </Tooltip>
@@ -152,7 +152,7 @@ const ResultItem: React.FC<SearchItemProps> = ({
                   </span>
                </div>
                <div className="text-right">
-                  <p className="text-xl font-bold text-gray-900">
+                  <p className="text-lg font-bold text-gray-900 md:text-xl">
                      {room.totalPrice?.toLocaleString()}{' '}
                      <span className="text-sm font-medium text-gray-500">
                         VND

@@ -97,7 +97,7 @@ const BookingDetail: React.FC = () => {
 
    return (
       <div className="min-h-screen bg-gray-50 font-main">
-         <div className="px-5 pt-5 pb-8 mx-auto w-full max-w-main lg:px-7">
+         <div className="px-5 pt-3 pb-8 mx-auto w-full max-w-main lg:px-7">
             <Link
                to={`/${path.MY_BOOKING}`}
                className="inline-flex gap-2 items-center mb-5 text-sm font-medium text-gray-500 hover:text-blue-600"

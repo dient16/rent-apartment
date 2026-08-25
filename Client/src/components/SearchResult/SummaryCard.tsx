@@ -1,64 +1,49 @@
 import React from 'react';
 import moment from 'moment';
-import { FaMapMarkerAlt } from 'react-icons/fa';
-import { FiCalendar, FiUser } from 'react-icons/fi';
-import { AiOutlineClockCircle } from 'react-icons/ai';
+import { FiSearch } from 'react-icons/fi';
 
 interface SummaryCardProps {
    searchParams: URLSearchParams;
    onClick: () => void;
 }
 
+const plural = (count: number, noun: string) =>
+   `${count} ${noun}${count === 1 ? '' : 's'}`;
+
+/** Mobile search pill: one tap re-opens the full search sheet. */
 const SummaryCard: React.FC<SummaryCardProps> = ({ searchParams, onClick }) => {
    const startDate = searchParams.get('startDate');
    const endDate = searchParams.get('endDate');
-   const numberOfGuests = searchParams.get('numberOfGuest');
-   const numberOfRooms = searchParams.get('roomNumber');
+   const guests = Number(searchParams.get('numberOfGuest')) || 1;
+   const rooms = Number(searchParams.get('roomNumber')) || 1;
    const province = searchParams.get('province');
 
-   const formattedStartDate = startDate
-      ? moment(startDate).format('DD MMM')
-      : '';
-   const formattedEndDate = endDate ? moment(endDate).format('DD MMM') : '';
-   const nights =
+   const dates =
       startDate && endDate
-         ? moment(endDate).diff(moment(startDate), 'days')
-         : 0;
+         ? `${moment(startDate).format('DD MMM')} – ${moment(endDate).format('DD MMM')}`
+         : 'Any dates';
+   const who = [plural(guests, 'guest'), rooms > 1 ? plural(rooms, 'room') : null]
+      .filter(Boolean)
+      .join(' · ');
 
    return (
-      <div
-         className="w-full bg-white py-3 px-3 lg:px-10 md:px-5 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors md:hover:bg-gray-200 md:shadow-sm md:hover:shadow-md shadow-sm"
+      <button
+         type="button"
          onClick={onClick}
+         className="flex flex-1 gap-3 items-center px-3 min-w-0 h-12 text-left bg-white rounded-full border border-gray-200 shadow-card-sm transition-shadow cursor-pointer hover:shadow-card-md"
       >
-         <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between w-full">
-            <div className="flex items-center gap-2 md:max-w-[220px] min-w-[37%] my-1">
-               <FaMapMarkerAlt className="text-gray-500" />
-               <span className="text-sm font-normal md:text-base">
-                  {province || 'Location'}
-               </span>
-            </div>
-            <div className="flex items-center gap-3 my-1">
-               <div className="flex items-center gap-2 md:ml-4 md:mt-0">
-                  <FiCalendar className="text-gray-500" />
-                  <span className="text-sm md:text-base font-light">
-                     {formattedStartDate} - {formattedEndDate}
-                  </span>
-               </div>
-               <div className="flex items-center gap-2 md:mt-0">
-                  <AiOutlineClockCircle className="text-gray-500" />
-                  <span className="text-sm md:text-base font-light">
-                     {nights} nights
-                  </span>
-               </div>
-            </div>
-            <div className="flex items-center gap-2 md:mt-0 my-1">
-               <FiUser className="text-gray-500" />
-               <span className="text-sm md:text-base font-light">
-                  {numberOfGuests} guests, {numberOfRooms} rooms
-               </span>
-            </div>
-         </div>
-      </div>
+         <span className="flex flex-shrink-0 justify-center items-center w-8 h-8 text-blue-600 bg-blue-50 rounded-full">
+            <FiSearch size={15} />
+         </span>
+         <span className="flex flex-col min-w-0 leading-tight">
+            <span className="text-sm font-semibold text-gray-900 truncate">
+               {province || 'Anywhere'}
+            </span>
+            <span className="text-xs text-gray-500 truncate">
+               {dates} · {who}
+            </span>
+         </span>
+      </button>
    );
 };
 

@@ -13,7 +13,13 @@ import { verifyAccessToken } from '@/middlewares/verifyToken';
 
 export const userRegistry = new OpenAPIRegistry();
 
-const SafeUserSchema = UserSchema.omit({ password: true, refreshToken: true, confirmationToken: true });
+const SafeUserSchema = UserSchema.omit({
+  password: true,
+  refreshToken: true,
+  confirmationToken: true,
+  resetPasswordToken: true,
+  resetPasswordExpires: true,
+});
 userRegistry.register('User', SafeUserSchema);
 
 const EditUserSchema = UserSchema.omit({
@@ -26,6 +32,8 @@ const EditUserSchema = UserSchema.omit({
   confirmationToken: true,
   emailConfirmed: true,
   refreshToken: true,
+  resetPasswordToken: true,
+  resetPasswordExpires: true,
   provider: true,
   createdAt: true,
   updatedAt: true,

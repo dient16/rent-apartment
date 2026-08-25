@@ -88,7 +88,7 @@ const MyBooking: React.FC = () => {
 
    return (
       <div className="min-h-screen bg-gray-50 font-main">
-         <div className="px-5 pt-5 pb-10 mx-auto w-full max-w-main lg:px-7">
+         <div className="px-5 pt-3 pb-10 mx-auto w-full max-w-main lg:px-7">
             <h1 className="mb-6 text-2xl font-bold text-gray-900 md:text-3xl">
                My bookings
             </h1>
