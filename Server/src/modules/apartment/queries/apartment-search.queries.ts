@@ -81,12 +81,20 @@ export const apartmentSearchQueries = {
       roomMatch.amenities = { $all: matchedAmenities.map((amenity) => amenity._id) };
     }
 
-    // Elasticsearch handles unaccented input and typos; null = fall back to regex.
-    const searchText = [province, district, name]
-      .filter(Boolean)
-      .map((value) => String(value).trim())
-      .join(' ');
-    const esApartmentIds = searchText ? await searchApartmentIds(searchText) : null;
+    // "Quy Nhơn, Gia Lai" -> one place per comma part; each must match an address field, in the
+    // stored (pre-2025) names or in `location.current` (post-2025), so both "Bình Định" and
+    // "Gia Lai" find the same listings.
+    const places: string[] = [
+      ...String(province || '')
+        .split(',')
+        .map((part) => part.trim())
+        .filter((part) => part.length >= 2),
+      ...(district ? [String(district).trim()] : []),
+    ];
+
+    // The search backend handles unaccented input and typos; null = fall back to regex.
+    const searchText = name ? String(name).trim() : '';
+    const esApartmentIds = searchText || places.length ? await searchApartmentIds(searchText, 500, places) : null;
 
     if (esApartmentIds !== null) {
       if (esApartmentIds.length === 0) {
@@ -104,20 +112,20 @@ export const apartmentSearchQueries = {
     // Fallback: substring match, since Mongo $text matches per word and over-hits.
     const apartmentMatch: Record<string, unknown>[] = [];
     if (esApartmentIds === null) {
-      if (province) {
-        const regex = new RegExp(escapeRegex(String(province).trim()), 'i');
+      // Each place must match some address field (stored or current name) or the title.
+      for (const place of places) {
+        const regex = new RegExp(escapeRegex(place), 'i');
         apartmentMatch.push({
           $or: [
             { 'apartment.location.province': regex },
             { 'apartment.location.district': regex },
             { 'apartment.location.ward': regex },
             { 'apartment.location.street': regex },
+            { 'apartment.location.current.province': regex },
+            { 'apartment.location.current.ward': regex },
             { 'apartment.title': regex },
           ],
         });
-      }
-      if (district) {
-        apartmentMatch.push({ 'apartment.location.district': new RegExp(escapeRegex(String(district).trim()), 'i') });
       }
       if (name) {
         apartmentMatch.push({ 'apartment.title': new RegExp(escapeRegex(String(name).trim()), 'i') });

@@ -67,7 +67,7 @@ const AutoCompleteAddress: React.FC<AutoCompleteAddressProps> = ({
                   className={clsx(
                      inline
                         ? 'overflow-y-auto py-2 w-full'
-                        : 'overflow-hidden absolute top-2 z-20 py-2 w-full bg-white rounded-2xl border border-gray-100 shadow-card-md',
+                        : 'overflow-hidden absolute top-2 z-40 py-2 w-full bg-white rounded-2xl border border-gray-100 shadow-card-md',
                      centred && 'left-1/2 min-w-[320px]',
                      !inline && matchWidth && 'left-0',
                   )}

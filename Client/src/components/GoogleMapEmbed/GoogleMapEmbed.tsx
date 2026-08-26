@@ -31,19 +31,21 @@ const GoogleMapEmbed: React.FC<GoogleMapEmbedProps> = ({
 }) => {
    const [zoom, setZoom] = useState(initialZoom);
 
-   // Center-only views (no Google pin) — our own marker is overlaid at the center
+   // Google draws the marker itself (place / q mode) so it stays on the property while
+   // the guest pans or zooms inside the frame. An overlay pin cannot follow the map:
+   // the iframe exposes no JS API.
    const src = API_KEY
-      ? `https://www.google.com/maps/embed/v1/view?key=${API_KEY}&center=${lat},${lng}&zoom=${zoom}&language=vi`
-      : `https://www.google.com/maps?ll=${lat},${lng}&z=${zoom}&hl=vi&output=embed`;
+      ? `https://www.google.com/maps/embed/v1/place?key=${API_KEY}&q=${lat},${lng}&zoom=${zoom}&language=vi`
+      : `https://www.google.com/maps?q=${lat},${lng}&z=${zoom}&hl=vi&output=embed`;
    const openUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
    const controlButton =
-      'flex justify-center items-center w-9 h-9 text-gray-700 bg-white transition-colors cursor-pointer hover:bg-blue-50 hover:text-blue-600 disabled:text-gray-300 disabled:cursor-not-allowed';
+      'flex justify-center items-center w-10 h-10 text-gray-700 bg-white transition-colors cursor-pointer hover:bg-blue-50 hover:text-blue-600 disabled:text-gray-300 disabled:cursor-not-allowed';
 
    return (
       <div className={`overflow-hidden relative w-full h-full ${className}`}>
-         {/* The iframe is shifted up by CROP px so Google's own "Open in Maps" box
-             (top-left inside the frame) is clipped away; the marker compensates below. */}
+         {/* The iframe is shifted up by CROP px so Google's own place card / "View larger map"
+             box (top-left inside the frame) is clipped away. */}
          <iframe
             key={zoom}
             title={label ? `Map of ${label}` : 'Map'}
@@ -55,25 +57,9 @@ const GoogleMapEmbed: React.FC<GoogleMapEmbedProps> = ({
             referrerPolicy="no-referrer-when-downgrade"
          />
 
-         {/* Custom marker (same pin as the Leaflet map), anchored on the map center */}
-         <div
-            className="absolute z-10 pointer-events-none"
-            style={{ left: 'calc(50% - 20px)', top: `calc(50% - ${CROP / 2 + 50}px)` }}
-            aria-hidden
-         >
-            <div className="map-pin">
-               <span className="map-pin-bubble">
-                  <svg viewBox="0 0 384 512" width="13" height="13" fill="#fff">
-                     <path d="M215.7 499.2C267 435 384 279.4 384 192C384 86 298 0 192 0S0 86 0 192c0 87.4 117 243 168.3 307.2c12.3 15.3 35.1 15.3 47.4 0zM192 128a64 64 0 1 1 0 128 64 64 0 1 1 0-128z" />
-                  </svg>
-               </span>
-               <span className="map-pin-pulse" />
-               <span className="map-pin-dot" />
-            </div>
-         </div>
-
-         {/* Zoom controls */}
-         <div className="flex overflow-hidden absolute right-4 bottom-20 z-10 flex-col rounded-xl border border-gray-100 shadow-lg">
+         {/* Zoom controls: 40px wide, 10px from the right edge - the same column as Google's
+             fullscreen button inside the iframe (40x40 at 10px/10px), stacked 20px above it. */}
+         <div className="flex overflow-hidden absolute right-[10px] bottom-[70px] z-10 flex-col rounded-xl border border-gray-100 shadow-lg">
             <button
                type="button"
                aria-label="Zoom in"

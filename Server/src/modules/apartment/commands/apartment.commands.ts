@@ -3,7 +3,20 @@ import { StatusCodes } from 'http-status-codes';
 import mongoose, { Types } from 'mongoose';
 
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
+import { ADMIN_VERSION, resolveCurrentAddress } from '@/modules/location/addressResolver';
 import { indexApartment, removeApartmentFromIndex } from '@/services/search';
+
+/** The stored address plus the same place in the post-2025 structure (never throws). */
+const withCurrentAddress = async (location: any) => {
+  if (!location) return location;
+  try {
+    const { current } = await resolveCurrentAddress(location, { geocode: true });
+    return current?.province && current.ward ? { ...location, current, adminVersion: ADMIN_VERSION } : location;
+  } catch {
+    // Missing unit data must never block a host from listing; the backfill tool can fill it later.
+    return location;
+  }
+};
 
 import { roomCommands } from '../../room/commands/room.commands';
 import { apartmentRepository } from '../apartment.repository';
@@ -31,7 +44,7 @@ export const apartmentCommands = {
           {
             title,
             description,
-            location,
+            location: await withCurrentAddress(location),
             owner: createBy,
             rooms: [],
             images: [],

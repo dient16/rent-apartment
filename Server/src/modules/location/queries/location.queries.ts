@@ -8,6 +8,8 @@ import { env } from '@/config/env.config';
 import { logger } from '@/utils/logger';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 
+import { suggestPlaces } from '../placeSuggestions';
+
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
 const PHOTON_URL = 'https://photon.komoot.io/api';
@@ -260,13 +262,25 @@ export const locationQueries = {
       return new ServiceResponse(ResponseStatus.Success, 'Suggestions', [], StatusCodes.OK);
     }
 
+    // Provinces / wards (post-2025 units, plus the old names mapped to them) come from the
+    // bundled dataset: instant, offline, and never "Nam Định, Tỉnh Ninh Bình" for "Bình Định".
+    const local = suggestPlaces(query, 6);
+    const merge = (remote: Suggestion[]) => {
+      const values = new Set(local.map((s) => s.value.toLowerCase()));
+      return [...local, ...remote.filter((s) => !values.has(s.value.toLowerCase()))].slice(0, 8);
+    };
+    // Enough administrative matches -> no need to hit the geocoder at all.
+    if (local.length >= 3) {
+      return new ServiceResponse(ResponseStatus.Success, 'Suggestions', local, StatusCodes.OK);
+    }
+
     const cached = cache.get(normalized);
     if (cached && cached.expires > Date.now()) {
-      return new ServiceResponse(ResponseStatus.Success, 'Suggestions', cached.data, StatusCodes.OK);
+      return new ServiceResponse(ResponseStatus.Success, 'Suggestions', merge(cached.data), StatusCodes.OK);
     }
 
     if (Date.now() < breaker.openUntil) {
-      return new ServiceResponse(ResponseStatus.Success, 'Suggestions', [], StatusCodes.OK);
+      return new ServiceResponse(ResponseStatus.Success, 'Suggestions', local, StatusCodes.OK);
     }
 
     let lastError: unknown;
@@ -282,7 +296,7 @@ export const locationQueries = {
         cache.set(normalized, { data: suggestions, expires: Date.now() + CACHE_TTL_MS });
         breaker.reported = false;
 
-        return new ServiceResponse(ResponseStatus.Success, 'Suggestions', suggestions, StatusCodes.OK);
+        return new ServiceResponse(ResponseStatus.Success, 'Suggestions', merge(suggestions), StatusCodes.OK);
       } catch (error) {
         lastError = error;
         logger.debug(
@@ -319,7 +333,7 @@ export const locationQueries = {
       );
     }
 
-    return new ServiceResponse(ResponseStatus.Success, 'Suggestions', [], StatusCodes.OK);
+    return new ServiceResponse(ResponseStatus.Success, 'Suggestions', local, StatusCodes.OK);
   },
 
   /** Forward geocoding with coordinates, for the create-listing map picker. */

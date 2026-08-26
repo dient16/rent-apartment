@@ -23,7 +23,8 @@ export const initSearch = async (): Promise<void> => {
 };
 
 /** Full-text search -> apartmentIds by relevance; null = fall back to Mongo regex. */
-export const searchApartmentIds = (text: string, maxResults = 500) => searchProvider.search(text, maxResults);
+export const searchApartmentIds = (text: string, maxResults = 500, places: string[] = []) =>
+  searchProvider.search(text, maxResults, places);
 
 /** Write-through after create/update. No-op on backends that index the collection directly. */
 export const indexApartment = (apartment: any) => searchProvider.index(apartment);

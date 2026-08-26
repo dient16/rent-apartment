@@ -14,11 +14,11 @@ const apartmentSchema = new Schema(
       district: { type: String, required: true },
       ward: { type: String },
       street: { type: String, required: true },
-      // Set by scripts/migrateAddresses2025.ts: the pre-merger address and the
-      // administrative structure version the current fields follow (2025 = 34 provinces, no district).
-      legacy: {
+      // The same place in the post-2025-07-01 structure (34 provinces, no districts). Filled on
+      // create by addressResolver and by scripts/address-migration-2025; searched next to the
+      // stored names so guests can type either "Bình Định" or "Gia Lai".
+      current: {
         province: { type: String },
-        district: { type: String },
         ward: { type: String },
       },
       adminVersion: { type: Number },

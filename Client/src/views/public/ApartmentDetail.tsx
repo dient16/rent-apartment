@@ -357,8 +357,13 @@ const ApartmentDetail: React.FC = () => {
                   <h3 id="location" className="mb-3 text-lg font-semibold text-gray-900 md:mb-4 md:text-xl">
                      Where you&apos;ll be
                   </h3>
-                  <p className="mb-3 text-sm text-gray-600 md:mb-4">
-                     {[apartment.location.street, apartment.location.ward, apartment.location.district, apartment.location.province].filter(Boolean).join(', ')}
+                  <p className="flex gap-2.5 items-center mb-3 text-sm text-gray-600 md:mb-4">
+                     <span className="flex flex-shrink-0 justify-center items-center w-8 h-8 text-blue-600 bg-blue-50 rounded-full">
+                        <FaLocationDot size={14} />
+                     </span>
+                     <span className="leading-snug">
+                        {[apartment.location.street, apartment.location.ward, apartment.location.district, apartment.location.province].filter(Boolean).join(', ')}
+                     </span>
                   </p>
                   <div className="relative z-0 w-full overflow-hidden rounded-2xl border border-gray-100 shadow-sm h-[240px] sm:h-[300px] lg:h-[480px]">
                      <GoogleMapEmbed
