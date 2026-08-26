@@ -63,14 +63,18 @@ export const searchRoomSchema = z.object({
     bedType: z.string().optional(),
     amenities: z.string().optional(),
     minRating: stringToFloat(z.number()).optional(),
-    sortBy: z.enum(['price_asc', 'price_desc', 'rating']).optional().default('price_asc'),
+    // "near this place": centre + radius in km (from a geocoder suggestion)
+    lat: stringToFloat(z.number().min(-90).max(90)).optional(),
+    lng: stringToFloat(z.number().min(-180).max(180)).optional(),
+    radius: stringToFloat(z.number().min(0.5).max(100)).optional().default(10),
+    sortBy: z.enum(['price_asc', 'price_desc', 'rating', 'distance']).optional().default('price_asc'),
   }),
 });
 
 const roomSchema = z.object({
   amenities: z.array(z.string()),
   size: stringToNumber(z.number()),
-  price: stringToNumber(z.number()),
+  price: stringToNumber(z.number().int().min(10000)),
   images: z.array(z.string()),
   roomType: z.string(),
   bedType: z.string().optional(),

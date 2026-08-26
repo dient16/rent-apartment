@@ -31,6 +31,17 @@ export interface AddressSuggestion {
    label: string;
    description: string;
    value: string;
+   /** `unit` = province/ward; `place` = a point of interest / street with coordinates */
+   kind?: 'unit' | 'place';
+   lat?: number;
+   lon?: number;
+}
+
+/** Picked geocoder place, kept in the search form as `searchPlace` -> lat/lng query params */
+export interface SearchPlace {
+   label: string;
+   lat: number;
+   lon: number;
 }
 
 export const apiSuggestAddress = (q: string): Promise<Res> =>

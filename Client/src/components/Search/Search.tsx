@@ -43,6 +43,13 @@ const Search: React.FC = () => {
       }
       queryParams.set('numberOfGuest', String(data.searchGuest?.guests || 1));
       queryParams.set('roomNumber', String(data.searchGuest?.rooms || 1));
+      // Picked a point of interest -> "near here" search, closest first
+      if (data.searchPlace?.lat != null && data.searchPlace?.lon != null) {
+         queryParams.set('lat', String(data.searchPlace.lat));
+         queryParams.set('lng', String(data.searchPlace.lon));
+         queryParams.set('radius', '10');
+         queryParams.set('sortBy', 'distance');
+      }
       navigate(`/listing?${queryParams.toString()}`);
    };
 
@@ -86,6 +93,7 @@ const Search: React.FC = () => {
                         value={field.value}
                         onChange={(event) => {
                            setActivePanel('where');
+                           setValue('searchPlace', null);
                            field.onChange(event.target.value);
                         }}
                         onFocus={(event) => {
@@ -147,7 +155,10 @@ const Search: React.FC = () => {
                                  placeholder="Search destinations"
                                  className="flex-1 text-[15px] text-gray-800 placeholder-gray-400 bg-transparent border-none outline-none"
                                  value={field.value}
-                                 onChange={(event) => field.onChange(event.target.value)}
+                                 onChange={(event) => {
+                                    setValue('searchPlace', null);
+                                    field.onChange(event.target.value);
+                                 }}
                               />
                            </div>
                         </div>

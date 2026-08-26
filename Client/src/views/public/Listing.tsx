@@ -23,6 +23,8 @@ const SORT_OPTIONS = [
    { value: 'price_asc', label: 'Price ↑' },
    { value: 'price_desc', label: 'Price ↓' },
    { value: 'rating', label: 'Top rated' },
+   // only meaningful for a "near this place" search (lat/lng in the URL)
+   { value: 'distance', label: 'Nearest' },
 ];
 
 /** Bottom sheet used for the mobile search / filter panels. */
@@ -82,7 +84,14 @@ const Listing: React.FC = () => {
       const maxPrice = searchParams.get('maxPrice');
       const minRating = searchParams.get('minRating');
       const amenities = searchParams.get('amenities');
+      const lat = Number(searchParams.get('lat'));
+      const lng = Number(searchParams.get('lng'));
       return {
+         // A "near this place" search survives re-submits of the search bar
+         searchPlace:
+            Number.isFinite(lat) && Number.isFinite(lng) && searchParams.has('lat')
+               ? { label: searchParams.get('province') || '', lat, lon: lng }
+               : null,
          searchPrice:
             minPrice && maxPrice ? [Number(minPrice), Number(maxPrice)] : undefined,
          minRating: minRating ? Number(minRating) : undefined,
@@ -123,6 +132,8 @@ const Listing: React.FC = () => {
    const numberOfGuest: number =
       +(searchParams.get('numberOfGuest') || 1) || 1;
    const sortBy = searchParams.get('sortBy') || 'price_asc';
+   const isNearSearch = searchParams.has('lat') && searchParams.has('lng');
+   const sortOptions = SORT_OPTIONS.filter((option) => option.value !== 'distance' || isNearSearch);
 
    const handleSearch = (formData: Record<string, any>) => {
       const queryParams = new URLSearchParams();
@@ -163,9 +174,19 @@ const Listing: React.FC = () => {
       if (formData.amenities?.length) {
          queryParams.set('amenities', formData.amenities.join(','));
       }
-      // Keep the current sort when searching again
+      // Picked a point of interest -> "near here" search; a plain destination drops any
+      // previous lat/lng so the name match applies again.
+      const place = formData.searchPlace;
       const currentSort = searchParams.get('sortBy');
-      if (currentSort) queryParams.set('sortBy', currentSort);
+      if (place?.lat != null && place?.lon != null) {
+         queryParams.set('lat', String(place.lat));
+         queryParams.set('lng', String(place.lon));
+         queryParams.set('radius', searchParams.get('radius') || '10');
+         queryParams.set('sortBy', currentSort && currentSort !== 'distance' ? currentSort : 'distance');
+      } else if (currentSort && currentSort !== 'distance') {
+         // Keep the current sort when searching again
+         queryParams.set('sortBy', currentSort);
+      }
 
       setSearchParams(queryParams);
       setDrawerVisible(false);
@@ -269,7 +290,7 @@ const Listing: React.FC = () => {
                      detailQuery={queryString}
                   />
                   <span className="flex-shrink-0 w-px h-6 bg-gray-200" />
-                  {SORT_OPTIONS.map((option) => (
+                  {sortOptions.map((option) => (
                      <button
                         key={option.value}
                         type="button"

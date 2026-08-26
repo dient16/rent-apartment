@@ -31,7 +31,17 @@ export const apartmentSearchQueries = {
       minRating,
       sortBy,
       amenities,
+      lat,
+      lng,
+      radius,
     } = query;
+
+    // A picked geocoder place (lake, market, street...) is searched by distance, not by name:
+    // its name is almost never part of a listing's address.
+    const near =
+      typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng)
+        ? { lat, lng, radiusKm: radius || 10 }
+        : null;
 
     const amenityList: string[] = String(amenities || '')
       .split(',')
@@ -84,13 +94,15 @@ export const apartmentSearchQueries = {
     // "Quy Nhơn, Gia Lai" -> one place per comma part; each must match an address field, in the
     // stored (pre-2025) names or in `location.current` (post-2025), so both "Bình Định" and
     // "Gia Lai" find the same listings.
-    const places: string[] = [
-      ...String(province || '')
-        .split(',')
-        .map((part) => part.trim())
-        .filter((part) => part.length >= 2),
-      ...(district ? [String(district).trim()] : []),
-    ];
+    const places: string[] = near
+      ? []
+      : [
+          ...String(province || '')
+            .split(',')
+            .map((part) => part.trim())
+            .filter((part) => part.length >= 2),
+          ...(district ? [String(district).trim()] : []),
+        ];
 
     // The search backend handles unaccented input and typos; null = fall back to regex.
     const searchText = name ? String(name).trim() : '';
@@ -111,6 +123,16 @@ export const apartmentSearchQueries = {
 
     // Fallback: substring match, since Mongo $text matches per word and over-hits.
     const apartmentMatch: Record<string, unknown>[] = [];
+    if (near) {
+      // Bounding box around the point (1 deg lat = 111 km); the exact distance is
+      // projected below for sorting and display.
+      const dLat = near.radiusKm / 111;
+      const dLng = near.radiusKm / (111 * Math.cos((near.lat * Math.PI) / 180));
+      apartmentMatch.push({
+        'apartment.location.lat': { $gte: near.lat - dLat, $lte: near.lat + dLat },
+        'apartment.location.long': { $gte: near.lng - dLng, $lte: near.lng + dLng },
+      });
+    }
     if (esApartmentIds === null) {
       // Each place must match some address field (stored or current name) or the title.
       for (const place of places) {
@@ -217,8 +239,38 @@ export const apartmentSearchQueries = {
           },
           nights: { $literal: totalNights },
           totalPrice: { $multiply: ['$price', totalNights] },
+          ...(near
+            ? {
+                // equirectangular approximation - plenty for a few km
+                distanceKm: {
+                  $round: [
+                    {
+                      $sqrt: {
+                        $add: [
+                          { $pow: [{ $multiply: [{ $subtract: ['$apartment.location.lat', near.lat] }, 111] }, 2] },
+                          {
+                            $pow: [
+                              {
+                                $multiply: [
+                                  { $subtract: ['$apartment.location.long', near.lng] },
+                                  111 * Math.cos((near.lat * Math.PI) / 180),
+                                ],
+                              },
+                              2,
+                            ],
+                          },
+                        ],
+                      },
+                    },
+                    1,
+                  ],
+                },
+              }
+            : {}),
         },
       },
+      // Radius is a circle, the pre-filter above was its bounding square.
+      ...(near ? [{ $match: { distanceKm: { $lte: near.radiusKm } } }] : []),
       // Minimum rating, after rating is projected.
       ...(minRating ? [{ $match: { 'rating.ratingAvg': { $gte: minRating } } }] : []),
       // Stable order so pagination never duplicates or skips.
@@ -228,7 +280,9 @@ export const apartmentSearchQueries = {
             ? { price: -1 as const, _id: 1 as const }
             : sortBy === 'rating'
               ? { 'rating.ratingAvg': -1 as const, _id: 1 as const }
-              : { price: 1 as const, _id: 1 as const },
+              : sortBy === 'distance' && near
+                ? { distanceKm: 1 as const, _id: 1 as const }
+                : { price: 1 as const, _id: 1 as const },
       },
     ];
 

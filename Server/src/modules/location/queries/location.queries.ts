@@ -8,7 +8,7 @@ import { env } from '@/config/env.config';
 import { logger } from '@/utils/logger';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 
-import { suggestPlaces } from '../placeSuggestions';
+import { fold, suggestPlaces } from '../placeSuggestions';
 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
@@ -21,6 +21,10 @@ interface Suggestion {
   label: string;
   description: string;
   value: string;
+  /** `unit` = province/ward from the bundled dataset; `place` = geocoder POI / street with coordinates */
+  kind: 'unit' | 'place';
+  lat?: number;
+  lon?: number;
 }
 
 const cache = new Map<string, { data: Suggestion[]; expires: number }>();
@@ -124,7 +128,25 @@ const toSuggestion = (place: any): Suggestion => {
       .filter(Boolean)
       .filter((v, i, arr) => arr.indexOf(v) === i)
       .join(', '),
+    kind: 'place',
+    lat: Number(place.lat),
+    lon: Number(place.lon),
   };
+};
+
+/**
+ * Places a guest would search around: lakes, beaches, parks, markets, landmarks, streets,
+ * neighbourhoods. Shops, cafés and offices only add noise ("Net-Tấn Toàn-DT744...").
+ */
+const PLACE_KEYS = new Set(['place', 'natural', 'leisure', 'tourism', 'historic', 'water', 'waterway', 'highway', 'boundary', 'aeroway', 'railway']);
+const PLACE_AMENITIES = new Set(['marketplace', 'university', 'hospital', 'bus_station', 'ferry_terminal', 'place_of_worship', 'townhall']);
+const isSearchablePlace = (feature: any): boolean => {
+  const props = feature?.properties || {};
+  const name: string = props.name || '';
+  if (!name || name.length > 60 || /\d{6,}/.test(name)) return false;
+  if (props.countrycode && props.countrycode !== 'VN') return false;
+  if (PLACE_KEYS.has(props.osm_key)) return true;
+  return props.osm_key === 'amenity' && PLACE_AMENITIES.has(props.osm_value);
 };
 
 /** Photon (Komoot) returns OSM data as GeoJSON with already-localised names. */
@@ -136,6 +158,7 @@ const toPhotonSuggestion = (feature: any): Suggestion => {
     .filter((part: string) => part !== label)
     .filter((part: string, index: number, arr: string[]) => arr.indexOf(part) === index);
   const cityOrProvince = props.city || props.state || '';
+  const [lon, lat] = feature?.geometry?.coordinates || [];
 
   return {
     label,
@@ -144,6 +167,9 @@ const toPhotonSuggestion = (feature: any): Suggestion => {
       .filter(Boolean)
       .filter((v, i, arr) => arr.indexOf(v) === i)
       .join(', '),
+    kind: 'place',
+    lat: Number(lat),
+    lon: Number(lon),
   };
 };
 
@@ -242,12 +268,13 @@ const PROVIDERS: Provider[] = [
   },
   {
     name: 'photon',
-    url: (query) => `${PHOTON_URL}?q=${encodeURIComponent(query)}&limit=10`,
+    url: (query) => `${PHOTON_URL}?q=${encodeURIComponent(query)}&limit=15&lang=default&bbox=102,8,110,23.5`,
     parse: (payload) =>
       sortByPriority<any>(
         (payload?.features || []).filter((feature: any) => feature?.properties?.countrycode === 'VN'),
         (feature) => feature?.properties?.osm_value
       )
+        .filter(isSearchablePlace)
         .map(toPhotonSuggestion)
         .filter((suggestion) => suggestion.label)
         .slice(0, 6),
@@ -264,15 +291,27 @@ export const locationQueries = {
 
     // Provinces / wards (post-2025 units, plus the old names mapped to them) come from the
     // bundled dataset: instant, offline, and never "Nam Định, Tỉnh Ninh Bình" for "Bình Định".
-    const local = suggestPlaces(query, 6);
+    // Geocoder results are always merged in after them: a lake, a market or a street
+    // ("Hồ Tuyền Lâm") is a place with coordinates, which the listing search then uses as
+    // a "near here" filter.
+    const local: Suggestion[] = suggestPlaces(query, 4);
     const merge = (remote: Suggestion[]) => {
       const values = new Set(local.map((s) => s.value.toLowerCase()));
-      return [...local, ...remote.filter((s) => !values.has(s.value.toLowerCase()))].slice(0, 8);
+      // Geocoders match fuzzily ("Cầu Rồng" -> "Cầu Hạc ... Hàm Rồng"); keep a place only when
+      // the typed phrase appears as-is (accents ignored) in its name or address, one entry per
+      // name + province.
+      const phrase = fold(query);
+      const seen = new Set<string>();
+      const places = remote.filter((s) => {
+        if (!fold(`${s.label} ${s.description}`).includes(phrase)) return false;
+        const province = s.description.split(',').pop()?.trim() ?? '';
+        const key = fold(`${s.label}|${province}`);
+        if (values.has(s.value.toLowerCase()) || !Number.isFinite(s.lat) || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      return [...local, ...places].slice(0, 8);
     };
-    // Enough administrative matches -> no need to hit the geocoder at all.
-    if (local.length >= 3) {
-      return new ServiceResponse(ResponseStatus.Success, 'Suggestions', local, StatusCodes.OK);
-    }
 
     const cached = cache.get(normalized);
     if (cached && cached.expires > Date.now()) {

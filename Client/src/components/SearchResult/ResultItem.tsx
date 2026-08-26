@@ -94,6 +94,11 @@ const ResultItem: React.FC<SearchItemProps> = ({
                   <p className="flex gap-1.5 items-center mt-1 text-sm text-gray-500">
                      <EnvironmentOutlined className="flex-shrink-0" />
                      <span className="truncate">{address}</span>
+                     {typeof room.distanceKm === 'number' && (
+                        <span className="flex-shrink-0 px-2 py-0.5 text-xs font-semibold text-rose-600 bg-rose-50 rounded-full">
+                           {room.distanceKm < 1 ? `${Math.round(room.distanceKm * 1000)} m` : `${room.distanceKm} km`}
+                        </span>
+                     )}
                   </p>
                </div>
 

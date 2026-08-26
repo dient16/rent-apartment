@@ -16,9 +16,11 @@ export interface UnitSuggestion {
   description: string;
   /** What goes into the search box / `province` query param, e.g. "Quy Nhơn, Gia Lai" */
   value: string;
+  /** administrative unit (matched by name) - geocoder POIs are `place` and carry lat/lon */
+  kind: 'unit';
 }
 
-interface Entry extends UnitSuggestion {
+interface Entry extends Omit<UnitSuggestion, 'kind'> {
   /** normalised strings the query is matched against */
   keys: string[];
   /** tie-breaker: province < ward < legacy province < legacy district */
@@ -181,5 +183,5 @@ export const suggestPlaces = (query: string, limit = 6): UnitSuggestion[] => {
   return scored
     .sort((a, b) => a.score - b.score || a.entry.label.length - b.entry.label.length)
     .slice(0, limit)
-    .map(({ entry }) => ({ label: entry.label, description: entry.description, value: entry.value }));
+    .map(({ entry }) => ({ label: entry.label, description: entry.description, value: entry.value, kind: 'unit' as const }));
 };

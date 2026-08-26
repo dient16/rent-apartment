@@ -81,6 +81,7 @@ const SearchSection: React.FC<SearchSectionProps> = ({ searchParams }) => {
                               onBlur={() => setSuggestOpen(false)}
                               onChange={(event) => {
                                  setSuggestOpen(true);
+                                 setValue('searchPlace', null);
                                  field.onChange(event.target.value);
                               }}
                            />

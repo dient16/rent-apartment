@@ -62,6 +62,7 @@ const HorizontalSearchBar: React.FC<HorizontalSearchBarProps> = ({
                            onBlur={() => setSuggestOpen(false)}
                            onChange={(event) => {
                               setSuggestOpen(true);
+                              setValue('searchPlace', null);
                               field.onChange(event.target.value);
                            }}
                         />

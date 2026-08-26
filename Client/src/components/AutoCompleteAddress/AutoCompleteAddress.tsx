@@ -3,13 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { EnvironmentOutlined } from '@ant-design/icons';
+import { FiMapPin } from 'react-icons/fi';
 import { useDebounce } from '@/hooks';
 import { apiSuggestAddress, type AddressSuggestion } from '@/apis/location.api';
 
 interface AutoCompleteAddressProps {
    value: string;
    onChange: (value: string) => void;
-   setValue: (name: string, value: string) => void;
+   setValue: (name: string, value: unknown) => void;
    /** Render the list in flow (for the mobile full-screen sheet) instead of an absolute popup */
    inline?: boolean;
    onSelect?: () => void;
@@ -46,6 +47,13 @@ const AutoCompleteAddress: React.FC<AutoCompleteAddressProps> = ({
    const handleSelect = (suggestion: AddressSuggestion) => {
       setSelected(suggestion.value);
       setValue('searchText', suggestion.value);
+      // A geocoder place is searched "near here" (lat/lng); a unit by name.
+      setValue(
+         'searchPlace',
+         suggestion.kind === 'place' && suggestion.lat != null && suggestion.lon != null
+            ? { label: suggestion.label, lat: suggestion.lat, lon: suggestion.lon }
+            : null,
+      );
       onChange(suggestion.value);
       onSelect?.();
    };
@@ -101,8 +109,15 @@ const AutoCompleteAddress: React.FC<AutoCompleteAddressProps> = ({
                            onClick={() => handleSelect(suggestion)}
                            className="flex gap-3 items-center px-4 py-2.5 w-full text-left bg-transparent border-none transition-colors cursor-pointer hover:bg-gray-50"
                         >
-                           <span className="flex flex-shrink-0 justify-center items-center w-9 h-9 text-blue-500 bg-blue-50 rounded-xl">
-                              <EnvironmentOutlined />
+                           <span
+                              className={clsx(
+                                 'flex flex-shrink-0 justify-center items-center w-9 h-9 rounded-xl',
+                                 suggestion.kind === 'place'
+                                    ? 'text-rose-500 bg-rose-50'
+                                    : 'text-blue-500 bg-blue-50',
+                              )}
+                           >
+                              {suggestion.kind === 'place' ? <FiMapPin size={16} /> : <EnvironmentOutlined />}
                            </span>
                            <span className="min-w-0">
                               <span className="block text-sm font-semibold text-gray-900 truncate">

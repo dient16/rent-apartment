@@ -7,7 +7,8 @@ export const roomSchema = z.object({
   apartmentId: z.string(),
   amenities: z.array(z.string()),
   size: z.number(),
-  price: z.number(),
+  // whole VND, never a float like 299.824 (a mis-parsed "299.824")
+  price: z.number().int().min(10000),
   images: z.array(z.string()),
   unavailableDateRanges: z.array(
     z.object({
