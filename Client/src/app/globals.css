@@ -254,6 +254,21 @@
 .custom-datepicker .rdrDayPassive .rdrDayNumber span {
    color: #c0c6cf;
 }
+/* Days borrowed from the neighbouring month are not part of that month's range
+   rendering, so a range crossing a month boundary looked cut in half. Hide them
+   (keeps the cell so the grid does not shift). */
+.custom-datepicker .rdrDayPassive {
+   pointer-events: none;
+}
+.custom-datepicker .rdrDayPassive .rdrDayNumber,
+.custom-datepicker .rdrDayPassive .rdrInRange,
+.custom-datepicker .rdrDayPassive .rdrStartEdge,
+.custom-datepicker .rdrDayPassive .rdrEndEdge,
+.custom-datepicker .rdrDayPassive .rdrDayInPreview,
+.custom-datepicker .rdrDayPassive .rdrDayStartPreview,
+.custom-datepicker .rdrDayPassive .rdrDayEndPreview {
+   visibility: hidden;
+}
 .custom-datepicker .rdrDayDisabled {
    background: transparent;
 }

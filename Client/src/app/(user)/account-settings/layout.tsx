@@ -12,7 +12,7 @@ export default function AccountSettingsLayout({
       <div className="min-h-screen bg-gray-50 font-main">
          <div className="px-4 pt-3 pb-8 mx-auto w-full max-w-main sm:px-5 lg:px-7">
             {/* Mobile: the tab strip already names the page — skip the big title */}
-            <h1 className="hidden mb-6 text-2xl font-bold text-gray-900 lg:block md:text-3xl">
+            <h1 className="hidden mb-4 md:mb-5 text-xl font-bold tracking-tight text-gray-900 lg:block md:text-2xl">
                Account settings
             </h1>
             <div className="flex flex-col gap-1.5 items-start lg:flex-row lg:gap-6">

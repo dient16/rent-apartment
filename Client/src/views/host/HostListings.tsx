@@ -92,7 +92,7 @@ const HostListings: React.FC = () => {
          <div className="px-5 pt-3 pb-8 mx-auto w-full max-w-main lg:px-7">
             <div className="flex flex-wrap gap-4 justify-between items-center mb-6">
                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+                  <h1 className="text-xl font-bold tracking-tight text-gray-900 md:text-2xl">
                      Rental listings
                   </h1>
                   {!isLoading && (

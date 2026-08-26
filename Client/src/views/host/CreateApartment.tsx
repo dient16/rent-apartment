@@ -169,7 +169,7 @@ const CreateApartment: React.FC = () => {
                >
                   <ArrowLeftOutlined /> Rental listings
                </Link>
-               <h1 className="mb-6 text-2xl font-bold text-gray-900 md:text-3xl">
+               <h1 className="mb-4 md:mb-5 text-xl font-bold tracking-tight text-gray-900 md:text-2xl">
                   Create new listing
                </h1>
 

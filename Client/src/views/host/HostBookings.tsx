@@ -359,7 +359,7 @@ const HostBookings: React.FC = () => {
    return (
       <div className="min-h-screen bg-gray-50 font-main">
          <div className="px-4 pt-3 pb-8 mx-auto w-full max-w-main sm:px-5 lg:px-7">
-            <h1 className="mb-4 text-2xl font-bold text-gray-900 md:mb-6 md:text-3xl">
+            <h1 className="mb-4 text-xl font-bold tracking-tight text-gray-900 md:mb-5 md:text-2xl">
                Bookings
             </h1>
 

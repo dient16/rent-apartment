@@ -127,7 +127,7 @@ const Notifications: React.FC = () => {
          <div className="px-4 pt-3 pb-8 mx-auto w-full max-w-main sm:px-5 lg:px-7">
             {/* Title + (mobile) mark-all shortcut */}
             <div className="flex justify-between items-center mb-4 md:mb-6">
-               <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+               <h1 className="text-xl font-bold tracking-tight text-gray-900 md:text-2xl">
                   Notifications
                   {unreadCount > 0 && (
                      <span className="ml-2 align-middle px-2 py-0.5 text-xs font-bold text-white bg-blue-500 rounded-full">

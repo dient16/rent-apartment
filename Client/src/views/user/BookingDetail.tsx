@@ -111,7 +111,7 @@ const BookingDetail: React.FC = () => {
                   <p className="mb-1 text-sm font-semibold tracking-widest text-blue-500 uppercase">
                      Booking #{String(data._id || '').slice(-8).toUpperCase()}
                   </p>
-                  <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+                  <h1 className="text-xl font-bold tracking-tight text-gray-900 md:text-2xl">
                      {data.apartmentName || 'Your stay'}
                   </h1>
                   {addressText && (

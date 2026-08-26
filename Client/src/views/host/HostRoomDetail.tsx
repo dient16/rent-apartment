@@ -111,7 +111,7 @@ const HostRoomDetail: React.FC = () => {
                   <div className="p-4 mb-6 bg-white rounded-2xl border border-gray-100 shadow-card-sm md:p-8">
                      <div className="flex flex-wrap gap-4 justify-between items-start">
                         <div className="min-w-0">
-                           <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+                           <h1 className="text-xl font-bold tracking-tight text-gray-900 md:text-2xl">
                               {apartment.title || 'Your listing'}
                            </h1>
                            <p className="flex gap-1.5 items-center mt-1.5 text-sm text-gray-500">

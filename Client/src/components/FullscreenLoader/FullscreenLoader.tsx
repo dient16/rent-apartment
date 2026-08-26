@@ -17,7 +17,9 @@ const FullscreenLoader: React.FC<FullscreenLoaderProps> = ({
    useLockBodyScroll(spinning);
 
    if (children === undefined) {
-      return <Spin spinning={spinning} fullscreen={spinning} size="large" />;
+      // A childless <Spin spinning={false}> still renders an in-flow .ant-spin box,
+      // which pushed the page content down (e.g. the settings panel vs its sidebar).
+      return spinning ? <Spin spinning fullscreen size="large" /> : null;
    }
 
    return (

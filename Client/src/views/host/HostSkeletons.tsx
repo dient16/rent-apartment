@@ -104,7 +104,7 @@ export const BookingCardsSkeleton: React.FC<{ rows?: number }> = ({ rows = 5 }) 
 export const BookingsPageSkeleton: React.FC = () => (
    <div className={page}>
       <div className={container}>
-         <h1 className="mb-4 text-2xl font-bold text-gray-900 md:mb-6 md:text-3xl">Bookings</h1>
+         <h1 className="mb-4 text-xl font-bold tracking-tight text-gray-900 md:mb-6 md:text-2xl">Bookings</h1>
          <div className="flex flex-wrap gap-3 justify-between items-center mb-4 md:mb-5">
             <div className="flex overflow-hidden gap-2">
                {['w-16', 'w-24', 'w-28', 'w-28', 'w-24'].map((width, index) => (
@@ -159,7 +159,7 @@ export const ListingsPageSkeleton: React.FC = () => (
       <div className={container}>
          <div className="flex flex-wrap gap-4 justify-between items-center mb-6">
             <div>
-               <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">Rental listings</h1>
+               <h1 className="text-xl font-bold tracking-tight text-gray-900 md:text-2xl">Rental listings</h1>
                <div className="mt-2">
                   <Line className="w-36 h-3" />
                </div>
@@ -296,7 +296,7 @@ export const CalendarGridSkeleton: React.FC = () => (
 export const CalendarPageSkeleton: React.FC = () => (
    <div className={page}>
       <div className={container}>
-         <h1 className="mb-6 text-2xl font-bold text-gray-900 md:text-3xl">Pricing calendar</h1>
+         <h1 className="mb-4 md:mb-5 text-xl font-bold tracking-tight text-gray-900 md:text-2xl">Pricing calendar</h1>
          <div className="flex flex-col gap-5 items-start lg:flex-row">
             <div className={`flex flex-row flex-shrink-0 gap-3 p-3 w-full lg:flex-col lg:w-24 lg:items-center ${card}`}>
                <CalendarRailSkeleton />
@@ -341,7 +341,7 @@ export const CreateApartmentPageSkeleton: React.FC = () => (
          <div className="mb-5">
             <Line className="w-32 h-3.5" />
          </div>
-         <h1 className="mb-6 text-2xl font-bold text-gray-900 md:text-3xl">Create new listing</h1>
+         <h1 className="mb-4 md:mb-5 text-xl font-bold tracking-tight text-gray-900 md:text-2xl">Create new listing</h1>
 
          <div className={`p-4 mb-5 lg:hidden ${card}`}>
             <div className="flex gap-3 justify-between">
