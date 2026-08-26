@@ -61,6 +61,98 @@
    z-index: 1000000000 !important;
 }
 
+/* Entrance for above-the-fold blocks: pure CSS so it plays as soon as the HTML
+   paints, without waiting for hydration. */
+@keyframes fade-up {
+   from {
+      opacity: 0;
+      transform: translateY(24px);
+   }
+   to {
+      opacity: 1;
+      transform: none;
+   }
+}
+.animate-fade-up {
+   animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+   .animate-fade-up {
+      animation: none;
+   }
+}
+
+/* Popular apartment cards: carousel fills the 4:3 frame; arrows only on hover */
+.popular-card-carousel .slick-slider,
+.popular-card-carousel .slick-list,
+.popular-card-carousel .slick-track,
+.popular-card-carousel .slick-slide > div {
+   height: 100%;
+}
+.popular-card-carousel .slick-arrow {
+   z-index: 2;
+   width: 28px;
+   height: 28px;
+   color: #111827;
+   background: rgba(255, 255, 255, 0.92);
+   border-radius: 9999px;
+   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+   opacity: 0;
+   transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+/* antd draws the chevron with ::after sized for a 16px arrow; re-center it in
+   the 28px circle (with a 1px optical nudge towards the arrow's direction). */
+.popular-card-carousel .slick-arrow::after {
+   top: 50%;
+   inset-inline-start: 50%;
+   width: 9px;
+   height: 9px;
+   border-inline-start-width: 2px;
+   border-block-start-width: 2px;
+}
+.popular-card-carousel .slick-prev {
+   inset-inline-start: 8px;
+}
+.popular-card-carousel .slick-prev::after {
+   transform: translate(calc(-50% + 1.5px), -50%) rotate(-45deg);
+}
+.popular-card-carousel .slick-next {
+   inset-inline-end: 8px;
+}
+.popular-card-carousel .slick-next::after {
+   transform: translate(calc(-50% - 1.5px), -50%) rotate(135deg);
+}
+.popular-card-carousel:hover .slick-arrow {
+   opacity: 1;
+}
+.popular-card-carousel .slick-arrow:hover {
+   background: #fff;
+}
+.popular-card-carousel .slick-dots {
+   bottom: 10px;
+   margin: 0;
+   pointer-events: none;
+}
+.popular-card-carousel .slick-dots li {
+   width: 6px;
+   height: 6px;
+   margin: 0 2px;
+}
+.popular-card-carousel .slick-dots li button {
+   width: 6px;
+   height: 6px;
+   border-radius: 9999px;
+   background: #fff;
+   opacity: 0.6;
+}
+.popular-card-carousel .slick-dots li.slick-active {
+   width: 14px;
+}
+.popular-card-carousel .slick-dots li.slick-active button {
+   width: 14px;
+   opacity: 1;
+}
+
 /* ===== Calendar (react-date-range) — dong bo design system ===== */
 .custom-datepicker {
    font-family: 'Poppins', sans-serif;

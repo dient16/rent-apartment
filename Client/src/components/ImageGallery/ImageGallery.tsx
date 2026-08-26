@@ -106,13 +106,14 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
                   <FiX size={18} />
                </button>
             </div>
-            <div className="px-4 py-4 mx-auto max-w-6xl md:px-6">
+            {/* Full-width grid: more columns as the viewport grows, no max-width cap */}
+            <div className="px-3 py-3 w-full sm:px-4 sm:py-4 lg:px-6 2xl:px-8">
                <Image.PreviewGroup>
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                      {images.map((image, index) => (
                         <div
                            key={index}
-                           className="overflow-hidden rounded-2xl h-[240px] md:h-[280px]"
+                           className="overflow-hidden rounded-xl sm:rounded-2xl aspect-[4/3]"
                         >
                            <Image
                               src={image}

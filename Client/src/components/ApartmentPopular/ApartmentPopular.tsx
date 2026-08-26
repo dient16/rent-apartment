@@ -1,19 +1,25 @@
 import React from 'react';
 import AppImage from '@/components/AppImage/AppImage';
 import { useQuery } from '@tanstack/react-query';
-import { Carousel, Skeleton, Tooltip } from 'antd';
-import icons from '@/utils/icons';
+import { Carousel, Skeleton } from 'antd';
+import { ArrowRightOutlined } from '@ant-design/icons';
+import { IoStar } from 'react-icons/io5';
+import { FiMapPin } from 'react-icons/fi';
 import { apiGetApartmentPopular } from '@/apis';
 import FavoriteButton from '@/components/FavoriteButton/FavoriteButton';
 import { useNavigate } from '@/lib/router-compat';
 import moment from 'moment';
-const { MdOutlineKeyboardArrowRight } = icons;
 
 // Mobile: one swipeable row of fixed-width cards. sm+: responsive grid.
 const LIST_CLASS =
-   'flex overflow-x-auto gap-3 -mx-4 px-4 pb-1 snap-x snap-mandatory scrollbar-none sm:grid sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5';
+   'flex overflow-x-auto gap-3 -mx-4 px-4 pb-2 snap-x snap-mandatory scrollbar-none sm:grid sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 lg:gap-5';
 const CARD_CLASS =
-   'flex flex-col flex-shrink-0 items-start p-2 w-[240px] bg-white rounded-3xl snap-start shadow-card-sm sm:w-full h-[295px]';
+   'group flex flex-col flex-shrink-0 w-[250px] bg-white rounded-2xl border border-gray-100 snap-start overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-gray-200/70 hover:border-gray-200 sm:w-full';
+
+const detailUrl = (apartmentId: string) =>
+   `/apartment/${apartmentId}?startDate=${moment().format('YYYY-MM-DD')}&endDate=${moment()
+      .add(1, 'day')
+      .format('YYYY-MM-DD')}&numberOfGuest=1&roomNumber=1`;
 
 const ApartmentPopular: React.FC = () => {
    const navigate = useNavigate();
@@ -23,16 +29,22 @@ const ApartmentPopular: React.FC = () => {
    });
 
    const heading = (
-      <div className="flex justify-between items-end mb-4 md:mb-5">
-         <h2 className="text-lg font-semibold text-gray-900 md:font-normal">
-            Apartments loved by guest
-         </h2>
+      <div className="flex gap-4 justify-between items-end mb-4 md:mb-6">
+         <div>
+            <h2 className="text-xl font-bold tracking-tight text-gray-900 md:text-2xl">
+               Apartments loved by guests
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+               Top-rated stays, ranked by real guest reviews
+            </p>
+         </div>
          <button
             type="button"
             onClick={() => navigate('/listing')}
-            className="p-0 text-sm font-medium text-blue-600 bg-transparent border-none cursor-pointer sm:hidden"
+            className="flex flex-shrink-0 gap-1.5 items-center p-0 text-sm font-semibold text-blue-600 bg-transparent border-none cursor-pointer group hover:text-blue-700"
          >
             See all
+            <ArrowRightOutlined className="text-xs transition-transform group-hover:translate-x-0.5" />
          </button>
       </div>
    );
@@ -44,9 +56,9 @@ const ApartmentPopular: React.FC = () => {
             <div className={LIST_CLASS}>
                {[1, 2, 3, 4, 5].map((index) => (
                   <div key={index} className={CARD_CLASS}>
-                     <Skeleton.Image active className="w-full! h-[185px]! rounded-3xl!" />
-                     <div className="p-1 mt-3 w-full">
-                        <Skeleton active title={false} paragraph={{ rows: 2, width: ['80%', '55%'] }} />
+                     <Skeleton.Image active className="w-full! aspect-[4/3] h-auto! rounded-none!" />
+                     <div className="p-3.5 w-full">
+                        <Skeleton active title={false} paragraph={{ rows: 3, width: ['85%', '60%', '45%'] }} />
                      </div>
                   </div>
                ))}
@@ -62,71 +74,70 @@ const ApartmentPopular: React.FC = () => {
          {heading}
          <div className={LIST_CLASS}>
             {(apartments || []).map((apartment) => (
-               <div key={apartment._id} className={CARD_CLASS}>
-                  <div className="relative w-full">
-                     <div className="overflow-hidden rounded-3xl">
-                        <Carousel
-                           arrows
-                           swipeToSlide
-                           draggable
-                           className="overflow-hidden rounded-3xl"
-                        >
-                           {apartment.images.map((image, index) => (
+               <article key={apartment._id} className={CARD_CLASS}>
+                  {/* ===== Photo ===== */}
+                  <div className="relative w-full aspect-[4/3] bg-gray-100 popular-card-carousel">
+                     <Carousel arrows swipeToSlide draggable className="h-full">
+                        {apartment.images.map((image, index) => (
+                           <div key={index} className="aspect-[4/3]">
                               <AppImage
-                                 key={index}
                                  src={image}
-                                 wrapperClassName="h-[185px] w-full object-cover"
+                                 wrapperClassName="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                               />
-                           ))}
-                        </Carousel>
-                     </div>
-                     <span className="absolute top-2 left-2 px-4 py-1.5 text-xs tracking-normal leading-4 text-center text-green-500 uppercase whitespace-nowrap bg-green-200 rounded-full">
-                        {apartment.avgRating}
+                           </div>
+                        ))}
+                     </Carousel>
+                     {/* Rating pill: readable on any photo */}
+                     <span className="flex absolute bottom-2.5 left-2.5 gap-1 items-center px-2 py-1 text-xs font-semibold text-gray-900 rounded-full shadow-sm backdrop-blur-sm bg-white/90">
+                        <IoStar className="text-amber-400" size={12} />
+                        {apartment.avgRating > 0 ? apartment.avgRating.toFixed(1) : 'New'}
+                        {apartment.reviewCount > 0 && (
+                           <span className="font-normal text-gray-500">
+                              ({apartment.reviewCount})
+                           </span>
+                        )}
                      </span>
                      <FavoriteButton
                         apartmentId={apartment._id}
-                        size={15}
-                        className="absolute top-2 right-2"
+                        size={16}
+                        className="absolute top-2.5 right-2.5 shadow-sm"
                      />
                   </div>
-                  <div className="p-1 mt-2 w-full">
-                     <Tooltip title={apartment.title} placement="top">
-                        <div
-                           className="text-base truncate cursor-pointer md:text-lg hover:underline"
-                           onClick={() =>
-                              navigate(
-                                 `/apartment/${
-                                    apartment._id
-                                 }?startDate=${moment().format(
-                                    'YYYY-MM-DD',
-                                 )}&endDate=${moment()
-                                    .add(1, 'day')
-                                    .format(
-                                       'YYYY-MM-DD',
-                                    )}&numberOfGuest=1&roomNumber=1`,
-                              )
-                           }
-                        >
-                           {apartment.title}
-                        </div>
-                     </Tooltip>
-                     <Tooltip
-                        title={`${apartment.location.district}, ${apartment.location.province}`}
-                        placement="top"
+
+                  {/* ===== Info: the whole block opens the listing ===== */}
+                  <button
+                     type="button"
+                     onClick={() => navigate(detailUrl(apartment._id))}
+                     className="flex flex-col flex-1 gap-1 p-3.5 w-full text-left bg-transparent border-none cursor-pointer"
+                  >
+                     <h3
+                        className="w-full text-[15px] font-semibold leading-snug text-gray-900 truncate transition-colors group-hover:text-blue-600"
+                        title={apartment.title}
                      >
-                        <div className="w-full text-sm font-light truncate">
-                           {apartment.location.district},{' '}
-                           {apartment.location.province}
-                        </div>
-                     </Tooltip>
-                  </div>
-                  <div className="flex justify-between items-center w-full">
-                     <div className="p-1 mt-1 text-sm font-medium md:text-md">
-                        {apartment.price.toLocaleString()} VND/night
+                        {apartment.title}
+                     </h3>
+                     <p
+                        className="flex gap-1 items-center w-full text-xs text-gray-500"
+                        title={`${apartment.location.district}, ${apartment.location.province}`}
+                     >
+                        <FiMapPin size={12} className="flex-shrink-0 text-gray-400" />
+                        <span className="truncate">
+                           {apartment.location.district}, {apartment.location.province}
+                        </span>
+                     </p>
+                     <div className="flex gap-2 justify-between items-end pt-2 mt-auto w-full">
+                        <p className="min-w-0 leading-tight">
+                           <span className="text-[15px] font-bold text-gray-900">
+                              {apartment.price.toLocaleString()}
+                           </span>
+                           <span className="ml-1 text-xs text-gray-500">VND / night</span>
+                        </p>
+                        <span className="flex flex-shrink-0 justify-center items-center w-8 h-8 text-gray-500 bg-gray-50 rounded-full border border-gray-100 transition-all duration-300 group-hover:bg-blue-600 group-hover:border-blue-600 group-hover:text-white">
+                           <ArrowRightOutlined className="text-xs transition-transform duration-300 group-hover:-rotate-45" />
+                        </span>
                      </div>
-                     <MdOutlineKeyboardArrowRight size={20} />
-                  </div>
-               </div>
+                  </button>
+               </article>
             ))}
          </div>
       </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { ApartmentPopular, Search } from '@/components';
 import datlat from '@/assets/dalat.jpg';
 import danang from '@/assets/danang.png';
@@ -20,14 +20,15 @@ import {
 import { Button } from 'antd';
 import moment from 'moment';
 
-/** Order matters: it drives the bento layout on sm/lg (see `span`). */
+/** Order matters: it drives the bento layout on sm/lg (see `span`).
+ *  lg (4 cols x 5 rows): tall | 3+2 | tall | 2+3 - the side columns are staggered on purpose. */
 const DESTINATIONS = [
-   { label: 'Quy Nhon', province: 'Quy nhơn', image: quynhon, span: 'lg:row-span-5 sm:row-span-4' },
-   { label: 'Da Lat', province: 'Đà Lạt', image: datlat, span: 'lg:row-span-3 sm:row-span-2' },
-   { label: 'Da Nang', province: 'Đà Nẵng', image: danang, span: 'lg:row-span-5 sm:row-span-4' },
-   { label: 'Ho Chi Minh', province: 'Hồ Chí Minh', image: hochiminh, span: 'lg:row-span-2 sm:row-span-2' },
-   { label: 'Hoi An', province: 'Hội An', image: hoian, span: 'lg:row-span-3 sm:row-span-2' },
-   { label: 'Nha Trang', province: 'Nha Trang', image: nhatrang, span: 'lg:row-span-2 sm:row-span-2' },
+   { label: 'Quy Nhon', tagline: 'Quiet beaches & seafood', province: 'Quy nhơn', image: quynhon, span: 'lg:row-span-5 sm:row-span-4' },
+   { label: 'Da Lat', tagline: 'Pine hills & cool air', province: 'Đà Lạt', image: datlat, span: 'lg:row-span-3 sm:row-span-2' },
+   { label: 'Da Nang', tagline: 'Bridges, beaches & nightlife', province: 'Đà Nẵng', image: danang, span: 'lg:row-span-5 sm:row-span-4' },
+   { label: 'Ho Chi Minh', tagline: 'The city that never sleeps', province: 'Hồ Chí Minh', image: hochiminh, span: 'lg:row-span-2 sm:row-span-2' },
+   { label: 'Hoi An', tagline: 'Lanterns & old town charm', province: 'Hội An', image: hoian, span: 'lg:row-span-3 sm:row-span-2' },
+   { label: 'Nha Trang', tagline: 'Islands & turquoise bays', province: 'Nha Trang', image: nhatrang, span: 'lg:row-span-2 sm:row-span-2' },
 ];
 
 const PERKS = [
@@ -70,26 +71,27 @@ const Home: React.FC = () => {
       const url = `/listing?${queryParams.toString()}`;
       navigate(url);
    }
-   const fadeInVariants = {
-      hidden: { opacity: 0, y: 50 },
-      visible: { opacity: 1, y: 0 },
-   };
-
    return (
       <div className="flex justify-center items-center font-main">
          <div className="px-4 w-full max-w-main md:px-3">
-            {/* ===== Hero ===== */}
-            <motion.div
-               className="relative md:mt-3"
-               initial="hidden"
-               animate="visible"
-               variants={fadeInVariants}
-               transition={{ type: 'spring' }}
-            >
-               <div
-                  className="flex overflow-hidden relative flex-col justify-center items-center px-5 w-full text-center text-white bg-center bg-cover rounded-3xl h-[220px] sm:h-[240px] md:h-[300px]"
-                  style={{ backgroundImage: "url('/background.avif')" }}
-               >
+            {/* ===== Hero =====
+                CSS animation, not framer-motion: a JS-driven `initial: hidden` ships the
+                SSR HTML at opacity 0, so the hero stayed invisible until the bundle
+                loaded and hydrated (seconds on a cold first load). */}
+            <div className="relative md:mt-3 animate-fade-up">
+               <div className="flex overflow-hidden relative flex-col justify-center items-center px-5 w-full text-center text-white bg-gray-800 rounded-3xl h-[220px] sm:h-[240px] md:h-[300px]">
+                  {/* `priority` emits a <link rel="preload"> so the LCP image starts
+                      downloading with the HTML; a CSS background-image only starts
+                      after style/layout. */}
+                  <Image
+                     src="/background.avif"
+                     alt=""
+                     aria-hidden="true"
+                     fill
+                     priority
+                     sizes="(max-width: 1340px) 100vw, 1340px"
+                     className="object-cover"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60" />
                   {/* Mobile: leave room for the search card that overlaps the bottom */}
                   <div className="relative pb-10 md:pb-0">
@@ -107,39 +109,63 @@ const Home: React.FC = () => {
                <div className="relative px-1 mx-auto -mt-14 w-full max-w-[960px] sm:px-4 md:absolute md:left-1/2 md:-bottom-9 md:px-0 md:mt-0 md:-translate-x-1/2">
                   <Search />
                </div>
-            </motion.div>
+            </div>
 
             {/* ===== Popular destinations ===== */}
             <section className="mt-8 md:mt-[60px]">
-               <div className="flex justify-between items-end mb-4 md:mb-5">
-                  <h2 className="text-lg font-semibold text-gray-900 md:text-xl md:font-normal">
-                     Popular destination
-                  </h2>
+               <div className="flex gap-4 justify-between items-end mb-4 md:mb-6">
+                  <div>
+                     <h2 className="text-xl font-bold tracking-tight text-gray-900 md:text-2xl">
+                        Popular destinations
+                     </h2>
+                     <p className="mt-1 text-sm text-gray-500">
+                        Hand-picked stays in Vietnam&apos;s favourite escapes
+                     </p>
+                  </div>
                   <button
                      type="button"
                      onClick={() => navigate('/listing')}
-                     className="p-0 text-sm font-medium text-blue-600 bg-transparent border-none cursor-pointer sm:hidden"
+                     className="flex flex-shrink-0 gap-1.5 items-center p-0 text-sm font-semibold text-blue-600 bg-transparent border-none cursor-pointer group hover:text-blue-700"
                   >
                      See all
+                     <ArrowRightOutlined className="text-xs transition-transform group-hover:translate-x-0.5" />
                   </button>
                </div>
                {/* Mobile: swipeable row. sm+: bento grid. */}
-               <div className="flex overflow-x-auto gap-3 -mx-4 px-4 pb-1 snap-x snap-mandatory scrollbar-none sm:grid sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0 sm:grid-cols-2 sm:grid-rows-6 sm:gap-5 lg:grid-cols-4 lg:grid-rows-5 lg:h-[390px]">
-                  {DESTINATIONS.map((destination) => (
-                     <div
+               <div className="flex overflow-x-auto gap-3 -mx-4 px-4 pb-1 snap-x snap-mandatory scrollbar-none sm:grid sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0 sm:grid-cols-2 sm:grid-rows-6 sm:gap-4 lg:grid-cols-4 lg:grid-rows-5 lg:gap-4 lg:h-[380px]">
+                  {DESTINATIONS.map((destination, index) => (
+                     <button
                         key={destination.label}
-                        className={`overflow-hidden relative flex-shrink-0 w-[68vw] max-w-[300px] h-44 rounded-2xl cursor-pointer snap-start sm:w-auto sm:max-w-none sm:h-auto ${destination.span}`}
+                        type="button"
+                        aria-label={`Explore ${destination.label}`}
+                        className={`group overflow-hidden relative flex-shrink-0 p-0 w-[68vw] max-w-[300px] h-48 text-left bg-gray-200 rounded-2xl border-none cursor-pointer snap-start shadow-sm transition-shadow duration-300 hover:shadow-xl hover:shadow-gray-300/60 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:w-auto sm:max-w-none sm:h-auto ${destination.span}`}
                         onClick={() => navigateToListing(destination.province)}
                      >
-                        <img
-                           src={destination.image.src}
+                        <Image
+                           src={destination.image}
                            alt={destination.label}
-                           className="object-cover w-full h-full rounded-2xl transition-transform duration-500 hover:scale-125"
+                           fill
+                           sizes="(max-width: 640px) 68vw, (max-width: 1024px) 50vw, 25vw"
+                           placeholder="blur"
+                           priority={index < 3}
+                           className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                         />
-                        <span className="flex absolute right-3 bottom-3 justify-center items-center px-3.5 py-1.5 text-sm font-medium text-gray-900 rounded-full shadow-sm backdrop-blur-sm select-none bg-white/80 md:right-5 md:bottom-5 md:px-4 md:py-2">
-                           {destination.label}
-                        </span>
-                     </div>
+                        {/* Legible label on any photo: soft gradient that deepens on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent transition-opacity duration-300 group-hover:from-black/80" />
+                        <div className="flex absolute right-4 bottom-4 left-4 gap-3 justify-between items-end">
+                           <div className="min-w-0">
+                              <p className="text-base font-bold leading-tight text-white drop-shadow-sm md:text-lg">
+                                 {destination.label}
+                              </p>
+                              <p className="mt-0.5 text-xs text-white/80 truncate md:text-[13px]">
+                                 {destination.tagline}
+                              </p>
+                           </div>
+                           <span className="flex flex-shrink-0 justify-center items-center w-9 h-9 text-white rounded-full border backdrop-blur-sm transition-all duration-300 bg-white/15 border-white/30 group-hover:bg-white group-hover:text-gray-900">
+                              <ArrowRightOutlined className="text-sm transition-transform duration-300 group-hover:-rotate-45" />
+                           </span>
+                        </div>
+                     </button>
                   ))}
                </div>
             </section>
