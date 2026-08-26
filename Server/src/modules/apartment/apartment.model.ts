@@ -14,6 +14,14 @@ const apartmentSchema = new Schema(
       district: { type: String, required: true },
       ward: { type: String },
       street: { type: String, required: true },
+      // Set by scripts/migrateAddresses2025.ts: the pre-merger address and the
+      // administrative structure version the current fields follow (2025 = 34 provinces, no district).
+      legacy: {
+        province: { type: String },
+        district: { type: String },
+        ward: { type: String },
+      },
+      adminVersion: { type: Number },
     },
     owner: {
       type: mongoose.Schema.Types.ObjectId,
