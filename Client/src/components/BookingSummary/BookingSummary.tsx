@@ -3,6 +3,7 @@ import { Button, Tooltip, Drawer } from 'antd';
 import { useFormContext } from 'react-hook-form';
 import { PiUserThin } from 'react-icons/pi';
 import { FaChevronUp } from 'react-icons/fa';
+import { FiX } from 'react-icons/fi';
 import moment from 'moment';
 
 interface RoomValue {
@@ -27,8 +28,10 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
 }) => {
    const {
       watch,
-      formState: { isValid },
+      formState: { isValid, errors },
    } = useFormContext();
+   const roomsError = errors.selectedRooms?.message as string | undefined;
+   const invalidHint = roomsError || 'Select a room to continue';
    const [drawerVisible, setDrawerVisible] = useState(false);
    const selectedRooms: RoomValue[] = watch('selectedRooms', []);
    const totalAmountPerNight = useMemo(() => {
@@ -134,8 +137,12 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
                Book now
             </Button>
             {!isValid && (
-               <p className="mt-2 text-xs text-center text-gray-400">
-                  Select a room to continue
+               <p
+                  className={`mt-2 text-xs text-center ${
+                     roomsError ? 'text-red-500' : 'text-gray-400'
+                  }`}
+               >
+                  {invalidHint}
                </p>
             )}
 
@@ -215,14 +222,30 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
             placement="bottom"
             onClose={() => setDrawerVisible(false)}
             open={drawerVisible}
-            title="Booking details"
+            closeIcon={null}
             styles={{
                wrapper: { height: 'auto', maxHeight: '92%' },
-               body: { padding: '16px 20px' },
+               header: { display: 'none' },
+               body: { padding: 0 },
+               section: { borderRadius: '20px 20px 0 0' },
             }}
             className="font-main"
          >
-            <div className="flex flex-col mx-auto w-full max-w-lg">
+            <div className="flex flex-shrink-0 justify-between items-center px-4 pt-3 pb-3 border-b border-gray-100">
+               <span className="w-9" />
+               <span className="text-base font-semibold text-gray-900">
+                  Booking details
+               </span>
+               <button
+                  type="button"
+                  aria-label="Close"
+                  onClick={() => setDrawerVisible(false)}
+                  className="flex justify-center items-center w-9 h-9 text-gray-600 bg-gray-100 rounded-full border-none cursor-pointer"
+               >
+                  <FiX size={18} />
+               </button>
+            </div>
+            <div className="flex flex-col px-5 py-4 mx-auto w-full max-w-lg">
                <div className="flex gap-1 items-baseline">
                   <span className="text-2xl font-bold text-gray-900">
                      {totalAmountPerNight.toLocaleString()}
@@ -313,8 +336,12 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
                   Book now
                </Button>
                {!isValid && (
-                  <p className="mt-2 text-xs text-center text-gray-400">
-                     Select a room to continue
+                  <p
+                     className={`mt-2 text-xs text-center ${
+                        roomsError ? 'text-red-500' : 'text-gray-400'
+                     }`}
+                  >
+                     {invalidHint}
                   </p>
                )}
             </div>

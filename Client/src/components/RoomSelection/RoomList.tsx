@@ -6,9 +6,22 @@ interface RoomsListProps {
       selectedRooms: { roomId: string; roomType: string; count: number }[],
    ) => void;
    value: { roomId: string; roomType: string; count: number }[];
+   /** Upper bound on the total rooms across all types (one room per guest at most). */
+   maxTotalRooms?: number;
 }
 
-const RoomsList: React.FC<RoomsListProps> = ({ roomList, onChange, value }) => {
+const RoomsList: React.FC<RoomsListProps> = ({
+   roomList,
+   onChange,
+   value,
+   maxTotalRooms,
+}) => {
+   const totalSelected = value.reduce((acc, room) => acc + room.count, 0);
+   const remaining =
+      maxTotalRooms === undefined
+         ? Infinity
+         : Math.max(maxTotalRooms - totalSelected, 0);
+
    const handleRoomSelection = (selectedRoom: {
       roomId: string;
       roomType: string;
@@ -33,6 +46,7 @@ const RoomsList: React.FC<RoomsListProps> = ({ roomList, onChange, value }) => {
                selectedCount={
                   value.find((r) => r.roomId === room._id)?.count || 0
                }
+               remainingRooms={remaining}
             />
          ))}
       </div>

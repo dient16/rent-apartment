@@ -40,11 +40,28 @@ export default function HostLayout({
       return <Navigate to={`${path.HOST_ROOT}${path.HOST_WELCOME}`} replace />;
    }
 
+   // The messenger fills the viewport — lock the page so only the chat scrolls
+   const isMessenger = pathname.includes('/host/messages');
+
    return (
-      <div className="flex flex-col justify-center items-center w-full font-main">
+      <div
+         className={
+            isMessenger
+               ? 'flex flex-col items-center w-full font-main h-dvh overflow-hidden'
+               : 'flex flex-col justify-center items-center w-full font-main'
+         }
+      >
          <Header isHost={true} />
-         <div className="w-full min-h-screen bg-gray-50">{children}</div>
-         {!pathname.includes('/host/messages') && <Footer />}
+         <div
+            className={
+               isMessenger
+                  ? 'w-full flex-1 min-h-0 overflow-hidden bg-gray-50'
+                  : 'w-full min-h-screen bg-gray-50'
+            }
+         >
+            {children}
+         </div>
+         {!isMessenger && <Footer />}
       </div>
    );
 }

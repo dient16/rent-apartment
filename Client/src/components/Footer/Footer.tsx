@@ -40,7 +40,7 @@ const Footer: React.FC = () => {
                <div className="lg:col-span-4">
                   <img
                      src={logo.src}
-                     alt="Find House"
+                     alt="NestStay"
                      className="w-[140px] brightness-0 invert"
                   />
                   <p className="mt-4 max-w-sm text-sm leading-relaxed text-midnight-blue-500">
@@ -125,10 +125,10 @@ const Footer: React.FC = () => {
                      <li className="flex gap-2.5 items-center">
                         <MailOutlined className="text-blue-400" />
                         <a
-                           href="mailto:info@findhouse.vn"
+                           href="mailto:info@neststay.vn"
                            className="transition-colors text-midnight-blue-500 hover:text-white"
                         >
-                           info@findhouse.vn
+                           info@neststay.vn
                         </a>
                      </li>
                   </ul>
@@ -156,7 +156,7 @@ const Footer: React.FC = () => {
             {/* Bottom bar */}
             <div className="flex flex-col gap-3 justify-between items-center pt-6 mt-10 border-t sm:flex-row border-white/10">
                <p className="text-xs text-midnight-blue-500">
-                  © {new Date().getFullYear()} Find House. All rights reserved.
+                  © {new Date().getFullYear()} NestStay. All rights reserved.
                </p>
                <div className="flex gap-5 text-xs text-midnight-blue-500">
                   <Link to={`/${path.ABOUT}`} className="transition-colors hover:text-white">

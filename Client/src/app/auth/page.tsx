@@ -5,7 +5,7 @@ import AuthPageClient from './AuthPageClient';
 export const metadata: Metadata = {
    title: 'Sign in',
    description:
-      'Sign in or create a Find House account to book apartments and homestays across Vietnam.',
+      'Sign in or create a NestStay account to book apartments and homestays across Vietnam.',
    alternates: { canonical: '/auth' },
    robots: { index: false },
 };

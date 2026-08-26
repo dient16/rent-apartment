@@ -94,7 +94,7 @@ const Home: React.FC = () => {
                   {/* Mobile: leave room for the search card that overlaps the bottom */}
                   <div className="relative pb-10 md:pb-0">
                      <h1 className="text-2xl font-bold leading-tight sm:text-3xl md:text-[3rem] md:font-semibold">
-                        Booking your stay with Find House
+                        Booking your stay with NestStay
                      </h1>
                      <p className="mt-2 text-sm text-white/85 sm:text-base md:text-lg">
                         From as low as 100,000 VND per night with limited time
@@ -146,10 +146,10 @@ const Home: React.FC = () => {
 
             <ApartmentPopular />
 
-            {/* ===== Why choose Find House ===== */}
+            {/* ===== Why choose NestStay ===== */}
             <section className="my-10 md:my-14">
                <h2 className="mb-4 text-lg font-semibold text-gray-900 md:sr-only">
-                  Why Find House
+                  Why NestStay
                </h2>
                <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
                   {PERKS.map((perk) => (

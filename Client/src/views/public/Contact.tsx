@@ -27,7 +27,7 @@ const contactChannels = [
    {
       icon: <MailOutlined />,
       title: 'Email',
-      lines: ['info@findhouse.vn', 'We reply within 24 hours'],
+      lines: ['info@neststay.vn', 'We reply within 24 hours'],
    },
    {
       icon: <ClockCircleOutlined />,
@@ -197,7 +197,7 @@ const ContactPage: React.FC = () => {
             {/* Map */}
             <div className="overflow-hidden mt-10 h-72 rounded-3xl shadow-card-lg md:h-96">
                <iframe
-                  title="Find House office location"
+                  title="NestStay office location"
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4241674197956!2d106.69742617480579!3d10.771594989375862!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f4670702e31%3A0xa5777fb3a5bb4be7!2zQuG6v24gQmFjaCDEkOG6sW5n!5e0!3m2!1svi!2s!4v1700000000000!5m2!1svi!2s"
                   width="100%"
                   height="100%"

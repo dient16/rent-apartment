@@ -15,6 +15,22 @@ const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, FACEBOOK_APP_ID, FACEBOOK_APP_SE
 const oauthCallback = (provider: 'google' | 'facebook') =>
   `${SERVER_URL.replace(/\/$/, '')}/api/auth/${provider}/callback`;
 
+/**
+ * Providers do not guarantee both name parts (single-name Google accounts have no
+ * familyName). Keep the app's "firstname = family name" display order when both
+ * exist, otherwise put whatever we have in firstname so the user is never nameless.
+ */
+const splitName = (
+  profile: { name?: { familyName?: string; givenName?: string }; displayName?: string },
+  email: string
+): { firstname: string; lastname: string } => {
+  const familyName = profile.name?.familyName?.trim();
+  const givenName = profile.name?.givenName?.trim();
+  if (familyName && givenName) return { firstname: familyName, lastname: givenName };
+  const fallback = familyName || givenName || profile.displayName?.trim() || email.split('@')[0];
+  return { firstname: fallback, lastname: '' };
+};
+
 passport.use(
   new GoogleStrategy(
     {
@@ -24,30 +40,26 @@ passport.use(
     },
     async (_accessToken, _refreshToken, profile: GoogleProfile, cb) => {
       try {
-        if (profile) {
-          const email = profile.emails?.[0]?.value;
-          const familyName = profile.name?.familyName;
-          const givenName = profile.name?.givenName;
-          const photo = profile.photos?.[0]?.value;
-
-          if (!email || !familyName || !givenName || !photo) {
-            return cb(new Error('Profile information is incomplete'), false);
-          }
-
-          let user = await UserModel.findOne({ email });
-
-          if (!user) {
-            user = await UserModel.create({
-              email,
-              provider: 'Google',
-              firstname: familyName,
-              lastname: givenName,
-              avatar: photo,
-            });
-          }
-
-          return cb(null, user);
+        const email = profile?.emails?.[0]?.value;
+        if (!email) {
+          return cb(new Error('Google account has no email address'), false);
         }
+
+        let user = await UserModel.findOne({ email });
+
+        if (!user) {
+          const photo = profile.photos?.[0]?.value;
+          user = await UserModel.create({
+            email,
+            provider: 'Google',
+            ...splitName(profile, email),
+            ...(photo ? { avatar: photo } : {}),
+            // Google already verified this address
+            emailConfirmed: true,
+          });
+        }
+
+        return cb(null, user);
       } catch (error) {
         return cb(error, false);
       }
@@ -65,32 +77,26 @@ passport.use(
     },
     async (_accessToken, _refreshToken, profile: FacebookProfile, cb) => {
       try {
-        if (profile) {
-          const email = profile.emails?.[0]?.value;
-          const familyName = profile.name?.familyName;
-          const givenName = profile.name?.givenName;
-          const gender = profile.gender;
-          const photo = profile.photos?.[0]?.value;
-
-          if (!email || !familyName || !givenName || !gender || !photo) {
-            return cb(new Error('Profile information is incomplete'), false);
-          }
-
-          let user = await UserModel.findOne({ email });
-
-          if (!user) {
-            user = await UserModel.create({
-              email,
-              provider: 'Facebook',
-              firstname: familyName,
-              lastname: givenName,
-              gender,
-              avatar: photo,
-            });
-          }
-
-          return cb(null, user);
+        const email = profile?.emails?.[0]?.value;
+        if (!email) {
+          return cb(new Error('Facebook account has no email address'), false);
         }
+
+        let user = await UserModel.findOne({ email });
+
+        if (!user) {
+          const photo = profile.photos?.[0]?.value;
+          user = await UserModel.create({
+            email,
+            provider: 'Facebook',
+            ...splitName(profile, email),
+            ...(profile.gender ? { gender: profile.gender } : {}),
+            ...(photo ? { avatar: photo } : {}),
+            emailConfirmed: true,
+          });
+        }
+
+        return cb(null, user);
       } catch (error) {
         return cb(error, false);
       }

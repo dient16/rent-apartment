@@ -20,6 +20,7 @@ const bookingMongooseSchema = new mongoose.Schema(
         roomNumber: { type: Number, required: true },
       },
     ],
+    numberOfGuest: { type: Number, default: 1, min: 1 },
     status: {
       type: String,
       enum: ['pending', 'confirmed', 'canceled', 'completed'],

@@ -4,7 +4,7 @@ import Home from '@/views/public/Home';
 import { fetchPopularRooms } from '@/lib/server-api';
 
 export const metadata: Metadata = {
-   title: 'Find House — Book apartments & homestays across Vietnam',
+   title: 'NestStay — Book apartments & homestays in Vietnam',
    description:
       'Hand-picked apartments and homestays in Da Nang, Nha Trang, Da Lat, Hoi An, Hanoi, Ho Chi Minh City and more — transparent pricing, instant booking.',
    alternates: { canonical: '/' },

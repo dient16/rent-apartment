@@ -12,7 +12,7 @@ interface AuthHeroProps {
 
 /** Brand photo panel shown on the left of every auth screen (desktop only). */
 const AuthHero: React.FC<AuthHeroProps> = ({
-   title = 'Welcome to Find House',
+   title = 'Welcome to NestStay',
    subtitle = 'Sign in or create an account to book hand-picked apartments and homestays across Vietnam.',
 }) => (
    <div className="hidden overflow-hidden relative w-1/2 lg:block xl:w-[55%] flex-shrink-0">
@@ -27,9 +27,9 @@ const AuthHero: React.FC<AuthHeroProps> = ({
       {/* Logo */}
       <div className="flex absolute top-8 left-10 gap-2.5 items-center">
          <span className="flex justify-center items-center w-10 h-10 bg-white rounded-xl shadow-lg">
-            <Image src={logo} alt="Find House" width={24} height={24} />
+            <Image src={logo} alt="NestStay" width={24} height={24} />
          </span>
-         <span className="text-lg font-bold text-white">Find House</span>
+         <span className="text-lg font-bold text-white">NestStay</span>
       </div>
 
       {/* Message, centered on the photo */}

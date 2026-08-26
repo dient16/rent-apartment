@@ -36,6 +36,7 @@ const BookingConfirm: React.FC = () => {
    const navigate = useNavigate();
 
    const startDate = searchParams.get('startDate');
+   const numberOfGuest = parseInt(searchParams.get('numberOfGuest') || '1', 10) || 1;
    const endDate = searchParams.get('endDate');
 
    const roomIds = searchParams.getAll('roomIds[]');
@@ -78,6 +79,7 @@ const BookingConfirm: React.FC = () => {
          checkInTime: startDate,
          checkOutTime: endDate,
          totalPrice: totalAmount,
+         numberOfGuest,
       });
       setActiveTab('checkout');
       setStep(2);

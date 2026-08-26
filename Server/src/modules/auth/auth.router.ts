@@ -1,9 +1,8 @@
 import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
+import type { NextFunction, Request, Response } from 'express';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import passport from 'passport';
-import type { Profile as FacebookProfile } from 'passport-facebook';
-import type { Profile as GoogleProfile } from 'passport-google-oauth20';
 import { z } from 'zod';
 
 import * as controller from '@/modules/auth/auth.controller';
@@ -19,6 +18,7 @@ import { UserSchema } from '@/modules/user/user.dto';
 import { createApiResponses, errorResponses, objectId, PUBLIC } from '@/api-docs/openAPIResponseBuilders';
 import { verifyAccessToken } from '@/middlewares/verifyToken';
 import { validateRequest } from '@/utils/httpHandlers';
+import { logger } from '@/utils/logger';
 
 export const authRegistry = new OpenAPIRegistry();
 
@@ -237,6 +237,24 @@ const OAUTH_REDIRECT = {
   [StatusCodes.MOVED_TEMPORARILY]: { description: 'Redirect to the provider consent screen' },
 };
 
+/**
+ * Finish an OAuth callback. `passport.authenticate` with a custom callback hands us
+ * (err, user); before this the error was ignored and a failed first-time sign-in
+ * (user creation error, denied consent, profile without email) redirected the client
+ * to `/signin-success/undefined`, which then failed with a confusing "User not found".
+ */
+const oauthCallbackHandler =
+  (provider: 'google' | 'facebook') => (req: Request, res: Response, next: NextFunction) => {
+    passport.authenticate(provider, { session: false }, (err: Error | null, user?: { _id?: unknown } | false) => {
+      const clientUrl = (process.env.CLIENT_URL || '').replace(/\/$/, '');
+      if (err || !user || !user._id) {
+        logger.warn({ err, provider, query: req.query }, 'OAuth sign-in failed');
+        return res.redirect(`${clientUrl}/signin-success/failed`);
+      }
+      return res.redirect(`${clientUrl}/signin-success/${String(user._id)}`);
+    })(req, res, next);
+  };
+
 authRegistry.registerPath({
   method: 'get',
   path: '/api/auth/google',
@@ -267,18 +285,7 @@ authRegistry.registerPath({
   },
 });
 
-router.get(
-  '/google/callback',
-  (req, res, next) => {
-    passport.authenticate('google', (__err: Error, profile: GoogleProfile) => {
-      req.user = profile as unknown as Express.User;
-      next();
-    })(req, res, next);
-  },
-  (req, res) => {
-    res.redirect(`${process.env.CLIENT_URL}/signin-success/${(req?.user as UserDecode)._id}`);
-  }
-);
+router.get('/google/callback', oauthCallbackHandler('google'));
 
 authRegistry.registerPath({
   method: 'get',
@@ -304,18 +311,7 @@ authRegistry.registerPath({
   },
 });
 
-router.get(
-  '/facebook/callback',
-  (req, res, next) => {
-    passport.authenticate('facebook', (_err: Error, profile: FacebookProfile) => {
-      req.user = profile as unknown as Express.User;
-      next();
-    })(req, res, next);
-  },
-  (req, res) => {
-    res.redirect(`${process.env.CLIENT_URL}/signin-success/${(req?.user as UserDecode)._id}`);
-  }
-);
+router.get('/facebook/callback', oauthCallbackHandler('facebook'));
 
 authRegistry.registerPath({
   method: 'get',

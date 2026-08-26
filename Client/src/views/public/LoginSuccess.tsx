@@ -20,6 +20,11 @@ const LoginSuccess: React.FC = () => {
    const [failed, setFailed] = useState(false);
 
    useEffect(() => {
+      // The server redirects here with `failed` when the provider callback errored
+      if (!userId || userId === 'failed') {
+         setFailed(true);
+         return;
+      }
       let cancelled = false;
       const finishLogin = async () => {
          try {

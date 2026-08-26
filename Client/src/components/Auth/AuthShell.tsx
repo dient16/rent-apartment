@@ -40,8 +40,8 @@ const AuthShell: React.FC<AuthShellProps> = ({
          <div className="flex flex-col justify-center px-6 pt-16 pb-14 mx-auto w-full min-h-full max-w-[430px] sm:px-8">
             {/* Mobile brand */}
             <div className="flex gap-2 justify-center items-center mb-8 lg:hidden">
-               <Image src={logo} alt="Find House" width={30} height={30} />
-               <span className="text-lg font-bold text-gray-900">Find House</span>
+               <Image src={logo} alt="NestStay" width={30} height={30} />
+               <span className="text-lg font-bold text-gray-900">NestStay</span>
             </div>
 
             {children}

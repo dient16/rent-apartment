@@ -22,7 +22,7 @@ export async function generateMetadata({
    const response = await fetchApartmentDetail(apartmentId, queryString);
    const apartment = response?.data;
    if (!apartment?.title) {
-      return { title: 'Apartment — Find House' };
+      return { title: 'Apartment — NestStay' };
    }
 
    const location = apartment.location || {};

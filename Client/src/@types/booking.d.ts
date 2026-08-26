@@ -13,4 +13,5 @@ interface CreateBooking extends CustomerBooking {
    totalPrice: number;
    checkInTime: string;
    checkOutTime: string;
+   numberOfGuest?: number;
 }

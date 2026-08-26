@@ -202,6 +202,51 @@
    border-bottom-right-radius: 9999px;
 }
 
+/* Mobile drawer: the calendar is fluid so it never overflows narrow phones
+   (iPhone SE/X/12 mini = 375px; the library's .rdrMonth is a fixed 27.667em). */
+.datepicker-drawer .custom-datepicker,
+.datepicker-drawer .custom-datepicker .rdrCalendarWrapper,
+.datepicker-drawer .custom-datepicker .rdrMonths,
+.datepicker-drawer .custom-datepicker .rdrMonth {
+   width: 100%;
+   max-width: 100%;
+}
+.datepicker-drawer .custom-datepicker .rdrCalendarWrapper {
+   display: flex;
+}
+.datepicker-drawer .custom-datepicker .rdrMonth {
+   padding-left: 0;
+   padding-right: 0;
+}
+/* Small phones only (iPhone SE/X/12 mini... up to 430px wide, or short
+   landscape viewports): tighten the vertical rhythm so the calendar grid gets
+   the space. The month name under the navigator repeats "August 2026", and the
+   stacked paddings eat ~60px. Larger phones/tablets keep the roomier layout. */
+@media (max-width: 430px), (max-height: 700px) {
+   .datepicker-drawer .datepicker-body {
+      padding-top: 0;
+   }
+   .datepicker-drawer .datepicker-nav {
+      padding-top: 4px;
+      padding-bottom: 0;
+   }
+   .datepicker-drawer .custom-datepicker .rdrMonthAndYearWrapper {
+      height: 40px;
+      padding-top: 0;
+   }
+   .datepicker-drawer .custom-datepicker .rdrMonthName {
+      display: none;
+   }
+   .datepicker-drawer .custom-datepicker .rdrMonth {
+      padding-top: 4px;
+   }
+}
+@media (max-width: 380px) {
+   .datepicker-drawer .custom-datepicker .rdrCalendarWrapper {
+      font-size: 12px;
+   }
+}
+
 /* Popover chua calendar: bo tron dep */
 .ant-popover .ant-popover-inner:has(.custom-datepicker) {
    border-radius: 20px;

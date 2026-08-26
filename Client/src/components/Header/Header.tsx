@@ -60,12 +60,12 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                >
                   <Image
                      src={logo.src}
-                     alt="Find House"
+                     alt="NestStay"
                      className="w-[36px] md:w-[44px]"
                      preview={false}
                   />
                   <span className="font-main text-lg md:text-xl font-bold tracking-tight text-gray-900 whitespace-nowrap">
-                     Find House
+                     NestStay
                   </span>
                </div>
             </Flex>
@@ -252,13 +252,13 @@ const Header: React.FC<Props> = ({ isHost = false }) => {
                   <div className="flex gap-2 items-center">
                      <Image
                         src={logo.src}
-                        alt="Find House"
+                        alt="NestStay"
                         width={28}
                         height={28}
                         preview={false}
                      />
                      <span className="text-base font-bold text-gray-900">
-                        Find House
+                        NestStay
                      </span>
                   </div>
                   <button

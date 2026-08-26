@@ -148,7 +148,7 @@ const SetPasswordPage: React.FC = () => {
    return (
       <AuthShell
          heroTitle="Almost there"
-         heroSubtitle="One last step — create a password to secure your new Find House account."
+         heroSubtitle="One last step — create a password to secure your new NestStay account."
       >
          {renderContent()}
       </AuthShell>

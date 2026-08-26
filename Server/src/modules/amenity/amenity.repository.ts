@@ -17,7 +17,7 @@ export const amenityRepository = {
   create: (data: AmenityInput) => AmenityModel.create(data as any),
 
   updateById: (amenityId: string, data: Partial<AmenityInput>) =>
-    AmenityModel.findByIdAndUpdate(amenityId, data, { new: true }).exec(),
+    AmenityModel.findByIdAndUpdate(amenityId, data, { returnDocument: 'after' }).exec(),
 
   deleteById: (amenityId: string) => AmenityModel.findByIdAndDelete(amenityId).exec(),
 };

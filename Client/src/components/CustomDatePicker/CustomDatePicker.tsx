@@ -7,7 +7,7 @@ import moment from 'moment';
 import { DownOutlined, CalendarOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
 import { HiOutlineArrowLongRight } from 'react-icons/hi2';
-import { FiChevronDown } from 'react-icons/fi';
+import { FiChevronDown, FiX } from 'react-icons/fi';
 
 interface CustomDatePickerProps {
    value: [Date, Date];
@@ -59,7 +59,8 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
    const [navOpen, setNavOpen] = useState(false);
    const [navYear, setNavYear] = useState(() => moment().year());
    const isMobileOrTablet = useMediaQuery({ query: '(max-width: 1023px)' });
-   const isMobile = useMediaQuery({ query: '(max-width: 440px)' });
+   // Two months need ~720px; below that a single month is the only one that fits.
+   const isMobile = useMediaQuery({ query: '(max-width: 767px)' });
    const handleDateChange = (ranges: RangeKeyDict) => {
       const selection = ranges.selection as Range;
       const newStartDate = selection.startDate as Date;
@@ -91,7 +92,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
    };
 
    const dateRangePicker = (
-      <div className="h-full flex flex-col justify-between items-center">
+      <div className="flex flex-col justify-between items-center w-full h-full">
          <DateRangePicker
             navigatorRenderer={(focusedDate, changeShownDate) => {
                const rangeStart = minDate ?? new Date();
@@ -101,7 +102,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                   (_, i) => rangeStart.getFullYear() + i,
                );
                return (
-                  <div className="flex gap-2 justify-between items-center px-4 pt-3 pb-1">
+                  <div className="datepicker-nav flex gap-2 justify-between items-center px-4 pt-3 pb-1">
                      <button
                         type="button"
                         aria-label="Previous month"
@@ -228,24 +229,42 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
             maxDate={maxDate}
          />
          <div className="pt-3 px-4 pb-5 w-full bg-white border-t border-gray-100 lg:hidden">
-            <div className="flex gap-2 items-center mb-3">
-               <div className="flex-1 px-3 py-2 min-w-0 bg-gray-50 rounded-xl border border-gray-100">
-                  <p className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
-                     Check-in
-                  </p>
-                  <p className="text-sm font-semibold text-gray-900 whitespace-nowrap">
-                     {moment(dates[0]).format('ddd, D MMM')}
-                  </p>
-               </div>
-               <HiOutlineArrowLongRight size={18} className="flex-shrink-0 text-gray-400" />
-               <div className="flex-1 px-3 py-2 min-w-0 bg-gray-50 rounded-xl border border-gray-100">
-                  <p className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
-                     Check-out
-                  </p>
-                  <p className="text-sm font-semibold text-gray-900 whitespace-nowrap">
-                     {moment(dates[1]).format('ddd, D MMM')}
-                  </p>
-               </div>
+            {/* One segmented card: the side being picked is highlighted, nights sit in the middle */}
+            <div className="flex items-stretch mb-3 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+               {[
+                  { label: 'Check-in', date: dates[0], active: !selectingEndDate },
+                  { label: 'Check-out', date: dates[1], active: selectingEndDate },
+               ].map((slot, index) => (
+                  <React.Fragment key={slot.label}>
+                     {index === 1 && (
+                        <div className="flex flex-col flex-shrink-0 justify-center items-center px-1 self-center">
+                           <span className="px-2 py-0.5 text-[10px] font-semibold text-blue-600 bg-blue-50 rounded-full whitespace-nowrap">
+                              {getNightCount(dates[0], dates[1])} night
+                              {getNightCount(dates[0], dates[1]) > 1 ? 's' : ''}
+                           </span>
+                        </div>
+                     )}
+                     <div
+                        className={`flex-1 px-3.5 py-2.5 min-w-0 transition-colors ${
+                           slot.active ? 'bg-blue-50/70' : ''
+                        }`}
+                     >
+                        <p
+                           className={`text-[10px] font-semibold tracking-wider uppercase ${
+                              slot.active ? 'text-blue-600' : 'text-gray-400'
+                           }`}
+                        >
+                           {slot.label}
+                        </p>
+                        <p className="text-base font-bold leading-tight text-gray-900 whitespace-nowrap">
+                           {moment(slot.date).format('D MMM')}
+                        </p>
+                        <p className="text-[11px] text-gray-500">
+                           {moment(slot.date).format('dddd')}
+                        </p>
+                     </div>
+                  </React.Fragment>
+               ))}
             </div>
             <Button
                block
@@ -366,19 +385,42 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
             {renderButtonContent()}
 
             <Drawer
-               title={
-                  <span className="text-base font-semibold">Select dates</span>
-               }
                placement="bottom"
                onClose={() => setDrawerVisible(false)}
                open={drawerVisible}
                size="100%"
                zIndex={1000}
+               closeIcon={null}
+               className="datepicker-drawer"
+               // Same sheet chrome as the other bottom drawers (see Listing.tsx):
+               // antd header hidden, custom centered title + round close button.
+               styles={{
+                  header: { display: 'none' },
+                  body: { padding: 0, overflowX: 'hidden' },
+               }}
                // Default autoFocus lands on the month <Select>'s hidden input and
                // pops the soft keyboard on phones.
                autoFocus={false}
             >
-               {dateRangePicker}
+               <div className="flex flex-col h-full font-main">
+                  <div className="flex flex-shrink-0 justify-between items-center px-4 pt-3 pb-3 border-b border-gray-100">
+                     <span className="w-9" />
+                     <span className="text-base font-semibold text-gray-900">
+                        Select dates
+                     </span>
+                     <button
+                        type="button"
+                        aria-label="Close"
+                        onClick={() => setDrawerVisible(false)}
+                        className="flex justify-center items-center w-9 h-9 text-gray-600 bg-gray-100 rounded-full border-none cursor-pointer"
+                     >
+                        <FiX size={18} />
+                     </button>
+                  </div>
+                  {/* The calendar is 360px wide by default; keep side padding tiny so
+                      375px phones don't overflow. */}
+                  <div className="datepicker-body flex-1 min-h-0 px-2 pt-2">{dateRangePicker}</div>
+               </div>
             </Drawer>
          </div>
          <div className="hidden lg:block">

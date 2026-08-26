@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import AppImage from '@/components/AppImage/AppImage';
 import { FaBed, FaCheck, FaMinus, FaPlus, FaRulerCombined, FaUsers } from 'react-icons/fa';
-import { Modal } from 'antd';
+import { Modal, message } from 'antd';
 import { RoomInfo } from '@/components';
 
 interface RoomOption {
@@ -25,6 +25,8 @@ interface RoomSelectionProps {
       count: number;
    }) => void;
    selectedCount: number;
+   /** How many more rooms (of any type) may still be added; Infinity = no cap. */
+   remainingRooms?: number;
 }
 
 const PERKS = ['Free cancellation before check-in', 'Pay at the property', 'Instant confirmation'];
@@ -33,6 +35,7 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({
    roomOption,
    onChange,
    selectedCount,
+   remainingRooms = Infinity,
 }) => {
    const [count, setCount] = useState<number>(selectedCount);
    const [isModalVisible, setIsModalVisible] = useState(false);
@@ -53,7 +56,12 @@ const RoomSelection: React.FC<RoomSelectionProps> = ({
    };
 
    const increment = () => {
-      if (count < roomOption.quantity) handleCountChange(count + 1);
+      if (count >= roomOption.quantity) return;
+      if (remainingRooms <= 0) {
+         message.warning('You cannot select more rooms than the number of guests');
+         return;
+      }
+      handleCountChange(count + 1);
    };
    const decrement = () => {
       if (count > 0) handleCountChange(count - 1);

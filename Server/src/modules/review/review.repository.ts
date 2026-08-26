@@ -60,7 +60,7 @@ export const reviewRepository = {
     ReviewModel.findOneAndUpdate(
       { apartment: apartmentId, user: userId },
       { $set: data },
-      { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
+      { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true, runValidators: true }
     ).populate('user', 'firstname lastname avatar email'),
 
   deleteUserReview: (reviewId: string, userId: string) => ReviewModel.findOneAndDelete({ _id: reviewId, user: userId }),

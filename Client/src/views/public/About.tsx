@@ -64,13 +64,13 @@ const AboutPage: React.FC = () => {
             </div>
             <div className="relative px-6 py-20 mx-auto text-center max-w-main md:py-28">
                <p className="mb-3 text-sm font-semibold tracking-widest text-blue-300 uppercase">
-                  About Find House
+                  About NestStay
                </p>
                <h1 className="mx-auto mb-5 max-w-3xl text-3xl font-bold text-white md:text-5xl md:leading-tight">
                   Stays that feel like home, wherever you travel
                </h1>
                <p className="mx-auto mb-8 max-w-2xl text-base text-gray-300 md:text-lg">
-                  Find House connects travelers with hand-picked apartments and
+                  NestStay connects travelers with hand-picked apartments and
                   homestays across Vietnam — with transparent pricing, instant
                   booking and hosts who care.
                </p>
@@ -123,7 +123,7 @@ const AboutPage: React.FC = () => {
                   </h2>
                   <p className="mb-4 text-gray-600 md:text-lg">
                      Booking a place to stay should be the easiest part of your
-                     trip. We built Find House so that guests can compare real
+                     trip. We built NestStay so that guests can compare real
                      rooms, real prices and real availability — no surprises at
                      check-in.
                   </p>
@@ -153,7 +153,7 @@ const AboutPage: React.FC = () => {
             <div className="px-6 py-16 mx-auto max-w-main md:py-24">
                <div className="mb-12 text-center">
                   <p className="mb-3 text-sm font-semibold tracking-widest text-blue-500 uppercase">
-                     Why Find House
+                     Why NestStay
                   </p>
                   <h2 className="text-2xl font-bold text-gray-900 md:text-4xl">
                      Built around you
@@ -185,7 +185,7 @@ const AboutPage: React.FC = () => {
             <div className="grid overflow-hidden rounded-3xl md:grid-cols-2 bg-midnight-blue">
                <div className="p-10 md:p-14">
                   <h2 className="mb-4 text-2xl font-bold text-white md:text-3xl">
-                     Find House Co., Ltd
+                     NestStay Co., Ltd
                   </h2>
                   <p className="mb-8 text-gray-300">
                      Founded in 2024, we have been committed to providing the
@@ -203,7 +203,7 @@ const AboutPage: React.FC = () => {
                      </li>
                      <li className="flex gap-3 items-center">
                         <MailOutlined className="text-blue-300" />
-                        info@findhouse.vn
+                        info@neststay.vn
                      </li>
                   </ul>
                </div>

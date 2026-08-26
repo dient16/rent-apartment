@@ -327,14 +327,14 @@ const Messenger: React.FC = () => {
    const totalUnread: number = conversationsData?.data?.totalUnread || 0;
 
    return (
-      <div className="bg-gray-50 font-main">
-         <div className="mx-auto w-full max-w-main">
-            <div className="flex overflow-hidden flex-col bg-white border-x border-b border-gray-100 shadow-card-sm h-[calc(100vh-60px)] lg:h-[calc(100vh-80px)]">
+      <div className="h-full bg-gray-50 font-main">
+         <div className="mx-auto w-full h-full max-w-main">
+            <div className="flex overflow-hidden flex-col h-full bg-white border-gray-100 md:border-x md:border-b md:shadow-card-sm">
                {/* ===== Split top bar ===== */}
-               <div className="flex flex-shrink-0 items-stretch border-b border-gray-100 h-[72px]">
+               <div className="flex flex-shrink-0 items-stretch border-b border-gray-100 h-[60px] md:h-[72px]">
                   <div
                      className={clsx(
-                        'items-center px-4 w-full border-r border-gray-100 md:flex md:w-[340px] flex-shrink-0',
+                        'items-center px-3 w-full md:px-4 md:border-r border-gray-100 md:flex md:w-[340px] flex-shrink-0',
                         selectedId ? 'hidden' : 'flex',
                      )}
                   >
@@ -349,7 +349,7 @@ const Messenger: React.FC = () => {
                   </div>
                   <div
                      className={clsx(
-                        'flex-1 items-center px-5 min-w-0 md:flex',
+                        'flex-1 items-center px-3 min-w-0 md:px-5 md:flex',
                         selectedId ? 'flex' : 'hidden',
                      )}
                   >
@@ -407,7 +407,7 @@ const Messenger: React.FC = () => {
                   {/* ===== Left: conversation list ===== */}
                   <aside
                      className={clsx(
-                        'flex-col flex-shrink-0 w-full border-r border-gray-100 md:flex md:w-[340px]',
+                        'flex-col flex-shrink-0 w-full md:border-r border-gray-100 md:flex md:w-[340px]',
                         selectedId ? 'hidden' : 'flex',
                      )}
                   >
@@ -542,7 +542,7 @@ const Messenger: React.FC = () => {
                            <div
                               ref={listRef}
                               onScroll={handleListScroll}
-                              className="overflow-y-auto flex-1 px-5 py-4 bg-white"
+                              className="overflow-y-auto flex-1 px-3 py-3 bg-white md:px-5 md:py-4"
                            >
                               {isFetchingOlder && (
                                  <div className="flex justify-center py-2">
@@ -667,7 +667,7 @@ const Messenger: React.FC = () => {
                                                 ))}
                                              <div
                                                 className={clsx(
-                                                   'group/msg relative flex items-center gap-1.5 max-w-[72%]',
+                                                   'group/msg relative flex items-center gap-1.5 max-w-[85%] md:max-w-[72%]',
                                                    message.isMine &&
                                                       'flex-row-reverse',
                                                 )}
@@ -773,7 +773,7 @@ const Messenger: React.FC = () => {
                                                    <button
                                                       type="button"
                                                       aria-label="React"
-                                                      className="flex flex-shrink-0 justify-center items-center w-7 h-7 text-sm text-gray-400 bg-transparent rounded-full border-none opacity-0 transition-opacity cursor-pointer group-hover/msg:opacity-100 hover:bg-gray-100 hover:text-amber-500"
+                                                      className="flex flex-shrink-0 justify-center items-center w-7 h-7 text-sm text-gray-400 bg-transparent rounded-full border-none opacity-0 transition-opacity cursor-pointer group-hover/msg:opacity-100 [@media(hover:none)]:opacity-60 hover:bg-gray-100 hover:text-amber-500"
                                                    >
                                                       <SmileOutlined />
                                                    </button>
@@ -809,7 +809,7 @@ const Messenger: React.FC = () => {
                            </div>
 
                            {/* Composer */}
-                           <div className="flex gap-2 items-end px-4 py-3 bg-white border-t border-gray-100">
+                           <div className="flex gap-2 items-end px-2 py-2 bg-white border-t border-gray-100 md:px-4 md:py-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:pb-3">
                               <Popover
                                  open={emojiOpen}
                                  onOpenChange={setEmojiOpen}
@@ -818,7 +818,7 @@ const Messenger: React.FC = () => {
                                  content={
                                     <EmojiPicker
                                        height={360}
-                                       width={310}
+                                       width="min(310px, calc(100vw - 24px))"
                                        searchDisabled
                                        skinTonesDisabled
                                        previewConfig={{ showPreview: false }}

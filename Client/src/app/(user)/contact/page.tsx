@@ -3,7 +3,7 @@ import ContactClient from './ContactClient';
 
 export const metadata: Metadata = {
    title: 'Contact us',
-   description: 'Questions about a booking or hosting on Find House? Reach our support team by email, phone or the contact form.',
+   description: 'Questions about a booking or hosting on NestStay? Reach our support team by email, phone or the contact form.',
    alternates: { canonical: '/contact' },
 };
 

@@ -53,7 +53,7 @@ const groups: PreferenceGroup[] = [
          {
             key: 'product_news',
             label: 'Product news',
-            description: 'New features and improvements on Find House',
+            description: 'New features and improvements on NestStay',
          },
       ],
    },

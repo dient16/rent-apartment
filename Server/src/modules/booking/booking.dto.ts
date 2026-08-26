@@ -16,6 +16,8 @@ export const BookingSchema = z.object({
   lastname: z.string(),
   phone: z.string(),
   rooms: z.array(BookingRoomSchema),
+  /** Guests the booking is for; used to reject more rooms than guests. */
+  numberOfGuest: z.number().int().min(1).default(1),
   arrivalTime: z.string(),
   checkInTime: z.date(),
   checkOutTime: z.date(),

@@ -25,7 +25,7 @@ const transporter = nodemailer.createTransport({
 export const sendMail = async ({ email, html, subject }: SendMailOptions): Promise<nodemailer.SentMessageInfo> => {
   const [error, info] = await to(
     transporter.sendMail({
-      from: '"Rent Apartment" <no-reply@rentapartment.com>',
+      from: '"NestStay" <no-reply@neststay.vn>',
       to: email,
       subject,
       html,

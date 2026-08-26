@@ -22,6 +22,12 @@ const CreateBookingBody = BookingSchema.omit({ status: true, createdAt: true, up
     checkInTime: z.string().datetime().openapi({ example: '2026-09-01T14:00:00.000Z' }),
     checkOutTime: z.string().datetime().openapi({ example: '2026-09-04T12:00:00.000Z' }),
     rooms: z.array(z.object({ roomId: objectId('Room id'), roomNumber: z.number().int().min(1) })),
+    numberOfGuest: z
+      .number()
+      .int()
+      .min(1)
+      .optional()
+      .openapi({ description: 'Number of guests. Total rooms must not exceed this; defaults to 1.' }),
   })
   .openapi('CreateBookingBody');
 

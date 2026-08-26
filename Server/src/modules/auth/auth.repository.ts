@@ -25,7 +25,7 @@ export const authRepository = {
     UserModel.findByIdAndUpdate(
       userId,
       { refreshToken, password: passwordHash, $unset: { confirmationToken: 1 } },
-      { new: true }
+      { returnDocument: 'after' }
     ).select(SECRET_FIELDS),
 
   setResetToken: (userId: unknown, token: string, expires: Date) =>
@@ -36,15 +36,15 @@ export const authRepository = {
     UserModel.findByIdAndUpdate(
       userId,
       { password: passwordHash, refreshToken, $unset: { resetPasswordToken: 1, resetPasswordExpires: 1 } },
-      { new: true }
+      { returnDocument: 'after' }
     ).select(SECRET_FIELDS),
 
   updatePassword: (userId: unknown, passwordHash: string) =>
-    UserModel.findByIdAndUpdate(userId, { password: passwordHash }, { new: true }).select(SECRET_FIELDS),
+    UserModel.findByIdAndUpdate(userId, { password: passwordHash }, { returnDocument: 'after' }).select(SECRET_FIELDS),
 
   setRefreshToken: (userId: unknown, refreshToken: string) =>
-    UserModel.findByIdAndUpdate(userId, { refreshToken }, { new: true }),
+    UserModel.findByIdAndUpdate(userId, { refreshToken }, { returnDocument: 'after' }),
 
   clearRefreshToken: (refreshToken: string) =>
-    UserModel.findOneAndUpdate({ refreshToken }, { refreshToken: '' }, { new: true }),
+    UserModel.findOneAndUpdate({ refreshToken }, { refreshToken: '' }, { returnDocument: 'after' }),
 };

@@ -56,7 +56,7 @@ const ResetPasswordPage: React.FC = () => {
                      window.location.href = '/';
                   }}
                >
-                  Continue to Find House
+                  Continue to NestStay
                </Button>
             </AuthStatus>
          );

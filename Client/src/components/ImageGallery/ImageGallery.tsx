@@ -1,6 +1,7 @@
 import { Image, Drawer, Carousel } from 'antd';
 import AppImage from '@/components/AppImage/AppImage';
 import { MdOutlineGridView } from 'react-icons/md';
+import { FiX } from 'react-icons/fi';
 import { useState } from 'react';
 
 interface ImageGalleryProps {
@@ -77,21 +78,35 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
 
          {/* All photos */}
          <Drawer
-            title={
-               <span className="text-lg font-semibold">
+            placement="bottom"
+            onClose={() => setDrawerVisible(false)}
+            open={drawerVisible}
+            size="100%"
+            closeIcon={null}
+            className="font-main"
+            styles={{
+               header: { display: 'none' },
+               body: { padding: 0, background: '#fff' },
+            }}
+         >
+            <div className="flex sticky top-0 z-10 flex-shrink-0 justify-between items-center px-4 pt-3 pb-3 bg-white border-b border-gray-100">
+               <span className="w-9" />
+               <span className="text-base font-semibold text-gray-900">
                   All photos{' '}
                   <span className="text-sm font-normal text-gray-400">
                      ({images.length})
                   </span>
                </span>
-            }
-            placement="bottom"
-            onClose={() => setDrawerVisible(false)}
-            open={drawerVisible}
-            size="100%"
-            styles={{ body: { background: '#fff' } }}
-         >
-            <div className="mx-auto max-w-6xl">
+               <button
+                  type="button"
+                  aria-label="Close"
+                  onClick={() => setDrawerVisible(false)}
+                  className="flex justify-center items-center w-9 h-9 text-gray-600 bg-gray-100 rounded-full border-none cursor-pointer"
+               >
+                  <FiX size={18} />
+               </button>
+            </div>
+            <div className="px-4 py-4 mx-auto max-w-6xl md:px-6">
                <Image.PreviewGroup>
                   <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                      {images.map((image, index) => (

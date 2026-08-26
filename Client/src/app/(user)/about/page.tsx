@@ -3,7 +3,7 @@ import AboutClient from './AboutClient';
 
 export const metadata: Metadata = {
    title: 'About us',
-   description: 'Find House connects travelers with hand-picked apartments and homestays across Vietnam - our story, mission and the team behind the platform.',
+   description: 'NestStay connects travelers with hand-picked apartments and homestays across Vietnam - our story, mission and the team behind the platform.',
    alternates: { canonical: '/about' },
 };
 

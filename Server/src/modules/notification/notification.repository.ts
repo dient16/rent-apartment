@@ -24,13 +24,13 @@ export const notificationRepository = {
     NotificationModel.findOneAndUpdate(
       { user: recipientId, type: 'new_message', link, isRead: false },
       { $set: { title, message }, $setOnInsert: { user: recipientId, type: 'new_message', link } },
-      { upsert: true, new: true, timestamps: true }
+      { upsert: true, returnDocument: 'after', timestamps: true }
     ).exec(),
 
   markManyRead: (filter: Record<string, unknown>) => NotificationModel.updateMany(filter, { isRead: true }).exec(),
 
   markOneRead: (notificationId: string, userId: string) =>
-    NotificationModel.findOneAndUpdate({ _id: notificationId, user: userId }, { isRead: true }, { new: true }).exec(),
+    NotificationModel.findOneAndUpdate({ _id: notificationId, user: userId }, { isRead: true }, { returnDocument: 'after' }).exec(),
 
   /** Page of notifications + total + unread count in one round trip. */
   findPage: (query: Record<string, unknown>, userId: string, page: number, limit: number) =>

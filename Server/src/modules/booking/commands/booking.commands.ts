@@ -37,6 +37,7 @@ const createBooking = async (
   userId?: string
 ): Promise<ServiceResponse<IBooking | null>> => {
   const { email, firstname, lastname, phone, arrivalTime, checkInTime, checkOutTime, totalPrice, rooms } = bookingData;
+  const numberOfGuest = Math.max(Number(bookingData.numberOfGuest) || 1, 1);
 
   if (
     !email ||
@@ -76,8 +77,24 @@ const createBooking = async (
     );
   }
 
+  // Rooms vs guests: never more rooms than guests, and enough capacity for all of them.
+  const totalRooms = rooms.reduce((sum, room) => sum + (Number(room.roomNumber) || 0), 0);
+  if (totalRooms < 1) {
+    return new ServiceResponse(ResponseStatus.Failed, 'Please select at least one room', null, StatusCodes.BAD_REQUEST);
+  }
+  if (totalRooms > numberOfGuest) {
+    return new ServiceResponse(
+      ResponseStatus.Failed,
+      `You cannot book more rooms (${totalRooms}) than guests (${numberOfGuest})`,
+      null,
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  // Validate every room before touching availability so a bad request never blocks dates.
+  const loadedRooms: NonNullable<Awaited<ReturnType<typeof bookingRepository.findRoomById>>>[] = [];
   for (const roomData of rooms) {
-    const { roomId } = roomData;
+    const { roomId, roomNumber } = roomData;
 
     if (!roomId) {
       return new ServiceResponse(ResponseStatus.Failed, 'Missing room ID', null, StatusCodes.BAD_REQUEST);
@@ -87,6 +104,35 @@ const createBooking = async (
     if (roomError || !room) {
       return new ServiceResponse(ResponseStatus.Failed, 'Room not found', null, StatusCodes.NOT_FOUND);
     }
+
+    if (roomNumber > room.quantity) {
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        `Only ${room.quantity} room(s) of type "${room.roomType}" available, requested ${roomNumber}`,
+        null,
+        StatusCodes.BAD_REQUEST
+      );
+    }
+
+    loadedRooms.push(room);
+  }
+
+  const totalCapacity = rooms.reduce(
+    (sum, roomData, index) => sum + (loadedRooms[index].numberOfGuest || 0) * roomData.roomNumber,
+    0
+  );
+  if (totalCapacity < numberOfGuest) {
+    return new ServiceResponse(
+      ResponseStatus.Failed,
+      `Selected rooms can host ${totalCapacity} guest(s), but the booking is for ${numberOfGuest}`,
+      null,
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  for (const [index, roomData] of rooms.entries()) {
+    const { roomId } = roomData;
+    const room = loadedRooms[index];
 
     if (!room.isAvailable(checkInTime)) {
       return new ServiceResponse(
@@ -118,6 +164,7 @@ const createBooking = async (
       checkInTime,
       checkOutTime,
       totalPrice,
+      numberOfGuest,
       status: 'pending',
       rooms: rooms.map((roomData) => ({
         roomId: roomData.roomId,

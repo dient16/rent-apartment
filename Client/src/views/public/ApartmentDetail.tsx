@@ -23,7 +23,7 @@ const ApartmentDetail: React.FC = () => {
    const { apartmentId } = useParams();
    const [searchParams, setSearchParams] = useSearchParams();
    const navigate = useNavigate();
-   const methods = useForm();
+   const methods = useForm({ mode: 'onChange' });
    const { user, isAuthenticated, setAuthModal } = useAuth();
    const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
@@ -80,9 +80,20 @@ const ApartmentDetail: React.FC = () => {
       String(user._id) === String(apartment.owner._id);
 
    const selectedRooms = methods.watch('selectedRooms', []);
+   const totalRoomCount = selectedRooms.reduce(
+      (acc: number, room: RoomValue) => acc + room.count,
+      0,
+   );
    const handleBooking = (data: any) => {
       if (isOwner) {
          message.warning('You cannot book your own apartment');
+         return;
+      }
+      // Belt-and-braces: the form rule below already blocks this.
+      if (totalRoomCount > numberOfGuest) {
+         message.warning(
+            `You cannot book more rooms (${totalRoomCount}) than guests (${numberOfGuest})`,
+         );
          return;
       }
 
@@ -93,6 +104,7 @@ const ApartmentDetail: React.FC = () => {
          queryParams.append('roomNumbers[]', room.count.toString());
       });
 
+      queryParams.append('numberOfGuest', String(numberOfGuest));
       queryParams.append(
          'startDate',
          moment(data.searchDate[0]).format('YYYY-MM-DD'),
@@ -158,10 +170,7 @@ const ApartmentDetail: React.FC = () => {
          <FormProvider {...methods}>
             <SearchInfoBar
                numberOfGuest={numberOfGuest}
-               totalRoomCount={selectedRooms.reduce(
-                  (acc: number, room: RoomValue) => acc + room.count,
-                  0,
-               )}
+               totalRoomCount={totalRoomCount}
                numberOfNights={numberOfDays}
                startDate={startDate}
                endDate={endDate}
@@ -311,12 +320,25 @@ const ApartmentDetail: React.FC = () => {
                         name="selectedRooms"
                         control={methods.control}
                         defaultValue={[]}
-                        rules={{ required: 'Please select room' }}
+                        rules={{
+                           validate: (rooms: RoomValue[] = []) => {
+                              const total = rooms.reduce(
+                                 (acc, room) => acc + room.count,
+                                 0,
+                              );
+                              if (total < 1) return 'Please select room';
+                              if (total > numberOfGuest) {
+                                 return `You cannot book more rooms than guests (${numberOfGuest} guest${numberOfGuest > 1 ? 's' : ''})`;
+                              }
+                              return true;
+                           },
+                        }}
                         render={({ field }) => (
                            <RoomList
                               roomList={apartment.rooms}
                               value={field.value}
                               onChange={field.onChange}
+                              maxTotalRooms={numberOfGuest}
                            />
                         )}
                      />

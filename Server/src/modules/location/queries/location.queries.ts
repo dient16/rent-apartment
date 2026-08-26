@@ -70,7 +70,7 @@ const fetchJson = (url: string): Promise<any> =>
       url,
       {
         headers: {
-          'User-Agent': 'RentApartment/1.0 (contact: info@findhouse.vn)',
+          'User-Agent': 'RentApartment/1.0 (contact: info@neststay.vn)',
           'Accept-Language': 'vi',
         },
         timeout: REQUEST_TIMEOUT_MS,

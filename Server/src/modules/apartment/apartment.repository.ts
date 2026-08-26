@@ -46,7 +46,7 @@ export const apartmentRepository = {
     ApartmentModel.create([data] as any[], { session }),
 
   updateById: (apartmentId: unknown, update: Record<string, unknown>, session?: mongoose.ClientSession) =>
-    ApartmentModel.findByIdAndUpdate(apartmentId, update, { new: true, session }).exec(),
+    ApartmentModel.findByIdAndUpdate(apartmentId, update, { returnDocument: 'after', session }).exec(),
 
   deleteOwned: (apartmentId: string, ownerId: string) =>
     ApartmentModel.findOneAndDelete({ _id: apartmentId, owner: ownerId }).exec(),
@@ -80,7 +80,7 @@ export const apartmentRepository = {
       .exec(),
 
   pushCreatedApartment: (userId: string, apartmentId: unknown, session?: mongoose.ClientSession) =>
-    User.findByIdAndUpdate(userId, { $push: { createApartments: apartmentId } }, { new: true, session }).exec(),
+    User.findByIdAndUpdate(userId, { $push: { createApartments: apartmentId } }, { returnDocument: 'after', session }).exec(),
 
   pullCreatedApartment: (userId: string, apartmentId: string) =>
     User.findByIdAndUpdate(userId, { $pull: { createApartments: apartmentId } }).exec(),

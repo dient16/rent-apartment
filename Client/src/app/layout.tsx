@@ -9,14 +9,14 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:8000';
 export const metadata: Metadata = {
    metadataBase: new URL(SITE_URL),
    title: {
-      default: 'Find House — Booking your stay',
-      template: '%s | Find House',
+      default: 'NestStay — Book apartments & homestays in Vietnam',
+      template: '%s | NestStay',
    },
    description:
       'Hand-picked apartments and homestays across Vietnam — transparent pricing, instant booking and hosts who care.',
    icons: { icon: '/logo.png' },
    openGraph: {
-      siteName: 'Find House',
+      siteName: 'NestStay',
       type: 'website',
       locale: 'vi_VN',
       images: ['/logo.png'],

@@ -68,7 +68,7 @@ export const messageRepository = {
   findMessageById: (messageId: string) => MessageModel.findById(messageId).lean().exec(),
 
   updateMessage: (messageId: string, update: Record<string, unknown>, options: Record<string, unknown> = {}) =>
-    MessageModel.findByIdAndUpdate(messageId, update, { new: true, ...options })
+    MessageModel.findByIdAndUpdate(messageId, update, { returnDocument: 'after', ...options })
       .lean()
       .exec(),
 

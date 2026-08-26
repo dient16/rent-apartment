@@ -12,7 +12,7 @@ export const userRepository = {
       .select('-confirmationToken -password -createApartments -emailConfirmed -provider -isAdmin -refreshToken -resetPasswordToken -resetPasswordExpires')
       .exec(),
 
-  updateById: (userId: string, data: Partial<User>) => UserModel.findByIdAndUpdate(userId, data, { new: true }).exec(),
+  updateById: (userId: string, data: Partial<User>) => UserModel.findByIdAndUpdate(userId, data, { returnDocument: 'after' }).exec(),
 
   markHostWelcomeSeen: (userId: string) => UserModel.findByIdAndUpdate(userId, { hasSeenHostWelcome: true }).exec(),
 
@@ -37,7 +37,7 @@ export const userRepository = {
     UserModel.findByIdAndUpdate(
       userId,
       add ? { $addToSet: { favorites: apartmentId } } : { $pull: { favorites: apartmentId } },
-      { new: true }
+      { returnDocument: 'after' }
     )
       .select('favorites')
       .exec(),

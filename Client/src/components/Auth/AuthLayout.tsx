@@ -48,9 +48,9 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({
             <div className="flex flex-col justify-start px-6 pt-16 pb-14 mx-auto w-full min-h-full max-w-[430px] sm:px-8 lg:pt-[9vh]">
                {/* Mobile brand */}
                <div className="flex gap-2 justify-center items-center mb-8 lg:hidden">
-                  <Image src={logo} alt="Find House" width={30} height={30} />
+                  <Image src={logo} alt="NestStay" width={30} height={30} />
                   <span className="text-lg font-bold text-gray-900">
-                     Find House
+                     NestStay
                   </span>
                </div>
 

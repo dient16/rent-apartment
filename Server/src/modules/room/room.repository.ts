@@ -21,7 +21,7 @@ export const roomRepository = {
 
   findByIdWithAmenities: (roomId: string) => RoomModel.findById(roomId).populate('amenities').exec(),
 
-  updateById: (roomId: string, data: UpdateRoom) => RoomModel.findByIdAndUpdate(roomId, data, { new: true }).exec(),
+  updateById: (roomId: string, data: UpdateRoom) => RoomModel.findByIdAndUpdate(roomId, data, { returnDocument: 'after' }).exec(),
 
   deleteById: (roomId: string) => RoomModel.findByIdAndDelete(roomId).exec(),
 
