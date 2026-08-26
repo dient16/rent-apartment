@@ -23,6 +23,7 @@
     "es:up": "docker compose up -d elasticsearch",
     "search:reindex": "tsx src/scripts/reindexApartments.ts",
     "search:reindex:prod": "node dist/scripts/reindexApartments.js",
+    "migrate:address-2025": "tsx scripts/address-migration-2025/migrate.ts",
     "docs:openapi": "tsx scripts/dumpOpenApi.ts openapi.json"
   },
   "dependencies": {

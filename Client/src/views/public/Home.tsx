@@ -78,7 +78,7 @@ const Home: React.FC = () => {
                 CSS animation, not framer-motion: a JS-driven `initial: hidden` ships the
                 SSR HTML at opacity 0, so the hero stayed invisible until the bundle
                 loaded and hydrated (seconds on a cold first load). */}
-            <div className="relative md:mt-3 animate-fade-up">
+            <div className="relative z-30 md:mt-3 animate-fade-up">
                <div className="flex overflow-hidden relative flex-col justify-center items-center px-5 w-full text-center text-white bg-gray-800 rounded-3xl h-[220px] sm:h-[240px] md:h-[300px]">
                   {/* `priority` emits a <link rel="preload"> so the LCP image starts
                       downloading with the HTML; a CSS background-image only starts

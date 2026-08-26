@@ -1,4 +1,5 @@
 import { Client } from '@elastic/elasticsearch';
+import type { QueryDslQueryContainer } from '@elastic/elasticsearch/lib/api/types';
 import { pino } from 'pino';
 
 import { env } from '@/config/env.config';
@@ -36,6 +37,12 @@ const INDEX_SETTINGS = {
           ward: { type: 'text', analyzer: 'vi_folding' },
           street: { type: 'text', analyzer: 'vi_folding' },
           geo: { type: 'geo_point' },
+          current: {
+            properties: {
+              province: { type: 'text', analyzer: 'vi_folding' },
+              ward: { type: 'text', analyzer: 'vi_folding' },
+            },
+          },
         },
       },
     },
@@ -50,6 +57,7 @@ const toDocument = (apartment: any) => ({
     district: apartment.location?.district,
     ward: apartment.location?.ward,
     street: apartment.location?.street,
+    ...(apartment.location?.current ? { current: apartment.location.current } : {}),
     ...(apartment.location?.lat != null && apartment.location?.long != null
       ? { geo: { lat: apartment.location.lat, lon: apartment.location.long } }
       : {}),
@@ -80,21 +88,31 @@ export const elasticsearchProvider: SearchProvider = {
 
   isAvailable: () => available,
 
-  async search(text, maxResults) {
+  async search(text, maxResults, places = []) {
     if (!available) return null;
+    const fields = [
+      'title^2',
+      'location.province',
+      'location.district',
+      'location.ward',
+      'location.street',
+      'location.current.province',
+      'location.current.ward',
+    ];
+    const names = places.map((place) => place.trim()).filter(Boolean);
+    const trimmed = text.trim();
+    if (!trimmed && !names.length) return null;
+    const must: QueryDslQueryContainer[] = [
+      // one clause per place: stored or current name
+      ...names.map((name): QueryDslQueryContainer => ({ multi_match: { query: name, type: 'phrase', fields } })),
+      ...(trimmed ? [{ multi_match: { query: trimmed, fields, fuzziness: 'AUTO', operator: 'and' as const } }] : []),
+    ];
     try {
       const result = await esClient.search({
         index: APARTMENT_INDEX,
         size: maxResults,
         _source: false,
-        query: {
-          multi_match: {
-            query: text,
-            fields: ['title^2', 'location.province', 'location.district', 'location.ward', 'location.street'],
-            fuzziness: 'AUTO',
-            operator: 'and',
-          },
-        },
+        query: { bool: { must } },
       });
       return result.hits.hits.map((hit) => hit._id).filter((id): id is string => Boolean(id));
     } catch (error) {

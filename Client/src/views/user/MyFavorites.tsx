@@ -3,6 +3,7 @@ import AppImage from '@/components/AppImage/AppImage';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Button, Carousel, Skeleton, Tooltip } from 'antd';
 import { HeartOutlined } from '@ant-design/icons';
+import { FaLocationDot } from 'react-icons/fa6';
 import { useNavigate } from '@/lib/router-compat';
 import moment from 'moment';
 import { apiGetFavorites } from '@/apis';
@@ -164,13 +165,16 @@ const MyFavorites: React.FC = () => {
                                  {apartment.title}
                               </div>
                            </Tooltip>
-                           <div className="w-full text-sm font-light text-gray-500 truncate">
-                              {[
-                                 apartment.location.district,
-                                 apartment.location.province,
-                              ]
-                                 .filter(Boolean)
-                                 .join(', ')}
+                           <div className="flex gap-1.5 items-center w-full text-sm font-light text-gray-500">
+                              <FaLocationDot size={12} className="flex-shrink-0 text-blue-500" />
+                              <span className="truncate">
+                                 {[
+                                    apartment.location.district,
+                                    apartment.location.province,
+                                 ]
+                                    .filter(Boolean)
+                                    .join(', ')}
+                              </span>
                            </div>
                         </div>
                         <div className="flex justify-between items-center p-1 mt-auto w-full">

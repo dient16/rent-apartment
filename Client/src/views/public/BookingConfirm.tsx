@@ -8,6 +8,7 @@ import { apiGetRoomCheckout } from '@/apis';
 import moment from 'moment';
 import { path } from '@/utils/constant';
 import { FaBed, FaRulerCombined, FaUsers } from 'react-icons/fa';
+import { FaLocationDot } from 'react-icons/fa6';
 const calculateTotalAmount = (
    numberOfDays: number,
    rooms: { price: number; roomNumber: number }[],
@@ -126,15 +127,18 @@ const BookingConfirm: React.FC = () => {
                      <div className="text-lg font-semibold text-gray-900">
                         {roomData.title}
                      </div>
-                     <div className="mt-1 text-sm text-gray-500">
-                        {[
-                           roomData.location.street,
-                           roomData.location.ward,
-                           roomData.location.district,
-                           roomData.location.province,
-                        ]
-                           .filter(Boolean)
-                           .join(', ')}
+                     <div className="flex gap-1.5 items-start mt-1.5 text-sm text-gray-500">
+                        <FaLocationDot size={13} className="flex-shrink-0 mt-[3px] text-blue-500" />
+                        <span className="leading-snug">
+                           {[
+                              roomData.location.street,
+                              roomData.location.ward,
+                              roomData.location.district,
+                              roomData.location.province,
+                           ]
+                              .filter(Boolean)
+                              .join(', ')}
+                        </span>
                      </div>
                   </div>
 

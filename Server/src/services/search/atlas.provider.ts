@@ -33,6 +33,20 @@ const INDEX_DEFINITION = {
           ],
           ward: { type: 'string', analyzer: 'vi_folding' },
           street: { type: 'string', analyzer: 'vi_folding' },
+          // post-2025 names (location.current), searched next to the stored ones
+          current: {
+            type: 'document',
+            fields: {
+              province: [
+                { type: 'string', analyzer: 'vi_folding' },
+                { type: 'autocomplete', analyzer: 'vi_folding', tokenization: 'edgeGram', minGrams: 2, maxGrams: 15 },
+              ],
+              ward: [
+                { type: 'string', analyzer: 'vi_folding' },
+                { type: 'autocomplete', analyzer: 'vi_folding', tokenization: 'edgeGram', minGrams: 2, maxGrams: 15 },
+              ],
+            },
+          },
         },
       },
     },
@@ -46,7 +60,16 @@ const INDEX_DEFINITION = {
   ],
 };
 
-const SEARCH_PATHS = ['title', 'location.province', 'location.district', 'location.ward', 'location.street'];
+const SEARCH_PATHS = [
+  'title',
+  'location.province',
+  'location.district',
+  'location.ward',
+  'location.street',
+  'location.current.province',
+  'location.current.ward',
+];
+const PLACE_AUTOCOMPLETE_PATHS = ['location.province', 'location.district', 'location.current.province', 'location.current.ward'];
 
 /** ES `fuzziness: AUTO` thresholds: <=2 chars exact, 3-5 one edit, longer two. */
 const fuzzyFor = (token: string) =>
@@ -58,6 +81,17 @@ let available = false;
  * Atlas Search runs inside the MongoDB cluster and indexes the collection directly,
  * so the write-through hooks are no-ops: nothing to sync, nothing to drift.
  */
+/** Stable JSON (sorted keys) so a reordered object does not count as a change. */
+const canonical = (value: unknown): string =>
+  JSON.stringify(value, (_key, v) =>
+    v && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)))
+      : v
+  );
+
+const definitionDrifted = (latestDefinition: unknown): boolean =>
+  !!latestDefinition && canonical(latestDefinition) !== canonical(INDEX_DEFINITION);
+
 export const atlasSearchProvider: SearchProvider = {
   name: 'atlas',
 
@@ -70,6 +104,11 @@ export const atlasSearchProvider: SearchProvider = {
       if (!index) {
         await collection().createSearchIndex({ name: ATLAS_SEARCH_INDEX, definition: INDEX_DEFINITION });
         logger.info(`Created Atlas Search index "${ATLAS_SEARCH_INDEX}" - building, regex fallback until ready`);
+      } else if (definitionDrifted((index as any).latestDefinition)) {
+        // Mapping changed in code (e.g. location.current added): Atlas rebuilds in the
+        // background and keeps serving the old definition meanwhile.
+        await collection().updateSearchIndex(ATLAS_SEARCH_INDEX, INDEX_DEFINITION);
+        logger.info(`Atlas Search index "${ATLAS_SEARCH_INDEX}" definition updated - rebuilding in the background`);
       }
       if (index && !(index as any).queryable) {
         logger.info(`Atlas Search index "${ATLAS_SEARCH_INDEX}" still building, regex fallback until ready`);
@@ -90,11 +129,12 @@ export const atlasSearchProvider: SearchProvider = {
 
   isAvailable: () => available,
 
-  async search(text, maxResults) {
+  async search(text, maxResults, places = []) {
     if (!available) return null;
 
     const tokens = text.trim().split(/\s+/).filter(Boolean);
-    if (!tokens.length) return null;
+    const names = places.map((place) => place.trim()).filter(Boolean);
+    if (!tokens.length && !names.length) return null;
 
     try {
       const hits = await collection()
@@ -103,26 +143,53 @@ export const atlasSearchProvider: SearchProvider = {
             $search: {
               index: ATLAS_SEARCH_INDEX,
               compound: {
-                // One `must` per token = ES `operator: and`: every word has to land
-                // somewhere, otherwise "da nang" also returns every "Da Lat".
-                must: tokens.map((token) => ({
-                  compound: {
-                    should: [
-                      // Whole word with typo tolerance, mirroring ES fuzziness AUTO.
-                      { text: { query: token, path: SEARCH_PATHS, ...fuzzyFor(token) } },
-                      // Prefix match so a half-typed last word still counts.
-                      { autocomplete: { query: token, path: 'title' } },
-                      { autocomplete: { query: token, path: 'location.province' } },
-                      { autocomplete: { query: token, path: 'location.district' } },
-                    ],
-                    minimumShouldMatch: 1,
-                  },
-                })),
+                must: [
+                  // One `must` per place: it has to land on an address field, stored or current
+                  // name. Multi-word names are matched as a phrase.
+                  ...names.map((name) => ({
+                    compound: {
+                      should: name.includes(' ')
+                        ? [{ phrase: { query: name, path: SEARCH_PATHS } }]
+                        : [
+                            { text: { query: name, path: SEARCH_PATHS, ...fuzzyFor(name) } },
+                            ...PLACE_AUTOCOMPLETE_PATHS.map((path) => ({ autocomplete: { query: name, path } })),
+                          ],
+                      minimumShouldMatch: 1,
+                    },
+                  })),
+                  // One `must` per free-text token = ES `operator: and`: every word has to
+                  // land somewhere, otherwise "da nang" also returns every "Da Lat".
+                  ...tokens.map((token) => ({
+                    compound: {
+                      should: [
+                        // Whole word with typo tolerance, mirroring ES fuzziness AUTO.
+                        { text: { query: token, path: SEARCH_PATHS, ...fuzzyFor(token) } },
+                        // Prefix match so a half-typed last word still counts.
+                        { autocomplete: { query: token, path: 'title' } },
+                        { autocomplete: { query: token, path: 'location.province' } },
+                        { autocomplete: { query: token, path: 'location.district' } },
+                      ],
+                      minimumShouldMatch: 1,
+                    },
+                  })),
+                ],
                 // Ranking only: exact location wins over a fuzzy hit in the description.
                 should: [
-                  { text: { query: text, path: 'location.province', score: { boost: { value: 5 } } } },
-                  { text: { query: text, path: 'location.district', score: { boost: { value: 3 } } } },
-                  { text: { query: text, path: 'title', score: { boost: { value: 2 } } } },
+                  ...names.map((name) => ({
+                    text: {
+                      query: name,
+                      path: ['location.province', 'location.current.province'],
+                      score: { boost: { value: 5 } },
+                    },
+                  })),
+                  ...names.map((name) => ({
+                    text: {
+                      query: name,
+                      path: ['location.district', 'location.current.ward'],
+                      score: { boost: { value: 3 } },
+                    },
+                  })),
+                  ...(tokens.length ? [{ text: { query: text, path: 'title', score: { boost: { value: 2 } } } }] : []),
                 ],
               },
             },
