@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import mongoose from 'mongoose';
 
 import { emitToUser } from '@/socket';
+import { logger } from '@/utils/logger';
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 
 import { decryptText, encryptBuffer, encryptText } from '../chat.crypto';
@@ -64,11 +65,13 @@ const deliver = async (
     image: data.image,
     replyTo: quoted ? (quoted._id as mongoose.Types.ObjectId) : undefined,
   });
-  await chatRepository.setLastMessage(roomId, lastMessageOf(message));
-  if (userId) await chatRepository.markRead(roomId, userId);
-
+  // Room bump + read mark are not needed for the reply: let them finish in the background.
+  Promise.all([chatRepository.setLastMessage(roomId, lastMessageOf(message)), userId ? chatRepository.markRead(roomId, userId) : null]).catch(
+    (error) => logger.warn({ err: error, roomId }, 'chat: room bump after send failed')
+  );
   const ids = [userId, quoted?.sender ? String(quoted.sender) : null].filter((id): id is string => !!id);
-  const users = new Map((await chatRepository.findUsersByIds(ids)).map((u) => [String(u._id), toPublicUser(u)]));
+  const userDocs = ids.length ? await chatRepository.findUsersByIds(ids) : [];
+  const users = new Map(userDocs.map((u) => [String(u._id), toPublicUser(u)]));
   const payload = toPublicMessage(message.toObject(), users, '', quoted);
   notifyMembers(room, 'chat:message', { roomId, message: payload }, userId ?? undefined);
   return { ...payload, isMine: true };
@@ -226,11 +229,14 @@ export const chatCommands = {
     if (mine >= 0) message.reactions.splice(mine, 1);
     else message.reactions.push({ user: new mongoose.Types.ObjectId(userId), emoji });
     message.markModified('reactions');
-    await message.save();
 
     const ids = referencedUserIds([message.toObject() as never]);
-    const users = new Map((await chatRepository.findUsersByIds(ids)).map((u) => [String(u._id), toPublicUser(u)]));
-    const quoted = message.replyTo ? await quotedIn(roomId, String(message.replyTo)) : null;
+    const [, userDocs, quoted] = await Promise.all([
+      message.save(),
+      chatRepository.findUsersByIds(ids),
+      message.replyTo ? quotedIn(roomId, String(message.replyTo)) : Promise.resolve(null),
+    ]);
+    const users = new Map(userDocs.map((u) => [String(u._id), toPublicUser(u)]));
     const plain = message.toObject() as ChatMessage & { _id: unknown };
     for (const m of room.members) {
       emitToUser(String(m.user), 'chat:message', { roomId, message: toPublicMessage(plain, users, String(m.user), quoted), reaction: true });

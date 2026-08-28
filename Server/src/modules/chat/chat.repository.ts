@@ -10,13 +10,34 @@ const oid = (id: string) => new mongoose.Types.ObjectId(id);
 
 export const USER_PUBLIC = 'firstname lastname avatar email';
 
+type UserLean = { _id: unknown; firstname?: string; lastname?: string; avatar?: string | null; email?: string };
+const USER_CACHE_TTL_MS = 60_000;
+const userCache = new Map<string, { user: UserLean; expires: number }>();
+
+/** Users by id with a 60s memory cache - saves a main-DB round trip on every send / react. */
+const findUsersCached = async (ids: string[]): Promise<UserLean[]> => {
+  const now = Date.now();
+  const hits: UserLean[] = [];
+  const misses: string[] = [];
+  for (const id of new Set(ids)) {
+    const cached = userCache.get(id);
+    if (cached && cached.expires > now) hits.push(cached.user);
+    else misses.push(id);
+  }
+  if (misses.length) {
+    const fresh = (await UserModel.find({ _id: { $in: misses } } as never)
+      .select(USER_PUBLIC)
+      .lean()) as unknown as UserLean[];
+    for (const u of fresh) userCache.set(String(u._id), { user: u, expires: now + USER_CACHE_TTL_MS });
+    hits.push(...fresh);
+  }
+  return hits;
+};
+
 /** All database access for the chat module (users: main DB; rooms/messages/images: chat DB). */
 export const chatRepository = {
   /* ---- users (main database; UserModel types _id as a string) ---- */
-  findUsersByIds: (ids: string[]) =>
-    UserModel.find({ _id: { $in: ids } } as never)
-      .select(USER_PUBLIC)
-      .lean(),
+  findUsersByIds: (ids: string[]) => findUsersCached(ids),
 
   searchUsers: (q: string, excludeId: string, limit: number) => {
     const regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');

@@ -156,33 +156,127 @@ const ChatApp: React.FC = () => {
       [queryClient],
    );
 
-   const afterSend = (res: Res<ChatMessage>) => {
-      if (!res.success) {
+   /* ---- optimistic cache: messages show up instantly, the server response only confirms ---- */
+
+   type MessagesCache = { pages: Res<{ messages: ChatMessage[]; hasMore: boolean }>[]; pageParams: unknown[] };
+
+   /** Insert or replace a message in the cached pages (newest page is pages[0]). */
+   const upsertMessage = useCallback(
+      (roomId: string, message: ChatMessage, replaceId?: string) => {
+         queryClient.setQueryData<MessagesCache>(messagesKey(roomId), (cache) => {
+            if (!cache?.pages?.length) return cache;
+            const target = replaceId ?? message._id;
+            let found = false;
+            const pages = cache.pages.map((page) => {
+               const list = page?.data?.messages;
+               if (!list) return page;
+               const index = list.findIndex((m) => m._id === target);
+               if (index < 0) return page;
+               found = true;
+               const next = [...list];
+               next[index] = { ...next[index], ...message };
+               return { ...page, data: { ...page.data, messages: next } };
+            });
+            if (found) return { ...cache, pages };
+            const first = pages[0];
+            return { ...cache, pages: [{ ...first, data: { ...first.data, messages: [...(first.data?.messages ?? []), message] } }, ...pages.slice(1)] };
+         });
+      },
+      [queryClient],
+   );
+
+   const patchMessage = useCallback(
+      (roomId: string, messageId: string, patch: (m: ChatMessage) => ChatMessage) => {
+         queryClient.setQueryData<MessagesCache>(messagesKey(roomId), (cache) => {
+            if (!cache?.pages?.length) return cache;
+            return {
+               ...cache,
+               pages: cache.pages.map((page) =>
+                  page?.data?.messages?.some((m) => m._id === messageId)
+                     ? { ...page, data: { ...page.data, messages: page.data.messages.map((m) => (m._id === messageId ? patch(m) : m)) } }
+                     : page,
+               ),
+            };
+         });
+      },
+      [queryClient],
+   );
+
+   const tempMessage = (partial: Partial<ChatMessage>): ChatMessage => ({
+      _id: `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      type: 'text',
+      content: '',
+      imageUrl: null,
+      sticker: null,
+      recalled: false,
+      reactions: [],
+      replyTo: replyTo ? { _id: replyTo._id, type: replyTo.type, preview: replyTo.type === 'image' ? '📷 Photo' : replyTo.type === 'sticker' ? '🙂 Sticker' : replyTo.content, senderName: replyTo.sender?.name ?? '', recalled: replyTo.recalled } : null,
+      sender: user ? { _id: user._id, name: user.firstname || 'You', avatar: user.avatar ?? null } : null,
+      isMine: true,
+      createdAt: new Date().toISOString(),
+      ...partial,
+   });
+
+   const settle = (roomId: string, tempId: string, res: Res<ChatMessage>) => {
+      if (!res.success || !res.data) {
          toast.error(res.message || 'Not sent');
+         queryClient.invalidateQueries({ queryKey: messagesKey(roomId) });
          return;
       }
-      invalidateRoom(selectedId as string);
+      upsertMessage(roomId, { ...res.data, isMine: true }, tempId);
+      queryClient.invalidateQueries({ queryKey: ROOMS_KEY });
    };
+
    const sendText = useMutation({
-      mutationFn: ({ content, replyTo: quoted }: { content: string; replyTo?: string }) => apiChatSend(selectedId as string, content, quoted),
-      onSuccess: afterSend,
+      mutationFn: async ({ content, replyTo: quoted }: { content: string; replyTo?: string }) => {
+         const roomId = selectedId as string;
+         const temp = tempMessage({ content });
+         upsertMessage(roomId, temp);
+         settle(roomId, temp._id, await apiChatSend(roomId, content, quoted));
+      },
    });
    const sendSticker = useMutation({
-      mutationFn: ({ id, replyTo: quoted }: { id: string; replyTo?: string }) => apiChatSendSticker(selectedId as string, id, quoted),
-      onSuccess: afterSend,
+      mutationFn: async ({ id, replyTo: quoted }: { id: string; replyTo?: string }) => {
+         const roomId = selectedId as string;
+         const temp = tempMessage({ type: 'sticker', sticker: id });
+         upsertMessage(roomId, temp);
+         settle(roomId, temp._id, await apiChatSendSticker(roomId, id, quoted));
+      },
    });
    const react = useMutation({
-      mutationFn: ({ messageId, emoji }: { messageId: string; emoji: string }) => apiChatReact(messageId, emoji),
-      onSuccess: (res) => {
-         if (!res.success) return toast.error(res.message || 'Could not react');
-         queryClient.invalidateQueries({ queryKey: messagesKey(selectedId as string) });
+      mutationFn: async ({ messageId, emoji }: { messageId: string; emoji: string }) => {
+         const roomId = selectedId as string;
+         // flip the chip locally first
+         patchMessage(roomId, messageId, (m) => {
+            const mine = m.reactions.find((r) => r.emoji === emoji && r.mine);
+            const me = user?.firstname || 'You';
+            const reactions = mine
+               ? m.reactions.map((r) => (r.emoji === emoji ? { ...r, count: r.count - 1, mine: false, users: r.users.filter((n) => n !== me) } : r)).filter((r) => r.count > 0)
+               : m.reactions.some((r) => r.emoji === emoji)
+                 ? m.reactions.map((r) => (r.emoji === emoji ? { ...r, count: r.count + 1, mine: true, users: [...r.users, me] } : r))
+                 : [...m.reactions, { emoji, count: 1, mine: true, users: [me] }];
+            return { ...m, reactions };
+         });
+         const res = await apiChatReact(messageId, emoji);
+         if (!res.success) {
+            toast.error(res.message || 'Could not react');
+            queryClient.invalidateQueries({ queryKey: messagesKey(roomId) });
+         } else if (res.data) {
+            upsertMessage(roomId, res.data);
+         }
       },
    });
    const recall = useMutation({
-      mutationFn: (messageId: string) => apiChatRecall(messageId),
-      onSuccess: (res) => {
-         if (!res.success) return toast.error(res.message || 'Could not recall');
-         invalidateRoom(selectedId as string);
+      mutationFn: async (messageId: string) => {
+         const roomId = selectedId as string;
+         patchMessage(roomId, messageId, (m) => ({ ...m, recalled: true, content: '', imageUrl: null, sticker: null, reactions: [] }));
+         const res = await apiChatRecall(messageId);
+         if (!res.success) {
+            toast.error(res.message || 'Could not recall');
+            queryClient.invalidateQueries({ queryKey: messagesKey(roomId) });
+         } else {
+            queryClient.invalidateQueries({ queryKey: ROOMS_KEY });
+         }
       },
    });
 
@@ -220,7 +314,14 @@ const ChatApp: React.FC = () => {
                return { ...t, [payload.roomId]: room };
             });
          }
-         invalidateRoom(payload.roomId);
+         // Open room: drop the message straight into the cache (no refetch). Other rooms
+         // only need their unread badge / preview refreshed.
+         if (selectedIdRef.current === payload.roomId && queryClient.getQueryData(messagesKey(payload.roomId))) {
+            upsertMessage(payload.roomId, { ...payload.message, isMine: payload.message.sender?._id === user?._id });
+            queryClient.invalidateQueries({ queryKey: ROOMS_KEY });
+         } else {
+            invalidateRoom(payload.roomId);
+         }
          // Alert when the tab is hidden or the message belongs to another room
          const { message } = payload;
          if (payload.recalled || payload.reaction || message.type === 'system' || !message.sender) return;
@@ -247,7 +348,7 @@ const ChatApp: React.FC = () => {
          socket.off('chat:room', onRoom);
          socket.off('chat:typing', onTyping);
       };
-   }, [invalidateRoom, queryClient, open]);
+   }, [invalidateRoom, queryClient, open, upsertMessage, user?._id]);
 
    useEffect(() => {
       const timer = setInterval(() => {
@@ -374,9 +475,10 @@ const ChatApp: React.FC = () => {
          const item = items[i];
          try {
             const res = await apiChatSendImage(roomId, file, i === 0 ? quoted : undefined, (p) => update(item.id, { progress: p }));
-            if (!res.success) throw new Error(res.message);
+            if (!res.success || !res.data) throw new Error(res.message);
             update(item.id, { progress: 100, status: 'done' });
-            invalidateRoom(roomId);
+            upsertMessage(roomId, { ...res.data, isMine: true });
+            queryClient.invalidateQueries({ queryKey: ROOMS_KEY });
          } catch (error) {
             update(item.id, { status: 'error' });
             toast.error(`${file.name}: ${(error as Error).message || 'upload failed'}`);
@@ -514,6 +616,7 @@ const ChatApp: React.FC = () => {
                m.isMine
                   ? 'text-white bg-gradient-to-br from-blue-600 to-indigo-500 rounded-br-md shadow-md shadow-blue-200/60'
                   : 'text-gray-800 bg-white rounded-bl-md shadow-sm ring-1 ring-black/5',
+               m._id.startsWith('tmp-') && 'opacity-70',
             )}
          >
             {renderQuote(m)}
