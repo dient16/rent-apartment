@@ -10,6 +10,7 @@
 import crypto from 'node:crypto';
 
 import { env } from '@/config/env.config';
+import { logger } from '@/utils/logger';
 
 export interface EncryptedText {
   iv: string;
@@ -18,8 +19,15 @@ export interface EncryptedText {
 }
 
 const ALGORITHM = 'aes-256-gcm';
-const key = crypto.createHash('sha256').update(env.CHAT_ENCRYPTION_KEY).digest();
-const signingKey = crypto.createHash('sha256').update(`${env.CHAT_ENCRYPTION_KEY}:image-url`).digest();
+
+/** CHAT_ENCRYPTION_KEY, or a key derived from JWT_ACCESS_KEY when it is not configured. */
+const keyMaterial = (() => {
+  if (env.CHAT_ENCRYPTION_KEY) return env.CHAT_ENCRYPTION_KEY;
+  logger.warn('CHAT_ENCRYPTION_KEY is not set - deriving the chat key from JWT_ACCESS_KEY. Set it explicitly (and keep it stable).');
+  return `${env.JWT_ACCESS_KEY}:chat-at-rest`;
+})();
+const key = crypto.createHash('sha256').update(keyMaterial).digest();
+const signingKey = crypto.createHash('sha256').update(`${keyMaterial}:image-url`).digest();
 
 export const encryptText = (plain: string): EncryptedText => {
   const iv = crypto.randomBytes(12);

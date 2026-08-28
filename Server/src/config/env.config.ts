@@ -31,7 +31,8 @@ export const env = cleanEnv(process.env, {
   EMAIL_APP_PASSWORD: str(),
   JWT_REFRESH_KEY: str(),
   // Chat module: AES-256-GCM key material for messages at rest (any string; keep it stable)
-  CHAT_ENCRYPTION_KEY: str({ devDefault: 'dev-chat-key-change-me' }),
+  // Empty = derived from JWT_ACCESS_KEY (logged as a warning) so a missing var never blocks a deploy.
+  CHAT_ENCRYPTION_KEY: str({ default: '' }),
   // Chat module: its own MongoDB (rooms, messages, image files). Empty = use MONGODB_URL.
   CHAT_MONGODB_URL: str({ default: '' }),
   // Chat module: Tenor (Google) key for the animated sticker / GIF search tab. Empty = tab hidden.
