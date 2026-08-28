@@ -8,4 +8,5 @@ export * from './image.api';
 export * from './notification.api';
 export * from './review.api';
 export * from './message.api';
+export * from './chat.api';
 export { default as api } from './axiosConfig';

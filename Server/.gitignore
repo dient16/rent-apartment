@@ -2,3 +2,6 @@
 
 # address migration audit output
 scripts/address-migration-2025/reports/
+
+# local chat helper scripts (seed accounts, db move) - not for the repo
+scripts/chat/

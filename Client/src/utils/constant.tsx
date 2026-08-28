@@ -33,6 +33,7 @@ export const path: { [key: string]: string } = {
    MY_BOOKING: 'my-booking',
    NOTIFICATIONS: 'notifications',
    MESSAGES: 'messages',
+   CHAT: 'chat',
    BOOKING_DETAIL: 'my-booking/:bookingId',
 
    // path to admin

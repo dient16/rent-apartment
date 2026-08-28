@@ -3,6 +3,7 @@ import type { Application } from 'express';
 import { amenityRouter } from '@/modules/amenity/amenity.router';
 import { apartmentRouter } from '@/modules/apartment/apartment.router';
 import { authRouter } from '@/modules/auth/auth.router';
+import { chatRouter } from '@/modules/chat/chat.router';
 import { bookingRouter } from '@/modules/booking/booking.router';
 import { healthRouter } from '@/modules/health/health.router';
 import { imageRouter } from '@/modules/image/image.router';
@@ -21,6 +22,7 @@ const initRoutes = (app: Application) => {
   app.use('/health-check', healthRouter);
   app.use('/api-docs', swaggerRouter);
   app.use('/api/auth', authRouter);
+  app.use('/api/chat', chatRouter);
   app.use('/api/user', userRouter);
   app.use('/api/amenity', amenityRouter);
   app.use('/api/image', imageRouter);

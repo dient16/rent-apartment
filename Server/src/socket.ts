@@ -43,6 +43,20 @@ export const initSocket = (server: http.Server) => {
       ack(userIds.filter((id): id is string => typeof id === 'string' && isUserOnline(id)));
     });
 
+    // Standalone chat (/chat): typing fan-out to the other members of a room.
+    socket.on('chat:typing', (payload: { roomId?: string; memberIds?: string[]; name?: string; isTyping?: boolean }) => {
+      if (!payload?.roomId || !Array.isArray(payload.memberIds)) return;
+      for (const memberId of payload.memberIds.slice(0, 200)) {
+        if (String(memberId) === userId) continue;
+        socket.to(`user:${memberId}`).emit('chat:typing', {
+          roomId: String(payload.roomId),
+          from: userId,
+          name: String(payload.name || 'Someone').slice(0, 60),
+          isTyping: !!payload.isTyping,
+        });
+      }
+    });
+
     socket.on('typing', (payload: { to?: string; conversationId?: string; isTyping?: boolean }) => {
       if (!payload?.to || !payload?.conversationId) return;
       socket.to(`user:${payload.to}`).emit('typing', {

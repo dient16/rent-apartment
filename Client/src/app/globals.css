@@ -652,3 +652,8 @@
       display: none;
    }
 }
+
+/* Chat: flash a message row when a quote jumps to it */
+.chat-highlight {
+   background-color: rgba(59, 130, 246, 0.14);
+}
