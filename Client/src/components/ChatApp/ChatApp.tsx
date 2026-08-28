@@ -49,7 +49,7 @@ import { useAuth, useLockBodyScroll } from '@/hooks';
 import { connectSocket, getSocket } from '@/lib/socket';
 import { useSearchParams } from '@/lib/router-compat';
 import NewChatModal from './NewChatModal';
-import StickerPicker, { stickerUrl } from './StickerPicker';
+import StickerPicker, { loadPacks, Sticker } from './StickerPicker';
 import CallOverlay from './CallOverlay';
 import { useCall } from './useCall';
 import { showChatNotification } from './useChatNotifications';
@@ -129,6 +129,12 @@ const ChatApp: React.FC = () => {
    const typingActiveRef = useRef(false);
    const stopTypingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
    useLockBodyScroll(true);
+
+   // sticker manifest first, so stickers in the history resolve to the right files immediately
+   const [packsReady, setPacksReady] = useState(false);
+   useEffect(() => {
+      loadPacks().then(() => setPacksReady(true)).catch(() => setPacksReady(true));
+   }, []);
 
    /* ---------------- data ---------------- */
 
@@ -585,9 +591,7 @@ const ChatApp: React.FC = () => {
          return (
             <div className="flex flex-col gap-1">
                {renderQuote(m)}
-               {/* local static asset (animated webp) - next/image would re-encode it */}
-               {/* eslint-disable-next-line @next/next/no-img-element */}
-               <img src={stickerUrl(m.sticker)} alt="sticker" className="w-40 h-40 object-contain drop-shadow-lg" />
+               <Sticker key={packsReady ? 'p' : 'np'} id={m.sticker} size={160} />
             </div>
          );
       }

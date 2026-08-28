@@ -35,11 +35,45 @@ export const stickerUrl = (id: string, packs: StickerPack[] = cachedPacks) => {
    if (cdn) return cdn.replace('{cp}', name);
    // mixed packs list items as "name.ext" (see scripts/chat/build-sticker-packs.js)
    if (/\.(webp|gif|png)$/.test(name)) return `/stickers/${packId}/${name}`;
-   return `/stickers/${packId}/${name}.${pack?.ext ?? 'png'}`;
+   // packs.json may not be loaded yet on first paint: the known local packs get their real extension
+   return `/stickers/${packId}/${name}.${pack?.ext ?? (packId === 'animated' ? 'webp' : 'png')}`;
+};
+
+/**
+ * A sticker image with a shimmer placeholder while the (often 300-500 KB animated) file
+ * loads, and no broken-image icon if it fails.
+ */
+export const Sticker: React.FC<{ id: string; size?: number; className?: string }> = ({ id, size = 160, className }) => {
+   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+   const src = stickerUrl(id);
+   return (
+      <span className={clsx('inline-block relative', className)} style={{ width: size, height: size }}>
+         {state === 'loading' && (
+            <span className="flex absolute inset-0 justify-center items-center bg-gray-200/60 rounded-2xl animate-pulse">
+               <span className="w-8 h-8 rounded-full border-[3px] border-blue-500 border-t-transparent animate-spin" aria-label="Loading sticker" />
+            </span>
+         )}
+         {state === 'error' ? (
+            <span className="flex absolute inset-0 justify-center items-center text-3xl bg-gray-100 rounded-2xl">🙂</span>
+         ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+               src={src}
+               alt=""
+               width={size}
+               height={size}
+               onLoad={() => setState('ready')}
+               onError={() => setState('error')}
+               className={clsx('w-full h-full object-contain drop-shadow-lg transition-opacity duration-200', state === 'ready' ? 'opacity-100' : 'opacity-0')}
+            />
+         )}
+      </span>
+   );
 };
 
 let cachedPacks: StickerPack[] = [];
-const loadPacks = async (): Promise<StickerPack[]> => {
+/** Fetch packs.json once (called on chat mount so message stickers resolve before the tray opens). */
+export const loadPacks = async (): Promise<StickerPack[]> => {
    if (cachedPacks.length) return cachedPacks;
    const res = await fetch('/stickers/packs.json');
    const data = (await res.json()) as { packs: StickerPack[] };
