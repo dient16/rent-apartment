@@ -37,8 +37,10 @@ export const env = cleanEnv(process.env, {
   CHAT_MONGODB_URL: str({ default: '' }),
   // Chat module: Tenor (Google) key for the animated sticker / GIF search tab. Empty = tab hidden.
   TENOR_API_KEY: str({ default: '' }),
-  ACCESS_TOKEN_TTL: str({ default: '15m' }),
-  REFRESH_TOKEN_TTL: str({ default: '7d' }),
+  // Sessions stay signed in for ~100 days: the refresh cookie lives that long and the
+  // access token is renewed silently by the client.
+  ACCESS_TOKEN_TTL: str({ default: '1d' }),
+  REFRESH_TOKEN_TTL: str({ default: '100d' }),
   STRIPE_SECRET_KEY: str(),
   GOOGLE_CLIENT_ID: str(),
   GOOGLE_CLIENT_SECRET: str(),

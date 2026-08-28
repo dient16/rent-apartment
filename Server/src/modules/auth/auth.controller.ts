@@ -18,11 +18,18 @@ const refreshCookieOptions: CookieOptions = {
 };
 
 /** Put the refresh token in an httpOnly cookie and strip it from the response body. */
+/** Cookie lifetime = REFRESH_TOKEN_TTL ("100d", "12h", "30m"...), so the two never drift apart. */
+const refreshCookieMaxAgeMs = () => {
+  const match = /^(\d+)\s*([smhd])$/.exec(env.REFRESH_TOKEN_TTL.trim());
+  const unit = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 } as const;
+  return match ? Number(match[1]) * unit[match[2] as keyof typeof unit] : 100 * 86_400_000;
+};
+
 const attachRefreshCookie = (res: Response, data: { refreshToken?: string }) => {
   if (data.refreshToken) {
     res.cookie(REFRESH_COOKIE_NAME, data.refreshToken, {
       ...refreshCookieOptions,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: refreshCookieMaxAgeMs(),
     });
     delete data.refreshToken;
   }

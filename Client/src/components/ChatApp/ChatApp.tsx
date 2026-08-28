@@ -15,6 +15,7 @@ import {
    FiLock,
    FiLogOut,
    FiMessageCircle,
+   FiPhone,
    FiPlus,
    FiRotateCcw,
    FiSearch,
@@ -23,6 +24,7 @@ import {
    FiSmile,
    FiUserPlus,
    FiUsers,
+   FiVideo,
    FiX,
 } from 'react-icons/fi';
 import { PiStickerBold } from 'react-icons/pi';
@@ -48,12 +50,25 @@ import { connectSocket, getSocket } from '@/lib/socket';
 import { useSearchParams } from '@/lib/router-compat';
 import NewChatModal from './NewChatModal';
 import StickerPicker, { stickerUrl } from './StickerPicker';
+import CallOverlay from './CallOverlay';
+import { useCall } from './useCall';
 import { showChatNotification } from './useChatNotifications';
 
 const ROOMS_KEY = ['chat-rooms'];
 const messagesKey = (roomId: string) => ['chat-messages', roomId];
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const QUICK_REACTIONS = ['❤️', '👍', '😂', '😮', '😢', '🔥'];
+const MAX_IMAGES_PER_SEND = 10;
+/** 1-6 emoji and nothing else -> shown big without a bubble (Messenger style) */
+const EMOJI_ONLY = /^(?:\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?)*\s?){1,6}$/u;
+
+interface UploadItem {
+   id: string;
+   name: string;
+   preview: string;
+   progress: number;
+   status: 'uploading' | 'done' | 'error';
+}
 
 const iconButton =
    'flex flex-shrink-0 justify-center items-center rounded-full border-none bg-transparent transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
@@ -100,7 +115,9 @@ const ChatApp: React.FC = () => {
    const [stickerOpen, setStickerOpen] = useState(false);
    const [renaming, setRenaming] = useState(false);
    const [nameDraft, setNameDraft] = useState('');
-   const [uploading, setUploading] = useState(false);
+   const [uploads, setUploads] = useState<UploadItem[]>([]);
+   const uploading = uploads.some((u) => u.status === 'uploading');
+   const call = useCall(user);
    const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
    const [reactOpenFor, setReactOpenFor] = useState<string | null>(null);
    /** roomId -> userId -> who is typing (expires after 5s without a signal) */
@@ -261,6 +278,14 @@ const ChatApp: React.FC = () => {
       });
    };
 
+   // call outcome messages (declined, missed, permission denied...)
+   useEffect(() => {
+      if (!call.error) return;
+      toast.info(call.error);
+      call.clearError();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [call.error]);
+
    /* ---------------- read state + scrolling ---------------- */
 
    useEffect(() => {
@@ -317,19 +342,50 @@ const ChatApp: React.FC = () => {
       }, 2500);
    };
 
-   const handleImage = async (file?: File) => {
-      if (!file || !selectedId) return;
-      if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) return toast.warning('JPG, PNG, GIF or WebP only');
-      if (file.size > MAX_IMAGE_BYTES) return toast.warning('Image must be under 5 MB');
-      setUploading(true);
+   /** Send one or many photos; each gets its own progress row above the composer. */
+   const handleImages = async (list?: FileList | File[] | null) => {
+      const files = Array.from(list ?? []).filter(Boolean);
+      if (!files.length || !selectedId) return;
+      if (files.length > MAX_IMAGES_PER_SEND) toast.info(`Sending the first ${MAX_IMAGES_PER_SEND} photos`);
+      const roomId = selectedId;
       const quoted = replyTo?._id;
       setReplyTo(null);
-      try {
-         afterSend(await apiChatSendImage(selectedId, file, quoted));
-      } finally {
-         setUploading(false);
-         if (fileRef.current) fileRef.current.value = '';
+      if (fileRef.current) fileRef.current.value = '';
+
+      const items: UploadItem[] = [];
+      for (const file of files.slice(0, MAX_IMAGES_PER_SEND)) {
+         if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) {
+            toast.warning(`${file.name}: JPG, PNG, GIF or WebP only`);
+            continue;
+         }
+         if (file.size > MAX_IMAGE_BYTES) {
+            toast.warning(`${file.name}: must be under 5 MB`);
+            continue;
+         }
+         items.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: file.name, preview: URL.createObjectURL(file), progress: 0, status: 'uploading' });
       }
+      if (!items.length) return;
+      setUploads((u) => [...u, ...items]);
+      const update = (id: string, patch: Partial<UploadItem>) => setUploads((u) => u.map((it) => (it.id === id ? { ...it, ...patch } : it)));
+
+      // sequential keeps the order the user picked
+      const valid = files.filter((f) => /^image\/(jpeg|png|gif|webp)$/.test(f.type) && f.size <= MAX_IMAGE_BYTES).slice(0, items.length);
+      for (const [i, file] of valid.entries()) {
+         const item = items[i];
+         try {
+            const res = await apiChatSendImage(roomId, file, i === 0 ? quoted : undefined, (p) => update(item.id, { progress: p }));
+            if (!res.success) throw new Error(res.message);
+            update(item.id, { progress: 100, status: 'done' });
+            invalidateRoom(roomId);
+         } catch (error) {
+            update(item.id, { status: 'error' });
+            toast.error(`${file.name}: ${(error as Error).message || 'upload failed'}`);
+         }
+      }
+      setTimeout(() => {
+         items.forEach((it) => URL.revokeObjectURL(it.preview));
+         setUploads((u) => u.filter((it) => !items.some((x) => x.id === it.id)));
+      }, 1200);
    };
 
    const addMembers = async (memberIds: string[]) => {
@@ -424,9 +480,23 @@ const ChatApp: React.FC = () => {
          );
       }
       if (m.type === 'sticker' && m.sticker) {
-         // local static asset (animated webp) - next/image would re-encode it
-         // eslint-disable-next-line @next/next/no-img-element
-         return <img src={stickerUrl(m.sticker)} alt="sticker" className="w-32 h-32 object-contain drop-shadow-md" />;
+         return (
+            <div className="flex flex-col gap-1">
+               {renderQuote(m)}
+               {/* local static asset (animated webp) - next/image would re-encode it */}
+               {/* eslint-disable-next-line @next/next/no-img-element */}
+               <img src={stickerUrl(m.sticker)} alt="sticker" className="w-40 h-40 object-contain drop-shadow-lg" />
+            </div>
+         );
+      }
+      if (m.type === 'text' && EMOJI_ONLY.test(m.content.trim())) {
+         // emoji-only messages: big, no bubble (like Messenger)
+         return (
+            <div className="flex flex-col gap-1">
+               {renderQuote(m)}
+               <span className="text-5xl leading-tight drop-shadow-sm" style={{ letterSpacing: '0.1em' }}>{m.content.trim()}</span>
+            </div>
+         );
       }
       if (m.type === 'image' && m.imageUrl) {
          // shown whole (no crop, no rounding); click opens the full-size preview
@@ -585,7 +655,7 @@ const ChatApp: React.FC = () => {
                   if (!room) return;
                   e.preventDefault();
                   setDragging(false);
-                  handleImage(e.dataTransfer.files?.[0]);
+                  handleImages(e.dataTransfer.files);
                }}
             >
                {dragging && room && (
@@ -633,6 +703,16 @@ const ChatApp: React.FC = () => {
                         <span className="hidden gap-1 items-center px-2.5 py-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 rounded-full sm:flex">
                            <FiLock size={11} /> Encrypted
                         </span>
+                        {room.type === 'direct' && partner && (
+                           <>
+                              <Tooltip title="Voice call">
+                                 <button type="button" onClick={() => call.startCall(partner, room._id, 'audio')} className={`${iconButton} w-9 h-9 text-blue-600 bg-blue-50 hover:bg-blue-100`} aria-label="Voice call"><FiPhone size={17} /></button>
+                              </Tooltip>
+                              <Tooltip title="Video call">
+                                 <button type="button" onClick={() => call.startCall(partner, room._id, 'video')} className={`${iconButton} w-9 h-9 text-blue-600 bg-blue-50 hover:bg-blue-100`} aria-label="Video call"><FiVideo size={17} /></button>
+                              </Tooltip>
+                           </>
+                        )}
                         {room.type === 'group' && (
                            <button type="button" onClick={() => setMembersOpen(true)} className="flex gap-1.5 items-center px-3 h-9 text-sm font-medium text-gray-700 bg-gray-100 rounded-full border-none cursor-pointer hover:bg-gray-200">
                               <FiUsers size={15} /> <span className="hidden sm:inline">{room.members.length}</span>
@@ -709,6 +789,26 @@ const ChatApp: React.FC = () => {
 
                      {/* composer */}
                      <div className="px-2 py-2 bg-white/90 border-t border-gray-100 backdrop-blur sm:px-4 sm:py-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+                        {uploads.length > 0 && (
+                           <div className="flex gap-2 px-1 pb-2 mb-2 overflow-x-auto border-b border-gray-100">
+                              {uploads.map((u) => (
+                                 <div key={u.id} className="relative flex-shrink-0 w-[72px]">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={u.preview} alt="" className={clsx('object-cover w-[72px] h-[72px] rounded-xl ring-2', u.status === 'error' ? 'ring-red-400' : u.status === 'done' ? 'ring-emerald-400' : 'ring-blue-500')} />
+                                    {u.status === 'uploading' && (
+                                       <div className="flex absolute inset-0 flex-col justify-end items-center p-1.5 bg-black/45 rounded-xl">
+                                          <span className="mb-1 text-[13px] font-bold text-white drop-shadow">{u.progress}%</span>
+                                          <div className="w-full h-2 bg-white/40 rounded-full overflow-hidden">
+                                             <div className="h-full bg-blue-500 transition-[width] duration-200" style={{ width: `${u.progress}%` }} />
+                                          </div>
+                                       </div>
+                                    )}
+                                    {u.status === 'done' && <span className="flex absolute inset-0 justify-center items-center text-2xl font-bold text-white bg-emerald-500/50 rounded-xl">✓</span>}
+                                    {u.status === 'error' && <span className="flex absolute inset-0 justify-center items-center text-lg font-bold text-white bg-red-500/60 rounded-xl">!</span>}
+                                 </div>
+                              ))}
+                           </div>
+                        )}
                         {replyTo && (
                            <div className="flex gap-2 items-center px-3 py-2 mb-2 bg-blue-50 rounded-2xl border-l-4 border-blue-500">
                               <FiCornerUpLeft className="flex-shrink-0 text-blue-500" size={14} />
@@ -722,7 +822,7 @@ const ChatApp: React.FC = () => {
                            </div>
                         )}
                         <div className="flex gap-1 items-end p-1.5 bg-gray-50 rounded-3xl ring-1 ring-gray-200 focus-within:ring-blue-300 focus-within:bg-white transition-colors">
-                           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={(e) => handleImage(e.target.files?.[0])} />
+                           <input ref={fileRef} type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={(e) => handleImages(e.target.files)} />
                            <Tooltip title="Send a photo">
                               <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className={`${iconButton} w-9 h-9 text-gray-400 hover:text-blue-600 hover:bg-blue-50`} aria-label="Photo">
                                  <FiImage size={20} />
@@ -739,7 +839,7 @@ const ChatApp: React.FC = () => {
                               </button>
                            </Popover>
                            <Input.TextArea
-                              placeholder={uploading ? 'Uploading photo…' : 'Type a message…'}
+                              placeholder={uploading ? 'Uploading photos…' : 'Type a message…'}
                               className="bg-transparent! border-none! shadow-none! py-2! px-2! text-[15px]! resize-none! focus:shadow-none!"
                               value={draft}
                               autoSize={{ minRows: 1, maxRows: 5 }}
@@ -747,12 +847,14 @@ const ChatApp: React.FC = () => {
                               onChange={(e) => handleDraftChange(e.target.value)}
                               // Ctrl+V a screenshot / copied image -> sent as a photo
                               onPaste={(e) => {
-                                 const file = Array.from(e.clipboardData?.items ?? [])
-                                    .find((item) => item.kind === 'file' && item.type.startsWith('image/'))
-                                    ?.getAsFile();
-                                 if (file) {
+                                 const files = Array.from(e.clipboardData?.items ?? [])
+                                    .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+                                    .map((item) => item.getAsFile())
+                                    .filter((f): f is File => !!f)
+                                    .map((f, i) => new File([f], f.name || `pasted-${Date.now()}-${i}.png`, { type: f.type }));
+                                 if (files.length) {
                                     e.preventDefault();
-                                    handleImage(new File([file], file.name || `pasted-${Date.now()}.png`, { type: file.type }));
+                                    handleImages(files);
                                  }
                               }}
                               onPressEnter={(e) => {
@@ -843,6 +945,7 @@ const ChatApp: React.FC = () => {
             )}
          </Drawer>
 
+         <CallOverlay call={call} />
          <NewChatModal open={newOpen} onClose={() => setNewOpen(false)} onCreated={(id) => { queryClient.invalidateQueries({ queryKey: ROOMS_KEY }); open(id); }} />
          {room && room.type === 'group' && (
             <NewChatModal open={addOpen} onClose={() => setAddOpen(false)} onCreated={() => {}} addToRoom={{ id: room._id, name: room.name || '', memberIds: room.members.map((m) => m._id) }} onAddMembers={addMembers} />

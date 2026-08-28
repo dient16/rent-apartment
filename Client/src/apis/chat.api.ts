@@ -86,11 +86,21 @@ export const apiChatSend = (roomId: string, content: string, replyTo?: string): 
 export const apiChatSendSticker = (roomId: string, sticker: string, replyTo?: string): Promise<Res<ChatMessage>> =>
    axios({ url: `/chat/rooms/${roomId}/stickers`, method: 'post', data: { sticker, ...(replyTo ? { replyTo } : {}) } });
 
-export const apiChatSendImage = (roomId: string, file: File, replyTo?: string): Promise<Res<ChatMessage>> => {
+export const apiChatSendImage = (
+   roomId: string,
+   file: File,
+   replyTo?: string,
+   onProgress?: (percent: number) => void,
+): Promise<Res<ChatMessage>> => {
    const data = new FormData();
    data.append('image', file);
    if (replyTo) data.append('replyTo', replyTo);
-   return axios({ url: `/chat/rooms/${roomId}/images`, method: 'post', data });
+   return axios({
+      url: `/chat/rooms/${roomId}/images`,
+      method: 'post',
+      data,
+      onUploadProgress: (e) => onProgress?.(e.total ? Math.round((e.loaded / e.total) * 100) : 0),
+   });
 };
 
 /** Toggle an emoji on a message */

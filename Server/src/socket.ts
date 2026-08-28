@@ -58,6 +58,15 @@ export const initSocket = (server: http.Server) => {
       }
     });
 
+    // Standalone chat: WebRTC signalling for 1:1 calls - the server only relays to the callee.
+    for (const event of ['call:invite', 'call:answer', 'call:ice', 'call:end'] as const) {
+      socket.on(event, (payload: { to?: string } & Record<string, unknown>) => {
+        if (!payload?.to || typeof payload.to !== 'string') return;
+        const { to, ...rest } = payload;
+        socket.to(`user:${to}`).emit(event, { ...rest, from: userId });
+      });
+    }
+
     socket.on('typing', (payload: { to?: string; conversationId?: string; isTyping?: boolean }) => {
       if (!payload?.to || !payload?.conversationId) return;
       socket.to(`user:${payload.to}`).emit('typing', {

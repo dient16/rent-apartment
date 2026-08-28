@@ -8,21 +8,34 @@ import { FiSearch } from 'react-icons/fi';
 import { apiChatSearchStickers } from '@/apis/chat.api';
 import { useDebounce } from '@/hooks';
 
+type PackItem = string | { id: string; name: string };
 interface StickerPack {
    id: string;
    name: string;
-   ext: string;
-   items: string[];
+   /** local packs: file extension; CDN packs use `cdn` instead */
+   ext?: string;
+   /** URL template with `{cp}` (e.g. Google Noto animated emoji), items are codepoints */
+   cdn?: string;
+   items: PackItem[];
 }
 
-/** Local packs: `/stickers/<pack>/<name>.<ext>`; Tenor picks are stored as their media URL. */
+const NOTO_CDN = 'https://fonts.gstatic.com/s/e/notoemoji/latest/{cp}/512.webp';
+const itemId = (item: PackItem) => (typeof item === 'string' ? item : item.id);
+const itemName = (item: PackItem) => (typeof item === 'string' ? item : item.name);
+
+/**
+ * Sticker id -> image URL. Local packs: `/stickers/<pack>/<name>.<ext>`; CDN packs (Noto
+ * animated emoji) expand their template; Tenor picks are stored as their media URL.
+ */
 export const stickerUrl = (id: string, packs: StickerPack[] = cachedPacks) => {
    if (id.startsWith('https://')) return id;
    const [packId, name] = id.split('/');
+   const pack = packs.find((p) => p.id === packId);
+   const cdn = pack?.cdn ?? (packId === 'noto' ? NOTO_CDN : undefined);
+   if (cdn) return cdn.replace('{cp}', name);
    // mixed packs list items as "name.ext" (see scripts/chat/build-sticker-packs.js)
    if (/\.(webp|gif|png)$/.test(name)) return `/stickers/${packId}/${name}`;
-   const ext = packs.find((p) => p.id === packId)?.ext ?? (packId === 'animated' ? 'webp' : 'png');
-   return `/stickers/${packId}/${name}.${ext}`;
+   return `/stickers/${packId}/${name}.${pack?.ext ?? 'png'}`;
 };
 
 let cachedPacks: StickerPack[] = [];
@@ -120,18 +133,18 @@ const StickerPicker: React.FC<StickerPickerProps> = ({ onPick }) => {
             </>
          ) : (
             <div className="grid overflow-y-auto grid-cols-4 gap-1 max-h-[280px]">
-               {pack?.items.map((name) => {
-                  const id = `${pack.id}/${name}`;
+               {pack?.items.map((item) => {
+                  const id = `${pack.id}/${itemId(item)}`;
                   return (
                      <button
                         key={id}
                         type="button"
                         onClick={() => onPick(id)}
                         className="flex justify-center items-center p-1 bg-transparent rounded-xl border-none transition-transform cursor-pointer hover:bg-gray-100 hover:scale-110"
-                        aria-label={name}
+                        aria-label={itemName(item)}
                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={stickerUrl(id, packs)} alt={name} width={64} height={64} loading="lazy" className="w-16 h-16 object-contain" />
+                        <img src={stickerUrl(id, packs)} alt={itemName(item)} width={64} height={64} loading="lazy" className="w-16 h-16 object-contain" />
                      </button>
                   );
                })}
