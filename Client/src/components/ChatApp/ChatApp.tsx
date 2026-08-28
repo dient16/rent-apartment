@@ -117,6 +117,8 @@ const ChatApp: React.FC = () => {
    const [nameDraft, setNameDraft] = useState('');
    const [uploads, setUploads] = useState<UploadItem[]>([]);
    const uploading = uploads.some((u) => u.status === 'uploading');
+   /** photos picked / pasted / dropped, waiting for Send */
+   const [staged, setStaged] = useState<{ id: string; file: File; preview: string }[]>([]);
    const call = useCall(user);
    const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
    const [reactOpenFor, setReactOpenFor] = useState<string | null>(null);
@@ -180,7 +182,8 @@ const ChatApp: React.FC = () => {
                if (index < 0) return page;
                found = true;
                const next = [...list];
-               next[index] = { ...next[index], ...message };
+               // never let a payload without sender info wipe what we already know
+               next[index] = { ...next[index], ...message, sender: message.sender ?? next[index].sender, isMine: message.sender ? message.isMine : next[index].isMine };
                return { ...page, data: { ...page.data, messages: next } };
             });
             if (found) return { ...cache, pages };
@@ -292,6 +295,10 @@ const ChatApp: React.FC = () => {
       (roomId: string | null) => {
          setDraft('');
          setReplyTo(null);
+         setStaged((cur) => {
+            cur.forEach((f) => URL.revokeObjectURL(f.preview));
+            return [];
+         });
          setMembersOpen(false);
          setSearchParams(roomId ? { r: roomId } : {});
       },
@@ -429,11 +436,18 @@ const ChatApp: React.FC = () => {
 
    const handleSend = () => {
       const content = draft.trim();
-      if (!content || !selectedId || sendText.isPending) return;
+      if ((!content && !staged.length) || !selectedId || sendText.isPending) return;
+      const roomId = selectedId;
+      const quoted = replyTo?._id;
       setDraft('');
-      stopTyping();
-      sendText.mutate({ content, replyTo: replyTo?._id });
       setReplyTo(null);
+      stopTyping();
+      if (staged.length) {
+         const files = staged;
+         setStaged([]);
+         uploadStaged(roomId, files, quoted);
+      }
+      if (content) sendText.mutate({ content, replyTo: staged.length ? undefined : quoted });
    };
 
    const handleDraftChange = (value: string) => {
@@ -449,18 +463,18 @@ const ChatApp: React.FC = () => {
       }, 2500);
    };
 
-   /** Send one or many photos; each gets its own progress row above the composer. */
-   const handleImages = async (list?: FileList | File[] | null) => {
+   /** Pick / paste / drop photos -> they wait in the composer until Send. */
+   const handleImages = (list?: FileList | File[] | null) => {
       const files = Array.from(list ?? []).filter(Boolean);
       if (!files.length || !selectedId) return;
-      if (files.length > MAX_IMAGES_PER_SEND) toast.info(`Sending the first ${MAX_IMAGES_PER_SEND} photos`);
-      const roomId = selectedId;
-      const quoted = replyTo?._id;
-      setReplyTo(null);
       if (fileRef.current) fileRef.current.value = '';
-
-      const items: UploadItem[] = [];
-      for (const file of files.slice(0, MAX_IMAGES_PER_SEND)) {
+      const room = staged.length;
+      const next: { id: string; file: File; preview: string }[] = [];
+      for (const file of files) {
+         if (room + next.length >= MAX_IMAGES_PER_SEND) {
+            toast.info(`Up to ${MAX_IMAGES_PER_SEND} photos per message`);
+            break;
+         }
          if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) {
             toast.warning(`${file.name}: JPG, PNG, GIF or WebP only`);
             continue;
@@ -469,30 +483,38 @@ const ChatApp: React.FC = () => {
             toast.warning(`${file.name}: must be under 5 MB`);
             continue;
          }
-         items.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: file.name, preview: URL.createObjectURL(file), progress: 0, status: 'uploading' });
+         next.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, file, preview: URL.createObjectURL(file) });
       }
-      if (!items.length) return;
+      if (next.length) setStaged((cur) => [...cur, ...next]);
+   };
+
+   const unstage = (id: string) =>
+      setStaged((cur) => {
+         const item = cur.find((x) => x.id === id);
+         if (item) URL.revokeObjectURL(item.preview);
+         return cur.filter((x) => x.id !== id);
+      });
+
+   /** Upload the staged photos in order (first one carries the reply), with a progress row each. */
+   const uploadStaged = async (roomId: string, files: { id: string; file: File; preview: string }[], quoted?: string) => {
+      const items: UploadItem[] = files.map((f) => ({ id: f.id, name: f.file.name, preview: f.preview, progress: 0, status: 'uploading' }));
       setUploads((u) => [...u, ...items]);
       const update = (id: string, patch: Partial<UploadItem>) => setUploads((u) => u.map((it) => (it.id === id ? { ...it, ...patch } : it)));
-
-      // sequential keeps the order the user picked
-      const valid = files.filter((f) => /^image\/(jpeg|png|gif|webp)$/.test(f.type) && f.size <= MAX_IMAGE_BYTES).slice(0, items.length);
-      for (const [i, file] of valid.entries()) {
-         const item = items[i];
+      for (const [i, f] of files.entries()) {
          try {
-            const res = await apiChatSendImage(roomId, file, i === 0 ? quoted : undefined, (p) => update(item.id, { progress: p }));
+            const res = await apiChatSendImage(roomId, f.file, i === 0 ? quoted : undefined, (p) => update(f.id, { progress: p }));
             if (!res.success || !res.data) throw new Error(res.message);
-            update(item.id, { progress: 100, status: 'done' });
+            update(f.id, { progress: 100, status: 'done' });
             upsertMessage(roomId, { ...res.data, isMine: true });
             queryClient.invalidateQueries({ queryKey: ROOMS_KEY });
          } catch (error) {
-            update(item.id, { status: 'error' });
-            toast.error(`${file.name}: ${(error as Error).message || 'upload failed'}`);
+            update(f.id, { status: 'error' });
+            toast.error(`${f.file.name}: ${(error as Error).message || 'upload failed'}`);
          }
       }
       setTimeout(() => {
-         items.forEach((it) => URL.revokeObjectURL(it.preview));
-         setUploads((u) => u.filter((it) => !items.some((x) => x.id === it.id)));
+         files.forEach((f) => URL.revokeObjectURL(f.preview));
+         setUploads((u) => u.filter((it) => !files.some((f) => f.id === it.id)));
       }, 1200);
    };
 
@@ -916,6 +938,23 @@ const ChatApp: React.FC = () => {
                               ))}
                            </div>
                         )}
+                        {staged.length > 0 && (
+                           <div className="flex gap-2 items-center px-1 pb-2 mb-2 overflow-x-auto border-b border-gray-100">
+                              {staged.map((f) => (
+                                 <div key={f.id} className="relative flex-shrink-0 w-[72px] h-[72px]">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={f.preview} alt="" className="object-cover w-full h-full rounded-xl ring-1 ring-black/10" />
+                                    <button type="button" onClick={() => unstage(f.id)} className="flex absolute -top-1.5 -right-1.5 justify-center items-center w-5 h-5 text-white bg-gray-800 rounded-full border-2 border-white cursor-pointer hover:bg-red-500" aria-label="Remove photo">
+                                       <FiX size={11} />
+                                    </button>
+                                 </div>
+                              ))}
+                              <button type="button" onClick={() => fileRef.current?.click()} className="flex flex-shrink-0 justify-center items-center w-[72px] h-[72px] text-gray-400 bg-gray-50 rounded-xl border-2 border-gray-200 border-dashed cursor-pointer hover:text-blue-600 hover:border-blue-300" aria-label="Add more photos">
+                                 <FiPlus size={20} />
+                              </button>
+                              <span className="flex-shrink-0 ml-1 text-xs text-gray-400">{staged.length}/{MAX_IMAGES_PER_SEND}</span>
+                           </div>
+                        )}
                         {replyTo && (
                            <div className="flex gap-2 items-center px-3 py-2 mb-2 bg-blue-50 rounded-2xl border-l-4 border-blue-500">
                               <FiCornerUpLeft className="flex-shrink-0 text-blue-500" size={14} />
@@ -946,7 +985,7 @@ const ChatApp: React.FC = () => {
                               </button>
                            </Popover>
                            <Input.TextArea
-                              placeholder={uploading ? 'Uploading photos…' : 'Type a message…'}
+                              placeholder={uploading ? 'Uploading photos…' : staged.length ? 'Add a caption (optional) and press Send' : 'Type a message…'}
                               className="bg-transparent! border-none! shadow-none! py-2! px-2! text-[15px]! resize-none! focus:shadow-none!"
                               value={draft}
                               autoSize={{ minRows: 1, maxRows: 5 }}
@@ -976,9 +1015,9 @@ const ChatApp: React.FC = () => {
                               shape="circle"
                               size="large"
                               icon={<FiSend />}
-                              className={clsx('flex-shrink-0 border-none', draft.trim() ? 'bg-gradient-to-br from-blue-600 to-indigo-500 shadow-md shadow-blue-200' : 'bg-gray-200!')}
+                              className={clsx('flex-shrink-0 border-none', draft.trim() || staged.length ? 'bg-gradient-to-br from-blue-600 to-indigo-500 shadow-md shadow-blue-200' : 'bg-gray-200!')}
                               loading={sendText.isPending}
-                              disabled={!draft.trim()}
+                              disabled={!draft.trim() && !staged.length}
                               onClick={handleSend}
                            />
                         </div>

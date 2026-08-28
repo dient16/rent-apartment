@@ -267,9 +267,13 @@ export const chatCommands = {
     const latest = await chatRepository.findLatestMessage(roomId);
     if (latest && String(latest._id) === messageId) await chatRepository.setLastMessage(roomId, lastMessageOf(message));
 
-    const payload = toPublicMessage(message.toObject(), new Map(), '');
-    notifyMembers(room, 'chat:message', { roomId, message: payload, recalled: true });
-    return ok('Message recalled', { ...payload, isMine: true });
+    // Keep the sender on the recalled bubble (otherwise it renders as "?" on the wrong side).
+    const users = new Map((await chatRepository.findUsersByIds([userId])).map((u) => [String(u._id), toPublicUser(u)]));
+    const plain = message.toObject() as ChatMessage & { _id: unknown };
+    for (const m of room.members) {
+      emitToUser(String(m.user), 'chat:message', { roomId, message: toPublicMessage(plain, users, String(m.user)), recalled: true });
+    }
+    return ok('Message recalled', toPublicMessage(plain, users, userId));
   },
 
   async markRead(userId: string, roomId: string) {
