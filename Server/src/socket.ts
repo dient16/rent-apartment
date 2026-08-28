@@ -44,7 +44,7 @@ export const initSocket = (server: http.Server) => {
     });
 
     // Standalone chat (/chat): typing fan-out to the other members of a room.
-    socket.on('chat:typing', (payload: { roomId?: string; memberIds?: string[]; name?: string; isTyping?: boolean }) => {
+    socket.on('chat:typing', (payload: { roomId?: string; memberIds?: string[]; name?: string; avatar?: string | null; isTyping?: boolean }) => {
       if (!payload?.roomId || !Array.isArray(payload.memberIds)) return;
       for (const memberId of payload.memberIds.slice(0, 200)) {
         if (String(memberId) === userId) continue;
@@ -52,6 +52,7 @@ export const initSocket = (server: http.Server) => {
           roomId: String(payload.roomId),
           from: userId,
           name: String(payload.name || 'Someone').slice(0, 60),
+          avatar: typeof payload.avatar === 'string' ? payload.avatar.slice(0, 500) : null,
           isTyping: !!payload.isTyping,
         });
       }

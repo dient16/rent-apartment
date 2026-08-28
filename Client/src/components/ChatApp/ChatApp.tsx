@@ -103,7 +103,9 @@ const ChatApp: React.FC = () => {
    const [uploading, setUploading] = useState(false);
    const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
    const [reactOpenFor, setReactOpenFor] = useState<string | null>(null);
-   const [typing, setTyping] = useState<Record<string, { name: string; until: number }>>({});
+   /** roomId -> userId -> who is typing (expires after 5s without a signal) */
+   const [typing, setTyping] = useState<Record<string, Record<string, { name: string; avatar: string | null; until: number }>>>({});
+   const [dragging, setDragging] = useState(false);
    const listRef = useRef<HTMLDivElement>(null);
    const fileRef = useRef<HTMLInputElement>(null);
    const prevBottomOffsetRef = useRef<number | null>(null);
@@ -192,12 +194,15 @@ const ChatApp: React.FC = () => {
       const socket = getSocket() || connectSocket();
       if (!socket) return;
       const onMessage = (payload: { roomId: string; message: ChatMessage; recalled?: boolean; reaction?: boolean }) => {
-         setTyping((t) => {
-            if (!t[payload.roomId]) return t;
-            const next = { ...t };
-            delete next[payload.roomId];
-            return next;
-         });
+         const from = payload.message.sender?._id;
+         if (from) {
+            setTyping((t) => {
+               if (!t[payload.roomId]?.[from]) return t;
+               const room = { ...t[payload.roomId] };
+               delete room[from];
+               return { ...t, [payload.roomId]: room };
+            });
+         }
          invalidateRoom(payload.roomId);
          // Alert when the tab is hidden or the message belongs to another room
          const { message } = payload;
@@ -209,12 +214,12 @@ const ChatApp: React.FC = () => {
          showChatNotification({ title, body: notificationBody(message), icon: message.sender.avatar, roomId: payload.roomId, onOpen: open });
       };
       const onRoom = () => queryClient.invalidateQueries({ queryKey: ROOMS_KEY });
-      const onTyping = (payload: { roomId: string; name: string; isTyping: boolean }) => {
+      const onTyping = (payload: { roomId: string; from: string; name: string; avatar?: string | null; isTyping: boolean }) => {
          setTyping((t) => {
-            const next = { ...t };
-            if (payload.isTyping) next[payload.roomId] = { name: payload.name, until: Date.now() + 5000 };
-            else delete next[payload.roomId];
-            return next;
+            const room = { ...(t[payload.roomId] ?? {}) };
+            if (payload.isTyping) room[payload.from] = { name: payload.name, avatar: payload.avatar ?? null, until: Date.now() + 5000 };
+            else delete room[payload.from];
+            return { ...t, [payload.roomId]: room };
          });
       };
       socket.on('chat:message', onMessage);
@@ -231,8 +236,14 @@ const ChatApp: React.FC = () => {
       const timer = setInterval(() => {
          setTyping((t) => {
             const now = Date.now();
-            const next = Object.fromEntries(Object.entries(t).filter(([, v]) => v.until > now));
-            return Object.keys(next).length === Object.keys(t).length ? t : next;
+            let changed = false;
+            const next: typeof t = {};
+            for (const [roomId, users] of Object.entries(t)) {
+               const alive = Object.fromEntries(Object.entries(users).filter(([, v]) => v.until > now));
+               if (Object.keys(alive).length !== Object.keys(users).length) changed = true;
+               next[roomId] = alive;
+            }
+            return changed ? next : t;
          });
       }, 1000);
       return () => clearInterval(timer);
@@ -245,6 +256,7 @@ const ChatApp: React.FC = () => {
          roomId: room._id,
          memberIds: room.members.map((m) => m._id).filter((id) => id !== user?._id),
          name: user?.firstname || 'Someone',
+         avatar: user?.avatar ?? null,
          isTyping,
       });
    };
@@ -353,7 +365,10 @@ const ChatApp: React.FC = () => {
    const isOwner = room?.myRole === 'owner';
    const canManage = isOwner || room?.myRole === 'admin';
    const visibleRooms = rooms.filter((r) => !filter || (r.name || '').toLowerCase().includes(filter.toLowerCase()));
-   const typingNow = selectedId ? typing[selectedId] : undefined;
+   const typersOf = (roomId: string) => Object.values(typing[roomId] ?? {});
+   const typers = selectedId ? typersOf(selectedId) : [];
+   const typingLabel = (list: { name: string }[]) =>
+      list.length === 0 ? '' : list.length === 1 ? `${list[0].name} is typing…` : list.length === 2 ? `${list[0].name} and ${list[1].name} are typing…` : `${list[0].name}, ${list[1].name} and ${list.length - 2} more are typing…`;
    const partner = room?.type === 'direct' ? room.members.find((m) => m._id !== user?._id) : undefined;
 
    /* ---------------- render ---------------- */
@@ -373,23 +388,29 @@ const ChatApp: React.FC = () => {
          </button>
       ) : null;
 
+   const reactorNames = (r: ChatMessage['reactions'][number]) => {
+      const others = r.users.filter((n) => n !== (user?.firstname || '') && n !== `${user?.firstname ?? ''} ${user?.lastname ?? ''}`.trim());
+      const names = r.mine ? ['You', ...others] : r.users;
+      return names.join(', ');
+   };
+
    const renderReactions = (m: ChatMessage) =>
       m.reactions?.length ? (
-         <div className={clsx('flex flex-wrap gap-1 -mt-2 relative z-10', m.isMine ? 'justify-end mr-1' : 'ml-1')}>
+         <div className={clsx('flex relative z-10 flex-wrap gap-0.5 -mt-2.5', m.isMine ? 'justify-end mr-2' : 'ml-2')}>
             {m.reactions.map((r) => (
-               <button
-                  key={r.emoji}
-                  type="button"
-                  onClick={() => react.mutate({ messageId: m._id, emoji: r.emoji })}
-                  className={clsx(
-                     'flex gap-0.5 items-center px-1.5 h-6 text-[12px] bg-white rounded-full border shadow-sm cursor-pointer transition-transform hover:scale-110',
-                     r.mine ? 'border-blue-300' : 'border-gray-200',
-                  )}
-                  title={r.mine ? 'You reacted - click to remove' : 'React'}
-               >
-                  <span className="leading-none">{r.emoji}</span>
-                  {r.count > 1 && <span className="font-semibold text-gray-600">{r.count}</span>}
-               </button>
+               <Tooltip key={r.emoji} title={<span className="text-xs">{reactorNames(r)}</span>} placement="top">
+                  <button
+                     type="button"
+                     onClick={() => react.mutate({ messageId: m._id, emoji: r.emoji })}
+                     className={clsx(
+                        'flex gap-1 items-center px-1.5 h-[22px] text-[13px] leading-none bg-white rounded-full shadow-md cursor-pointer transition-all ring-1 hover:-translate-y-0.5',
+                        r.mine ? 'ring-blue-300 bg-blue-50' : 'ring-black/5',
+                     )}
+                  >
+                     <span>{r.emoji}</span>
+                     {r.count > 1 && <span className={clsx('text-[11px] font-semibold', r.mine ? 'text-blue-700' : 'text-gray-600')}>{r.count}</span>}
+                  </button>
+               </Tooltip>
             ))}
          </div>
       ) : null;
@@ -408,13 +429,12 @@ const ChatApp: React.FC = () => {
          return <img src={stickerUrl(m.sticker)} alt="sticker" className="w-32 h-32 object-contain drop-shadow-md" />;
       }
       if (m.type === 'image' && m.imageUrl) {
+         // shown whole (no crop, no rounding); click opens the full-size preview
          return (
-            <Image
-               src={m.imageUrl}
-               alt="photo"
-               style={{ maxWidth: 280, maxHeight: 320, objectFit: 'cover' }}
-               rootClassName="overflow-hidden rounded-2xl shadow-sm ring-1 ring-black/5"
-            />
+            <div className="flex flex-col gap-1">
+               {renderQuote(m)}
+               <Image src={m.imageUrl} alt="photo" className="block h-auto max-w-full" style={{ maxWidth: 440 }} rootClassName="block max-w-full shadow-sm" />
+            </div>
          );
       }
       return (
@@ -442,14 +462,24 @@ const ChatApp: React.FC = () => {
                trigger="click"
                placement="top"
                content={
-                  <div className="flex gap-0.5">
-                     {QUICK_REACTIONS.map((emoji) => (
-                        <button key={emoji} type="button" onClick={() => { setReactOpenFor(null); react.mutate({ messageId: m._id, emoji }); }} className="flex justify-center items-center w-8 h-8 text-lg bg-transparent rounded-full border-none transition-transform cursor-pointer hover:scale-125 hover:bg-gray-100">
-                           {emoji}
-                        </button>
-                     ))}
+                  <div className="flex gap-1 px-1 py-0.5">
+                     {QUICK_REACTIONS.map((emoji) => {
+                        const active = m.reactions?.some((r) => r.emoji === emoji && r.mine);
+                        return (
+                           <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => { setReactOpenFor(null); react.mutate({ messageId: m._id, emoji }); }}
+                              className={clsx('flex justify-center items-center w-9 h-9 text-[22px] leading-none rounded-full border-none transition-transform cursor-pointer hover:scale-125', active ? 'bg-blue-50 ring-2 ring-blue-300' : 'bg-transparent hover:bg-gray-100')}
+                              aria-label={emoji}
+                           >
+                              {emoji}
+                           </button>
+                        );
+                     })}
                   </div>
                }
+               styles={{ container: { padding: 4, borderRadius: 9999 } }}
             >
                <button type="button" className={`${iconButton} w-7 h-7 text-gray-400 hover:bg-white hover:text-amber-500`} aria-label="React"><FiSmile size={14} /></button>
             </Popover>
@@ -505,7 +535,8 @@ const ChatApp: React.FC = () => {
                   ) : (
                      visibleRooms.map((r) => {
                         const active = r._id === selectedId;
-                        const isTyping = !!typing[r._id];
+                        const roomTypers = typersOf(r._id);
+                        const isTyping = roomTypers.length > 0;
                         return (
                            <button
                               key={r._id}
@@ -525,7 +556,7 @@ const ChatApp: React.FC = () => {
                                  </span>
                                  <span className="flex gap-2 justify-between items-center mt-0.5">
                                     <span className={clsx('text-[13px] truncate', isTyping ? 'text-blue-600 italic' : r.unreadCount ? 'font-medium text-gray-800' : 'text-gray-500')}>
-                                       {isTyping ? `${typing[r._id].name} is typing…` : previewOf(r)}
+                                       {isTyping ? typingLabel(roomTypers) : previewOf(r)}
                                     </span>
                                     {r.unreadCount > 0 && (
                                        <span className="flex flex-shrink-0 justify-center items-center px-1.5 h-5 min-w-[20px] text-[11px] font-bold text-white bg-blue-500 rounded-full">{r.unreadCount}</span>
@@ -540,7 +571,28 @@ const ChatApp: React.FC = () => {
             </aside>
 
             {/* ===== Conversation ===== */}
-            <section className={clsx('flex-col flex-1 min-w-0 bg-[#f4f6fb] md:flex', selectedId ? 'flex' : 'hidden')}>
+            <section
+               className={clsx('relative flex-col flex-1 min-w-0 bg-[#f4f6fb] md:flex', selectedId ? 'flex' : 'hidden')}
+               onDragOver={(e) => {
+                  if (!room || !e.dataTransfer.types.includes('Files')) return;
+                  e.preventDefault();
+                  setDragging(true);
+               }}
+               onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+               }}
+               onDrop={(e) => {
+                  if (!room) return;
+                  e.preventDefault();
+                  setDragging(false);
+                  handleImage(e.dataTransfer.files?.[0]);
+               }}
+            >
+               {dragging && room && (
+                  <div className="flex absolute inset-0 z-20 justify-center items-center bg-blue-500/10 border-4 border-blue-400 border-dashed pointer-events-none">
+                     <span className="flex gap-2 items-center px-4 py-2 text-sm font-semibold text-blue-700 bg-white rounded-full shadow-lg"><FiImage /> Drop to send the photo</span>
+                  </div>
+               )}
                {!room ? (
                   <div className="flex flex-col flex-1 justify-center items-center px-6 text-center">
                      <span className="flex justify-center items-center mb-5 w-20 h-20 text-3xl text-white bg-gradient-to-br from-blue-600 to-indigo-500 rounded-3xl shadow-lg shadow-blue-200 rotate-3">
@@ -574,8 +626,8 @@ const ChatApp: React.FC = () => {
                                  )}
                               </p>
                            )}
-                           <p className={clsx('text-xs truncate', typingNow ? 'text-blue-600' : 'text-gray-400')}>
-                              {typingNow ? `${typingNow.name} is typing…` : room.type === 'group' ? `${room.members.length} members` : partner?.email}
+                           <p className={clsx('text-xs truncate', typers.length ? 'text-blue-600' : 'text-gray-400')}>
+                              {typers.length ? typingLabel(typers) : room.type === 'group' ? `${room.members.length} members` : partner?.email}
                            </p>
                         </div>
                         <span className="hidden gap-1 items-center px-2.5 py-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 rounded-full sm:flex">
@@ -636,12 +688,20 @@ const ChatApp: React.FC = () => {
                               );
                            })
                         )}
-                        {typingNow && (
+                        {typers.length > 0 && (
                            <div className="flex gap-2 items-end mt-3">
-                              <div className="flex gap-1 items-center px-4 py-3 bg-white rounded-2xl rounded-bl-md shadow-sm ring-1 ring-black/5">
-                                 {[0, 1, 2].map((dot) => (
-                                    <span key={dot} className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${dot * 150}ms` }} />
+                              <div className="flex flex-shrink-0 -space-x-2">
+                                 {typers.slice(0, 3).map((t) => (
+                                    <UserAvatar key={t.name} size={24} src={t.avatar} name={t.name} className="ring-2 ring-white" />
                                  ))}
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                 {room.type === 'group' && <span className="ml-1 text-[11px] font-medium text-gray-500">{typingLabel(typers)}</span>}
+                                 <div className="flex gap-1 items-center px-4 py-3 w-fit bg-white rounded-2xl rounded-bl-md shadow-sm ring-1 ring-black/5">
+                                    {[0, 1, 2].map((dot) => (
+                                       <span key={dot} className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${dot * 150}ms` }} />
+                                    ))}
+                                 </div>
                               </div>
                            </div>
                         )}
@@ -685,6 +745,16 @@ const ChatApp: React.FC = () => {
                               autoSize={{ minRows: 1, maxRows: 5 }}
                               maxLength={4000}
                               onChange={(e) => handleDraftChange(e.target.value)}
+                              // Ctrl+V a screenshot / copied image -> sent as a photo
+                              onPaste={(e) => {
+                                 const file = Array.from(e.clipboardData?.items ?? [])
+                                    .find((item) => item.kind === 'file' && item.type.startsWith('image/'))
+                                    ?.getAsFile();
+                                 if (file) {
+                                    e.preventDefault();
+                                    handleImage(new File([file], file.name || `pasted-${Date.now()}.png`, { type: file.type }));
+                                 }
+                              }}
                               onPressEnter={(e) => {
                                  if (!e.shiftKey) {
                                     e.preventDefault();

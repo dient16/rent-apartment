@@ -6,7 +6,7 @@ import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 import { decryptBuffer, verifyImageSignature } from '../chat.crypto';
 import type { ChatRoom } from '../chat.model';
 import { chatRepository } from '../chat.repository';
-import { memberOf, previewOf, type PublicUser, toPublicMessage, toPublicUser } from '../chat.shared';
+import { memberOf, previewOf, type PublicUser, referencedUserIds, toPublicMessage, toPublicUser } from '../chat.shared';
 import { searchTenorStickers, tenorEnabled } from '../chat.tenor';
 
 type RoomDoc = ChatRoom & { _id: unknown };
@@ -78,8 +78,8 @@ export const chatQueries = {
     // senders who already left the group are not in `members`
     const quotedIds = [...new Set(page.map((m) => (m.replyTo ? String(m.replyTo) : '')).filter(Boolean))];
     const quoted = new Map((quotedIds.length ? await chatRepository.findMessagesByIds(quotedIds) : []).map((q) => [String(q._id), q]));
-    const senderIds = [...page, ...quoted.values()].map((m) => String(m.sender));
-    const missing = [...new Set(senderIds.filter((id) => id !== 'undefined' && !users.has(id)))];
+    // senders + reactors (some may have left the group), one lookup
+    const missing = referencedUserIds([...page, ...quoted.values()] as never).filter((id) => !users.has(id));
     if (missing.length) for (const u of await chatRepository.findUsersByIds(missing)) users.set(String(u._id), toPublicUser(u));
     const messages = page.map((m) => toPublicMessage(m as never, users, userId, m.replyTo ? (quoted.get(String(m.replyTo)) as never) ?? null : null));
     return ok('Messages retrieved', { messages, hasMore });

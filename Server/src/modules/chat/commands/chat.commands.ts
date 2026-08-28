@@ -8,7 +8,7 @@ import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 import { decryptText, encryptBuffer, encryptText } from '../chat.crypto';
 import type { ChatLastMessage, ChatMember, ChatMessage, ChatRoom } from '../chat.model';
 import { chatRepository } from '../chat.repository';
-import { canManage, directKeyFor, memberOf, STICKER_ID, toPublicMessage, toPublicUser } from '../chat.shared';
+import { canManage, directKeyFor, memberOf, referencedUserIds, STICKER_ID, toPublicMessage, toPublicUser } from '../chat.shared';
 import { chatQueries } from '../queries/chat.queries';
 
 type RoomDoc = ChatRoom & { _id: unknown };
@@ -228,7 +228,7 @@ export const chatCommands = {
     message.markModified('reactions');
     await message.save();
 
-    const ids = [message.sender ? String(message.sender) : null].filter((id): id is string => !!id);
+    const ids = referencedUserIds([message.toObject() as never]);
     const users = new Map((await chatRepository.findUsersByIds(ids)).map((u) => [String(u._id), toPublicUser(u)]));
     const quoted = message.replyTo ? await quotedIn(roomId, String(message.replyTo)) : null;
     const plain = message.toObject() as ChatMessage & { _id: unknown };

@@ -44,17 +44,24 @@ export const summarize = (message: MessageDoc): string => {
   return decryptText(message.content) ?? '';
 };
 
-/** Grouped reactions: one chip per emoji with the count and whether the caller reacted. */
-const groupReactions = (reactions: ChatMessage['reactions'] | undefined, userId: string) => {
-  const groups = new Map<string, { emoji: string; count: number; mine: boolean }>();
+/** Grouped reactions: one chip per emoji with the count, who reacted, and whether the caller did. */
+const groupReactions = (reactions: ChatMessage['reactions'] | undefined, userId: string, users: Map<string, PublicUser>) => {
+  const groups = new Map<string, { emoji: string; count: number; mine: boolean; users: string[] }>();
   for (const r of reactions ?? []) {
-    const g = groups.get(r.emoji) ?? { emoji: r.emoji, count: 0, mine: false };
+    const g = groups.get(r.emoji) ?? { emoji: r.emoji, count: 0, mine: false, users: [] };
     g.count += 1;
-    if (String(r.user) === String(userId)) g.mine = true;
+    const id = String(r.user);
+    if (id === String(userId)) g.mine = true;
+    g.users.push(users.get(id)?.name ?? 'Someone');
     groups.set(r.emoji, g);
   }
   return [...groups.values()];
 };
+
+/** Ids of everyone referenced by a page of messages (senders + reactors), for one user lookup. */
+export const referencedUserIds = (messages: ChatMessage[]): string[] => [
+  ...new Set(messages.flatMap((m) => [m.sender ? String(m.sender) : '', ...(m.reactions ?? []).map((r) => String(r.user))]).filter(Boolean)),
+];
 
 /**
  * What members see: decrypted text, a signed image URL, a sticker id - never the raw payload.
@@ -69,7 +76,7 @@ export const toPublicMessage = (message: MessageDoc, users: Map<string, PublicUs
     imageUrl: message.type === 'image' && plain ? `${env.SERVER_URL}${signImagePath(plain)}` : null,
     sticker: message.type === 'sticker' ? plain : null,
     recalled: !!message.recalled,
-    reactions: groupReactions(message.reactions, userId),
+    reactions: groupReactions(message.reactions, userId, users),
     replyTo: quoted
       ? {
           _id: String(quoted._id),

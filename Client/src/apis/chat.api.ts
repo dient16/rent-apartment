@@ -41,7 +41,7 @@ export interface ChatMessage {
    /** "<pack>/<name>" - sticker messages only */
    sticker: string | null;
    recalled: boolean;
-   reactions: { emoji: string; count: number; mine: boolean }[];
+   reactions: { emoji: string; count: number; mine: boolean; users: string[] }[];
    /** quoted message, when this is a reply */
    replyTo: { _id: string; type: ChatMessageType; preview: string; senderName: string; recalled: boolean } | null;
    sender: ChatUser | null;
