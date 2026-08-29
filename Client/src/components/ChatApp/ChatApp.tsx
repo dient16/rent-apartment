@@ -188,7 +188,8 @@ const ChatApp: React.FC = () => {
    const avatarRef = useRef<HTMLInputElement>(null);
    const prevBottomOffsetRef = useRef<number | null>(null);
    /** everything inside the scroller - one ResizeObserver instead of one per message */
-   const contentRef = useRef<HTMLDivElement>(null);
+   const contentRef = useRef<HTMLDivElement | null>(null);
+   const contentObserverRef = useRef<ResizeObserver | null>(null);
    /** we moved the scroller ourselves: the scroll event it fires must not unpin the view */
    const selfScrollRef = useRef(false);
    /** while a room settles (decrypting, photos loading) the view stays glued to the bottom */
@@ -625,6 +626,8 @@ const ChatApp: React.FC = () => {
    }, [selectedId, messages.length, queryClient]);
 
    const newestId = messages[messages.length - 1]?._id;
+   /** the scroller only exists once the room itself is loaded - which can be after its messages */
+   const openRoomId = room?._id ?? null;
 
    /** jump to the newest message; `selfScroll` keeps the resulting scroll event from unpinning */
    const glueToBottom = useCallback((smooth = false) => {
@@ -651,6 +654,19 @@ const ChatApp: React.FC = () => {
       [glueToBottom],
    );
 
+   /**
+    * The list mounts later than the messages arrive (a page load resolves `rooms` after
+    * `messages`), and by then no effect dependency has changed. Attaching through a callback ref
+    * puts the view at the newest message the moment the scroller exists, whichever order they land in.
+    */
+   const attachList = useCallback((node: HTMLDivElement | null) => {
+      listRef.current = node;
+      if (!node) return;
+      setPinned(node, true);
+      settleUntilRef.current = Date.now() + 4000;
+      node.scrollTop = node.scrollHeight;
+   }, []);
+
    // Before the browser paints: a new message, or a room that just opened, lands at the bottom.
    useLayoutEffect(() => {
       const el = listRef.current;
@@ -663,29 +679,38 @@ const ChatApp: React.FC = () => {
          return;
       }
       if (isPinned(el)) glueToBottom();
-   }, [newestId, selectedId, typing, glueToBottom]);
+   }, [newestId, selectedId, openRoomId, typing, glueToBottom]);
 
-   // A room opens with placeholder bubbles ("Decrypting…", photo spinners) that grow once the
-   // bodies are decrypted and the photos arrive. One observer over the whole list follows every
-   // one of those height changes, and for the first moments of a room it wins over everything.
-   useEffect(() => {
-      const el = listRef.current;
-      const content = contentRef.current;
-      if (!el || !content || typeof ResizeObserver === 'undefined') return;
-      const observer = new ResizeObserver(() => {
-         if (Date.now() < settleUntilRef.current) setPinned(el, true);
-         if (isPinned(el)) glueToBottom();
-      });
-      observer.observe(content);
-      return () => observer.disconnect();
-   }, [selectedId, messagesLoading, glueToBottom]);
+   /**
+    * A room opens with placeholder bubbles ("Decrypting…", photo spinners) that grow once the
+    * bodies are decrypted and the photos arrive. One observer over the whole list follows every
+    * one of those height changes, and during a room's first moments it wins over everything.
+    * Like the scroller, it is bound to the element itself so no render order can skip it.
+    */
+   const attachContent = useCallback(
+      (node: HTMLDivElement | null) => {
+         contentObserverRef.current?.disconnect();
+         contentObserverRef.current = null;
+         contentRef.current = node;
+         if (!node || typeof ResizeObserver === 'undefined') return;
+         const observer = new ResizeObserver(() => {
+            const el = listRef.current;
+            if (!el) return;
+            if (Date.now() < settleUntilRef.current) setPinned(el, true);
+            if (isPinned(el)) glueToBottom();
+         });
+         observer.observe(node);
+         contentObserverRef.current = observer;
+      },
+      [glueToBottom],
+   );
 
-   // opening a room (and its first page) starts a window where the view stays at the bottom
+   // a room whose first page just arrived stays at the bottom while it settles (decrypting, photos)
    useEffect(() => {
-      if (!selectedId || messagesLoading) return;
-      settleUntilRef.current = Date.now() + 2000;
+      if (!selectedId || !openRoomId || messagesLoading) return;
+      settleUntilRef.current = Date.now() + 4000;
       glueToBottom();
-   }, [selectedId, messagesLoading, glueToBottom]);
+   }, [selectedId, openRoomId, messagesLoading, glueToBottom]);
 
    /* ---------------- in-room search ---------------- */
 
@@ -1423,7 +1448,7 @@ const ChatApp: React.FC = () => {
 
                      {/* messages */}
                      <div
-                        ref={listRef}
+                        ref={attachList}
                         onScroll={handleListScroll}
                         onWheel={handleUserScroll}
                         onTouchMove={handleUserScroll}
@@ -1434,7 +1459,7 @@ const ChatApp: React.FC = () => {
                         // while decrypted bodies and photos grow the list
                         style={{ backgroundImage: 'radial-gradient(rgba(59,130,246,0.08) 1px, transparent 1px)', backgroundSize: '22px 22px', overflowAnchor: 'none' }}
                      >
-                        <div ref={contentRef} className="mt-auto">
+                        <div ref={attachContent} className="mt-auto">
                         {isFetchingNextPage && (
                            <div className="flex justify-center py-2">
                               <span className="flex gap-2 items-center px-3 h-7 text-[11px] font-medium text-gray-500 bg-white rounded-full shadow-sm ring-1 ring-black/5">
