@@ -1,20 +1,18 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Input } from 'antd';
 import clsx from 'clsx';
 import { FiSearch } from 'react-icons/fi';
-import { apiChatSearchStickers } from '@/apis/chat.api';
-import { useDebounce } from '@/hooks';
 
 type PackItem = string | { id: string; name: string };
+
 interface StickerPack {
    id: string;
    name: string;
-   /** local packs: file extension; CDN packs use `cdn` instead */
+   /** local packs: file extension shared by every item */
    ext?: string;
-   /** URL template with `{cp}` (e.g. Google Noto animated emoji), items are codepoints */
+   /** CDN packs: url template with `{cp}` */
    cdn?: string;
    items: PackItem[];
 }
@@ -23,9 +21,14 @@ const NOTO_CDN = 'https://fonts.gstatic.com/s/e/notoemoji/latest/{cp}/512.webp';
 const itemId = (item: PackItem) => (typeof item === 'string' ? item : item.id);
 const itemName = (item: PackItem) => (typeof item === 'string' ? item : item.name);
 
+/** animated first, then the rest of the downloaded packs */
+const PACK_ORDER = ['animated', 'fun', 'hands', 'noto', '3d'];
+
+let cachedPacks: StickerPack[] = [];
+
 /**
- * Sticker id -> image URL. Local packs: `/stickers/<pack>/<name>.<ext>`; CDN packs (Noto
- * animated emoji) expand their template; Tenor picks are stored as their media URL.
+ * Sticker id -> image URL. Local packs live in `/stickers/<pack>/<name>.<ext>`; CDN packs
+ * expand their template.
  */
 export const stickerUrl = (id: string, packs: StickerPack[] = cachedPacks) => {
    if (id.startsWith('https://')) return id;
@@ -33,15 +36,25 @@ export const stickerUrl = (id: string, packs: StickerPack[] = cachedPacks) => {
    const pack = packs.find((p) => p.id === packId);
    const cdn = pack?.cdn ?? (packId === 'noto' ? NOTO_CDN : undefined);
    if (cdn) return cdn.replace('{cp}', name);
-   // mixed packs list items as "name.ext" (see scripts/chat/build-sticker-packs.js)
    if (/\.(webp|gif|png)$/.test(name)) return `/stickers/${packId}/${name}`;
-   // packs.json may not be loaded yet on first paint: the known local packs get their real extension
    return `/stickers/${packId}/${name}.${pack?.ext ?? (packId === 'animated' ? 'webp' : 'png')}`;
 };
 
+/** Fetch packs.json once (called on chat mount so message stickers resolve before the tray opens). */
+export const loadPacks = async (): Promise<StickerPack[]> => {
+   if (cachedPacks.length) return cachedPacks;
+   const res = await fetch('/stickers/packs.json');
+   const data = (await res.json()) as { packs: StickerPack[] };
+   cachedPacks = [...data.packs].sort((a, b) => {
+      const rank = (p: StickerPack) => PACK_ORDER.indexOf(p.id) + 1 || 99;
+      return rank(a) - rank(b);
+   });
+   return cachedPacks;
+};
+
 /**
- * A sticker image with a shimmer placeholder while the (often 300-500 KB animated) file
- * loads, and no broken-image icon if it fails.
+ * A sticker in the message list: shimmer + spinner while the (often 300-500 KB animated)
+ * file loads, and never a broken-image icon.
  */
 export const Sticker: React.FC<{ id: string; size?: number; className?: string }> = ({ id, size = 160, className }) => {
    const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -71,28 +84,50 @@ export const Sticker: React.FC<{ id: string; size?: number; className?: string }
    );
 };
 
-let cachedPacks: StickerPack[] = [];
-/** Fetch packs.json once (called on chat mount so message stickers resolve before the tray opens). */
-export const loadPacks = async (): Promise<StickerPack[]> => {
-   if (cachedPacks.length) return cachedPacks;
-   const res = await fetch('/stickers/packs.json');
-   const data = (await res.json()) as { packs: StickerPack[] };
-   cachedPacks = data.packs;
-   return cachedPacks;
+/** Search words -> the slugs the sticker files use, so "happy" also finds "grin" */
+const SYNONYMS: Record<string, string[]> = {
+   happy: ['grin', 'joy', 'laugh', 'smile', 'giggle', 'partying'],
+   funny: ['rofl', 'joy', 'laugh', 'zany', 'clown'],
+   sad: ['cry', 'tear', 'pleading', 'loudly_crying'],
+   love: ['heart', 'hearts', 'kiss', 'cupid', 'two_hearts', 'sparkling_heart'],
+   angry: ['angry', 'steam', 'cursing', 'devil'],
+   sleep: ['sleep', 'tired', 'yawn'],
+   like: ['thumbs_up', 'ok_hand', 'clap'],
+   dislike: ['thumbs_down'],
+   thanks: ['pray', 'hug', 'clap'],
+   party: ['party', 'partying', 'balloon', 'gift', 'cake', 'sparkles'],
+   food: ['pizza', 'burger', 'noodles', 'fries', 'donut', 'cookie', 'taco', 'hotdog', 'cake', 'ice_cream', 'sushi', 'pancakes'],
+   drink: ['coffee', 'cheers', 'wine', 'honey'],
+   money: ['money_wings', 'money_face', 'gem'],
+   animal: ['cat', 'panda', 'fox', 'bear', 'lion', 'penguin', 'frog', 'turtle', 'whale', 'dolphin', 'octopus', 'shark', 'bee', 'butterfly'],
+   cool: ['cool', 'cowboy', 'smirk', 'star_struck', 'fire'],
+   sick: ['sick', 'mask', 'nauseated', 'bandage', 'dizzy'],
+   weather: ['sun_face', 'cloud', 'rainbow', 'snowflake', 'snowman', 'tornado', 'wave'],
+   sport: ['soccer', 'basketball', 'trophy', 'target'],
+   work: ['laptop', 'phone', 'camera', 'key', 'lock', 'alarm', 'hourglass', 'bulb'],
+   hi: ['wave', 'handshake'],
+   shock: ['mind_blown', 'scream', 'fearful', 'eyes'],
+   ghost: ['ghost', 'skull', 'alien', 'robot', 'clown'],
 };
+
+/** lowercase, letters and digits only, so "Star-struck!" matches "starstruck" */
+const fold = (value: string) =>
+   value
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/đ/gi, 'd')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '');
 
 interface StickerPickerProps {
    onPick: (stickerId: string) => void;
 }
 
-const TENOR_TAB = '__tenor__';
-
-/** Sticker tray: local packs (Noto animated, Fluent 3D) + a Tenor search tab when the server has a key. */
+/** Sticker tray: animated pack first, then 3D, with search across every pack. */
 const StickerPicker: React.FC<StickerPickerProps> = ({ onPick }) => {
    const [packs, setPacks] = useState<StickerPack[]>(cachedPacks);
    const [active, setActive] = useState<string>(cachedPacks[0]?.id ?? '');
    const [query, setQuery] = useState('');
-   const debounced = useDebounce(query, 350);
 
    useEffect(() => {
       let cancelled = false;
@@ -106,84 +141,68 @@ const StickerPicker: React.FC<StickerPickerProps> = ({ onPick }) => {
       };
    }, []);
 
-   // One cheap probe tells us whether the GIF tab exists; results are cached per query.
-   const tenor = useQuery({
-      queryKey: ['chat-tenor', active === TENOR_TAB ? debounced : ''],
-      queryFn: () => apiChatSearchStickers(active === TENOR_TAB ? debounced : ''),
-      staleTime: 5 * 60_000,
-   });
-   const tenorEnabled = tenor.data?.data?.enabled ?? false;
-   const tenorStickers = tenor.data?.data?.stickers ?? [];
+   /** searching looks through every pack, so a keyword finds stickers wherever they live */
+   const results = useMemo(() => {
+      const q = fold(query);
+      if (!q) return null;
+      const extra = Object.entries(SYNONYMS)
+         .filter(([key]) => key.startsWith(q) || q.startsWith(key))
+         .flatMap(([, slugs]) => slugs);
+      const hit = (name: string) => {
+         const folded = fold(name);
+         return folded.includes(q) || extra.some((slug) => folded.includes(fold(slug)));
+      };
+      return packs.flatMap((p) => p.items.filter((item) => hit(itemName(item)) || hit(itemId(item))).map((item) => `${p.id}/${itemId(item)}`));
+   }, [query, packs]);
 
-   const tabs = [...packs.map((p) => ({ id: p.id, name: p.name })), ...(tenorEnabled ? [{ id: TENOR_TAB, name: 'GIF' }] : [])];
    const pack = packs.find((p) => p.id === active);
+   const shown = results ?? (pack ? pack.items.map((item) => `${pack.id}/${itemId(item)}`) : []);
 
    return (
       <div className="w-[320px] max-w-[calc(100vw-32px)] font-main">
-         <div className="flex gap-1 mb-2">
-            {tabs.map((t) => (
-               <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setActive(t.id)}
-                  className={clsx(
-                     'px-3 py-1 text-xs font-semibold rounded-full border-none cursor-pointer',
-                     t.id === active ? 'text-white bg-blue-600' : 'text-gray-600 bg-gray-100 hover:bg-gray-200',
-                  )}
-               >
-                  {t.name}
-               </button>
-            ))}
-         </div>
+         <Input
+            allowClear
+            size="small"
+            prefix={<FiSearch className="text-gray-400" />}
+            placeholder="Search stickers: happy, love, fire, food…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="mb-2 h-8 rounded-lg"
+         />
 
-         {active === TENOR_TAB ? (
-            <>
-               <Input
-                  allowClear
-                  size="small"
-                  prefix={<FiSearch className="text-gray-400" />}
-                  placeholder="Search stickers (cute, cat, love…)"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="mb-2 h-8 rounded-lg"
-               />
-               <div className="grid overflow-y-auto grid-cols-3 gap-1 max-h-[280px]">
-                  {tenor.isFetching && !tenorStickers.length && <p className="col-span-3 py-6 text-xs text-center text-gray-400">Loading…</p>}
-                  {!tenor.isFetching && !tenorStickers.length && <p className="col-span-3 py-6 text-xs text-center text-gray-400">No stickers found</p>}
-                  {tenorStickers.map((s) => (
-                     <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => onPick(s.url)}
-                        className="flex justify-center items-center p-1 bg-transparent rounded-xl border-none transition-transform cursor-pointer hover:bg-gray-100 hover:scale-105"
-                        aria-label="sticker"
-                     >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={s.preview} alt="" width={90} height={90} loading="lazy" className="w-[90px] h-[90px] object-contain" />
-                     </button>
-                  ))}
-               </div>
-               <p className="mt-1.5 text-[10px] text-right text-gray-400">Powered by Tenor</p>
-            </>
-         ) : (
-            <div className="grid overflow-y-auto grid-cols-4 gap-1 max-h-[280px]">
-               {pack?.items.map((item) => {
-                  const id = `${pack.id}/${itemId(item)}`;
-                  return (
-                     <button
-                        key={id}
-                        type="button"
-                        onClick={() => onPick(id)}
-                        className="flex justify-center items-center p-1 bg-transparent rounded-xl border-none transition-transform cursor-pointer hover:bg-gray-100 hover:scale-110"
-                        aria-label={itemName(item)}
-                     >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={stickerUrl(id, packs)} alt={itemName(item)} width={64} height={64} loading="lazy" className="w-16 h-16 object-contain" />
-                     </button>
-                  );
-               })}
+         {!results && (
+            <div className="flex gap-1 mb-2">
+               {packs.map((p) => (
+                  <button
+                     key={p.id}
+                     type="button"
+                     onClick={() => setActive(p.id)}
+                     className={clsx(
+                        'px-3 py-1 text-xs font-semibold rounded-full border-none cursor-pointer',
+                        p.id === active ? 'text-white bg-blue-600' : 'text-gray-600 bg-gray-100 hover:bg-gray-200',
+                     )}
+                  >
+                     {p.name}
+                  </button>
+               ))}
             </div>
          )}
+
+         <div className="grid overflow-y-auto grid-cols-4 gap-1 max-h-[280px]">
+            {shown.map((id) => (
+               <button
+                  key={id}
+                  type="button"
+                  onClick={() => onPick(id)}
+                  className="flex justify-center items-center p-1 bg-transparent rounded-xl border-none transition-transform cursor-pointer hover:bg-gray-100 hover:scale-110"
+                  aria-label={id.split('/')[1]}
+               >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={stickerUrl(id, packs)} alt="" width={64} height={64} loading="lazy" className="w-16 h-16 object-contain" />
+               </button>
+            ))}
+            {results && !results.length && <p className="col-span-4 py-6 text-xs text-center text-gray-400">No stickers match that search</p>}
+         </div>
       </div>
    );
 };

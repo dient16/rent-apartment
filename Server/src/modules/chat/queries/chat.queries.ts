@@ -3,11 +3,12 @@ import { StatusCodes } from 'http-status-codes';
 
 import { ResponseStatus, ServiceResponse } from '@/utils/serviceResponse';
 
-import { decryptBuffer, verifyImageSignature } from '../chat.crypto';
-import type { ChatRoom } from '../chat.model';
+import { env } from '@/config/env.config';
+
+import { decryptBuffer, signImagePath, verifyImageSignature } from '../chat.crypto';
+import type { ChatMessage, ChatRoom } from '../chat.model';
 import { chatRepository } from '../chat.repository';
-import { memberOf, previewOf, type PublicUser, referencedUserIds, toPublicMessage, toPublicUser } from '../chat.shared';
-import { searchTenorStickers, tenorEnabled } from '../chat.tenor';
+import { memberOf, previewOf, publicCipher, type PublicUser, referencedUserIds, toPublicMessage, toPublicUser } from '../chat.shared';
 
 type RoomDoc = ChatRoom & { _id: unknown };
 
@@ -21,8 +22,18 @@ const loadUsers = async (rooms: ChatRoom[]): Promise<Map<string, PublicUser>> =>
   return new Map(users.map((u) => [String(u._id), toPublicUser(u)]));
 };
 
-const toPublicRoom = async (room: RoomDoc, userId: string, users: Map<string, PublicUser>) => {
-  const members = room.members.map((m) => ({ ...(users.get(String(m.user)) ?? { _id: String(m.user), name: 'User', avatar: null }), role: m.role }));
+const toPublicRoom = async (
+  room: RoomDoc,
+  userId: string,
+  users: Map<string, PublicUser>,
+  pinned?: (ChatMessage & { _id: unknown }) | null
+) => {
+  const members = room.members.map((m) => ({
+    ...(users.get(String(m.user)) ?? { _id: String(m.user), name: 'User', avatar: null }),
+    role: m.role,
+    /** used for "seen by" ticks under the newest message */
+    lastReadAt: m.lastReadAt,
+  }));
   const partner = room.type === 'direct' ? members.find((m) => m._id !== userId) : undefined;
   const me = memberOf(room, userId);
   const unreadCount = me ? await chatRepository.countUnread(String(room._id), userId, me.lastReadAt) : 0;
@@ -40,10 +51,15 @@ const toPublicRoom = async (room: RoomDoc, userId: string, users: Map<string, Pu
     _id: String(room._id),
     type: room.type,
     name: room.type === 'group' ? room.name : (partner?.name ?? 'User'),
-    avatar: room.type === 'group' ? null : (partner?.avatar ?? null),
+    avatar: room.type === 'group' ? (room.avatar ? `${env.SERVER_URL}${signImagePath(room.avatar)}` : null) : (partner?.avatar ?? null),
     members,
     myRole: me?.role ?? 'member',
-    lastMessage: last,
+    muted: !!me?.muted,
+    /** message pinned to the top of the room (already in the public shape) */
+    pinned: pinned ? toPublicMessage(pinned, users, userId) : null,
+    lastMessage: last
+      ? { ...last, cipher: room.lastMessage?.cipher ? publicCipher(room.lastMessage.cipher) : null }
+      : null,
     unreadCount,
     updatedAt: room.updatedAt,
   };
@@ -55,7 +71,13 @@ export const chatQueries = {
     if (err) return failed('Error loading chats', StatusCodes.INTERNAL_SERVER_ERROR);
     const docs = rooms as RoomDoc[];
     const users = await loadUsers(docs);
-    const list = await Promise.all(docs.map((r) => toPublicRoom(r, userId, users)));
+    // pinned messages of every room in one query
+    const pinnedIds = docs.map((r) => (r.pinnedMessage ? String(r.pinnedMessage) : '')).filter(Boolean);
+    const pinnedDocs = pinnedIds.length ? await chatRepository.findMessagesByIds(pinnedIds) : [];
+    const pinnedById = new Map(pinnedDocs.map((m) => [String(m._id), m as ChatMessage & { _id: unknown }]));
+    const list = await Promise.all(
+      docs.map((r) => toPublicRoom(r, userId, users, r.pinnedMessage ? (pinnedById.get(String(r.pinnedMessage)) ?? null) : null))
+    );
     return ok('Chats retrieved', { rooms: list, totalUnread: list.reduce((sum, r) => sum + r.unreadCount, 0) });
   },
 
@@ -63,7 +85,8 @@ export const chatQueries = {
     const room = await chatRepository.findRoomForMember(roomId, userId);
     if (!room) return failed('Room not found', StatusCodes.NOT_FOUND);
     const plain = room.toObject() as RoomDoc;
-    return ok('Chat retrieved', await toPublicRoom(plain, userId, await loadUsers([plain])));
+    const pinned = plain.pinnedMessage ? ((await chatRepository.findMessagesByIds([String(plain.pinnedMessage)]))[0] ?? null) : null;
+    return ok('Chat retrieved', await toPublicRoom(plain, userId, await loadUsers([plain]), pinned as never));
   },
 
   /** Newest page first; `before` pages further back. */
@@ -85,28 +108,38 @@ export const chatQueries = {
     return ok('Messages retrieved', { messages, hasMore });
   },
 
+  /** Every photo shared in a room, newest first - the group media tab. */
+  async listMedia(roomId: string, userId: string, limit: number, before?: string) {
+    const room = await chatRepository.findRoomForMember(roomId, userId);
+    if (!room) return failed('Room not found', StatusCodes.NOT_FOUND);
+    const [err, docs] = await to(chatRepository.findMedia(roomId, limit + 1, before));
+    if (err) return failed('Error loading media', StatusCodes.INTERNAL_SERVER_ERROR);
+    const hasMore = docs.length > limit;
+    const page = docs.slice(0, limit);
+    const users = await loadUsers([room.toObject() as RoomDoc]);
+    const missing = referencedUserIds(page as never).filter((id) => !users.has(id));
+    if (missing.length) for (const u of await chatRepository.findUsersByIds(missing)) users.set(String(u._id), toPublicUser(u));
+    return ok('Media retrieved', { media: page.map((m) => toPublicMessage(m as never, users, userId)), hasMore });
+  },
+
   async searchUsers(userId: string, q: string, limit: number) {
     const [err, users] = await to(chatRepository.searchUsers(q, userId, limit));
     if (err) return failed('Error searching users', StatusCodes.INTERNAL_SERVER_ERROR);
     return ok('Users found', users.map(toPublicUser));
   },
 
-  /** Animated stickers from Tenor; `enabled: false` when no key is configured. */
-  async searchStickers(q: string, limit: number) {
-    if (!tenorEnabled()) return ok('Sticker search disabled', { enabled: false, stickers: [] });
-    const [err, stickers] = await to(searchTenorStickers(q, limit));
-    if (err) return failed('Sticker search failed', StatusCodes.BAD_GATEWAY);
-    return ok('Stickers found', { enabled: true, stickers });
-  },
 
-  /** Decrypted image bytes for a signed URL; null when the signature is bad or the file is gone. */
-  async readImage(fileId: string, exp: unknown, sig: unknown): Promise<{ data: Buffer; contentType: string } | null> {
+  /** Image bytes for a signed URL; browser-encrypted files come back as they are stored. */
+  async readImage(fileId: string, exp: unknown, sig: unknown): Promise<{ data: Buffer; contentType: string; e2e: boolean } | null> {
     if (!/^[a-f0-9]{24}$/.test(fileId) || !verifyImageSignature(fileId, exp, sig)) return null;
     const file = await chatRepository.findImage(fileId);
     if (!file) return null;
-    const meta = (file.metadata ?? {}) as { contentType?: string; iv?: string; tag?: string };
+    const meta = (file.metadata ?? {}) as { contentType?: string; iv?: string; tag?: string; e2e?: boolean };
+    const raw = await chatRepository.readImage(fileId);
+    if (meta.e2e) return { data: raw, contentType: 'application/octet-stream', e2e: true };
     if (!meta.iv || !meta.tag) return null;
-    const data = decryptBuffer(await chatRepository.readImage(fileId), meta.iv, meta.tag);
-    return data ? { data, contentType: meta.contentType || 'application/octet-stream' } : null;
+    const data = decryptBuffer(raw, meta.iv, meta.tag);
+    return data ? { data, contentType: meta.contentType || 'application/octet-stream', e2e: false } : null;
   },
+
 };

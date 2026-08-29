@@ -33,7 +33,9 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
    onChange,
    className,
    disabledDates = [],
-   minDate,
+   // Stays cannot start in the past: everything before today is greyed out unless a caller
+   // explicitly passes another lower bound (e.g. the host pricing calendar).
+   minDate = moment().startOf('day').toDate(),
    // react-date-range defaults to +20 years, which fills the year dropdown with noise.
    maxDate = moment().add(3, 'years').toDate(),
    isShowLeftIcon = true,

@@ -12,11 +12,21 @@ import crypto from 'node:crypto';
 import { env } from '@/config/env.config';
 import { logger } from '@/utils/logger';
 
+/** Ciphertext stored as BSON Binary (Buffers). Older rows carried base64 strings - still readable. */
 export interface EncryptedText {
-  iv: string;
-  tag: string;
-  data: string;
+  iv: Buffer;
+  tag: Buffer;
+  data: Buffer;
 }
+type Legacy = { iv: Buffer | string; tag: Buffer | string; data: Buffer | string };
+const toBuffer = (v: Buffer | string | { buffer: Buffer } | undefined | null): Buffer | null => {
+  if (!v) return null;
+  if (Buffer.isBuffer(v)) return v;
+  if (typeof v === 'string') return Buffer.from(v, 'base64');
+  // mongoose Binary
+  if (typeof v === 'object' && 'buffer' in v && Buffer.isBuffer(v.buffer)) return v.buffer;
+  return null;
+};
 
 const ALGORITHM = 'aes-256-gcm';
 
@@ -33,16 +43,19 @@ export const encryptText = (plain: string): EncryptedText => {
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   const data = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
-  return { iv: iv.toString('base64'), tag: cipher.getAuthTag().toString('base64'), data: data.toString('base64') };
+  return { iv, tag: cipher.getAuthTag(), data };
 };
 
 /** null when written with another key or tampered with */
-export const decryptText = (payload: EncryptedText | null | undefined): string | null => {
-  if (!payload?.iv || !payload.tag || !payload.data) return null;
+export const decryptText = (payload: Legacy | null | undefined): string | null => {
+  const iv = toBuffer(payload?.iv);
+  const tag = toBuffer(payload?.tag);
+  const data = toBuffer(payload?.data);
+  if (!iv || !tag || !data) return null;
   try {
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(payload.iv, 'base64'));
-    decipher.setAuthTag(Buffer.from(payload.tag, 'base64'));
-    return Buffer.concat([decipher.update(Buffer.from(payload.data, 'base64')), decipher.final()]).toString('utf8');
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
   } catch {
     return null;
   }

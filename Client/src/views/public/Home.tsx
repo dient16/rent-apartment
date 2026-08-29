@@ -132,7 +132,7 @@ const Home: React.FC = () => {
                   </button>
                </div>
                {/* Mobile: swipeable row. sm+: bento grid. */}
-               <div className="flex overflow-x-auto gap-3 -mx-4 px-4 pb-1 snap-x snap-mandatory scrollbar-none sm:grid sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0 sm:grid-cols-2 sm:grid-rows-6 sm:gap-4 lg:grid-cols-4 lg:grid-rows-5 lg:gap-4 lg:h-[380px]">
+               <div className="flex overflow-x-auto gap-3 -mx-4 px-4 pb-1 snap-x snap-mandatory scrollbar-none sm:grid sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0 sm:grid-cols-2 sm:grid-rows-8 sm:gap-4 sm:h-[720px] md:h-[760px] lg:grid-cols-4 lg:grid-rows-5 lg:gap-4 lg:h-[380px]">
                   {DESTINATIONS.map((destination, index) => (
                      <button
                         key={destination.label}

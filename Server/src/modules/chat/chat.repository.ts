@@ -3,7 +3,8 @@ import mongoose from 'mongoose';
 import UserModel from '@/modules/user/user.model';
 
 import { chatImageBucket } from './chat.db';
-import type { ChatLastMessage, ChatMember, ChatMessage } from './chat.model';
+import type { ChatLastMessage, ChatMember, ChatMessage, ClientCipher } from './chat.model';
+import type { EncryptedText } from './chat.crypto';
 import { ChatMessageModel, ChatRoomModel } from './chat.model';
 
 const oid = (id: string) => new mongoose.Types.ObjectId(id);
@@ -68,6 +69,15 @@ export const chatRepository = {
   setLastMessage: (roomId: string, lastMessage: ChatLastMessage) =>
     ChatRoomModel.updateOne({ _id: oid(roomId) }, { $set: { lastMessage, updatedAt: new Date() } }),
 
+  setPinnedMessage: (roomId: string, messageId: string | null) =>
+    ChatRoomModel.updateOne(
+      { _id: oid(roomId) },
+      messageId ? { $set: { pinnedMessage: oid(messageId) } } : { $unset: { pinnedMessage: 1 } }
+    ),
+
+  setMuted: (roomId: string, userId: string, muted: boolean) =>
+    ChatRoomModel.updateOne({ _id: oid(roomId), 'members.user': oid(userId) }, { $set: { 'members.$.muted': muted } }),
+
   markRead: (roomId: string, userId: string) =>
     ChatRoomModel.updateOne({ _id: oid(roomId), 'members.user': oid(userId) }, { $set: { 'members.$.lastReadAt': new Date() } }),
 
@@ -76,11 +86,23 @@ export const chatRepository = {
     data: Pick<ChatMessage, 'room' | 'type' | 'content'> & {
       sender?: mongoose.Types.ObjectId;
       image?: ChatMessage['image'];
+      album?: string;
+      cipher?: ClientCipher;
       replyTo?: mongoose.Types.ObjectId;
+      mentions?: mongoose.Types.ObjectId[];
     }
   ) => ChatMessageModel.create(data),
 
   findMessageById: (messageId: string) => ChatMessageModel.findById(messageId),
+
+  /** photos of a room, newest first - the group media tab */
+  findMedia: (roomId: string, limit: number, before?: string) =>
+    ChatMessageModel.find({ room: oid(roomId), type: 'image', recalled: { $ne: true }, ...(before ? { _id: { $lt: oid(before) } } : {}) })
+      .sort({ _id: -1 })
+      .limit(limit)
+      .lean(),
+
+  setRoomAvatar: (roomId: string, avatar: string) => ChatRoomModel.updateOne({ _id: oid(roomId) }, { $set: { avatar } }),
 
   findMessagesByIds: (ids: string[]) => ChatMessageModel.find({ _id: { $in: ids.map(oid) } }).lean(),
 
@@ -96,7 +118,16 @@ export const chatRepository = {
     ChatMessageModel.countDocuments({ room: oid(roomId), createdAt: { $gt: since }, sender: { $ne: oid(userId) }, type: { $ne: 'system' } }),
 
   /* ---- images (GridFS on the chat database; bytes arrive already encrypted) ---- */
-  storeImage: (data: Buffer, metadata: { contentType: string; iv: string; tag: string; room: string; sender: string }): Promise<string> =>
+  /* ---- room key (created once, then read by every member) ---- */
+  /** Only sets the key when the room has none, so two parallel calls cannot disagree. */
+  claimRoomKey: (roomId: string, keyId: string, key: EncryptedText) =>
+    ChatRoomModel.findOneAndUpdate(
+      { _id: oid(roomId), 'crypto.keyId': { $exists: false } },
+      { $set: { crypto: { keyId, key, createdAt: new Date() } } },
+      { returnDocument: 'after' }
+    ).lean(),
+
+  storeImage: (data: Buffer, metadata: { contentType: string; iv?: string; tag?: string; e2e?: boolean; room: string; sender: string }): Promise<string> =>
     new Promise((resolve, reject) => {
       const stream = chatImageBucket().openUploadStream(`${Date.now()}`, { metadata });
       stream.on('finish', () => resolve(String(stream.id)));

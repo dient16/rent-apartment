@@ -2,7 +2,13 @@ import { toAvatarUrl } from '@/modules/message/message.shared';
 import { env } from '@/config/env.config';
 
 import { decryptText, signImagePath } from './chat.crypto';
-import type { ChatMember, ChatMessage, ChatRoom } from './chat.model';
+import type { ChatMember, ChatMessage, ChatRoom, ClientCipher } from './chat.model';
+
+const b64 = (v: Buffer | { buffer: Buffer } | undefined | null) =>
+  !v ? '' : Buffer.isBuffer(v) ? v.toString('base64') : Buffer.isBuffer(v.buffer) ? v.buffer.toString('base64') : '';
+
+/** wire form of a browser-side cipher (base64 strings) */
+export const publicCipher = (c: ClientCipher | undefined | null) => (c?.keyId ? { keyId: c.keyId, iv: b64(c.iv), data: b64(c.data) } : null);
 
 export interface PublicUser {
   _id: string;
@@ -41,6 +47,7 @@ export const summarize = (message: MessageDoc): string => {
   if (message.recalled) return 'Message recalled';
   if (message.type === 'image') return '📷 Photo';
   if (message.type === 'sticker') return '🙂 Sticker';
+  if (message.cipher) return '🔒 Encrypted message';
   return decryptText(message.content) ?? '';
 };
 
@@ -68,20 +75,31 @@ export const referencedUserIds = (messages: ChatMessage[]): string[] => [
  * `quoted` is the message this one replies to (already loaded by the caller).
  */
 export const toPublicMessage = (message: MessageDoc, users: Map<string, PublicUser>, userId: string, quoted?: MessageDoc | null) => {
-  const plain = message.recalled ? null : decryptText(message.content);
+  const e2e = !!message.cipher;
+  const plain = message.recalled || e2e ? null : decryptText(message.content);
+  const fileId = message.type === 'image' && !message.recalled ? decryptText(message.content) : null;
   return {
     _id: String(message._id),
     type: message.type,
-    content: message.type === 'text' || message.type === 'system' ? (plain ?? (message.recalled ? '' : '[unable to decrypt]')) : '',
-    imageUrl: message.type === 'image' && plain ? `${env.SERVER_URL}${signImagePath(plain)}` : null,
+    content: message.type === 'text' || message.type === 'system' ? (plain ?? (message.recalled || e2e ? '' : '[unable to decrypt]')) : '',
+    /** end-to-end body - only the members' browsers can open it (text / sticker id / order JSON) */
+    cipher: message.recalled ? null : publicCipher(message.cipher),
+    imageUrl: fileId ? `${env.SERVER_URL}${signImagePath(fileId)}` : null,
+    /** e2e photos: the bytes behind imageUrl are AES-GCM encrypted with this iv (base64) */
+    image: message.type === 'image' && message.image?.e2e ? { keyId: message.cipher?.keyId ?? '', iv: b64(message.image.iv) } : null,
     sticker: message.type === 'sticker' ? plain : null,
+    album: message.album ?? null,
     recalled: !!message.recalled,
+    editedAt: message.editedAt ?? null,
+    mentions: (message.mentions ?? []).map(String),
     reactions: groupReactions(message.reactions, userId, users),
     replyTo: quoted
       ? {
           _id: String(quoted._id),
           type: quoted.type,
           preview: summarize(quoted).slice(0, 140),
+          cipher: quoted.recalled ? null : publicCipher(quoted.cipher),
+          quotedType: quoted.type,
           senderName: quoted.sender ? (users.get(String(quoted.sender))?.name ?? 'User') : 'System',
           recalled: !!quoted.recalled,
         }
@@ -100,5 +118,6 @@ export const previewOf = (last: ChatRoom['lastMessage']): string => {
   if (last.recalled) return 'Message recalled';
   if (last.type === 'image') return '📷 Photo';
   if (last.type === 'sticker') return '🙂 Sticker';
+  if (last.cipher) return '🔒 Encrypted message';
   return decryptText(last.content) ?? '';
 };
