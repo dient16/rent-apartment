@@ -16,29 +16,18 @@ export const env = cleanEnv(process.env, {
   SERVER_URL: str({ devDefault: testOnly('http://localhost:9009') }),
   CLIENT_URL: str({ devDefault: testOnly('http://localhost:8000') }),
   MONGODB_URL: str(),
-  // 'atlas' = Atlas Search ($search on the cluster itself, no sync needed);
-  // 'elasticsearch' = external ES. Either falls back to Mongo regex when down.
   SEARCH_PROVIDER: str({ choices: ['atlas', 'elasticsearch'], default: 'atlas' }),
   ELASTICSEARCH_URL: str({ default: 'http://localhost:9200' }),
-  // Elastic Cloud API key; empty = unsecured cluster (local docker).
   ELASTICSEARCH_API_KEY: str({ default: '' }),
-  // DNS servers for geocoder lookups only; empty = OS resolver.
   GEOCODER_DNS: str({ default: '' }),
-  // Reverse-proxy hops to trust for the client IP. Never 'true' (spoofable).
   TRUST_PROXY: str({ default: '0' }),
   JWT_ACCESS_KEY: str(),
   EMAIL_NAME: str(),
   EMAIL_APP_PASSWORD: str(),
   JWT_REFRESH_KEY: str(),
-  // Chat module: AES-256-GCM key material for messages at rest (any string; keep it stable)
-  // Empty = derived from JWT_ACCESS_KEY (logged as a warning) so a missing var never blocks a deploy.
   CHAT_ENCRYPTION_KEY: str({ default: '' }),
-  // Chat module: its own MongoDB (rooms, messages, image files). Empty = use MONGODB_URL.
   CHAT_MONGODB_URL: str({ default: '' }),
-  // Chat module: Tenor (Google) key for the animated sticker / GIF search tab. Empty = tab hidden.
-  // Sessions stay signed in for ~100 days: the refresh cookie lives that long and the
-  // access token is renewed silently by the client.
-  ACCESS_TOKEN_TTL: str({ default: '1d' }),
+  ACCESS_TOKEN_TTL: str({ default: '100d' }),
   REFRESH_TOKEN_TTL: str({ default: '100d' }),
   STRIPE_SECRET_KEY: str(),
   GOOGLE_CLIENT_ID: str(),

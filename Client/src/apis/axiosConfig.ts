@@ -8,6 +8,20 @@ const REFRESH_URL = '/auth/refresh-token';
 /** Emitted when refresh fails so AuthContext can sign the user out. */
 export const AUTH_SESSION_EXPIRED_EVENT = 'auth:session-expired';
 
+// When a session dies, every request in flight fails at once. The user should hear about
+// it once - not once per request.
+let sessionExpiredNotified = false;
+
+/** Same text within a short window -> one toast (a burst of failing requests reads as one problem). */
+const recentToasts = new Map<string, number>();
+const toastOnce = (text: string) => {
+   const now = Date.now();
+   for (const [key, at] of recentToasts) if (now - at > 2500) recentToasts.delete(key);
+   if (recentToasts.has(text)) return;
+   recentToasts.set(text, now);
+   message.error(text);
+};
+
 export const getAccessToken = (): string | null => {
    const raw = localStorage.getItem(ACCESS_TOKEN_KEY);
    if (!raw) return null;
@@ -20,6 +34,8 @@ export const getAccessToken = (): string | null => {
 
 export const setAccessToken = (token: string) => {
    localStorage.setItem(ACCESS_TOKEN_KEY, JSON.stringify(token));
+   // a fresh session may expire again later - allow the next notification
+   sessionExpiredNotified = false;
 };
 
 export const clearAccessToken = () => {
@@ -96,7 +112,11 @@ instance.interceptors.response.use(
             return instance(originalRequest);
          } catch {
             clearAccessToken();
-            window.dispatchEvent(new CustomEvent(AUTH_SESSION_EXPIRED_EVENT));
+            // every request that was waiting on the refresh lands here - sign out once
+            if (!sessionExpiredNotified) {
+               sessionExpiredNotified = true;
+               window.dispatchEvent(new CustomEvent(AUTH_SESSION_EXPIRED_EVENT));
+            }
             return Promise.reject(error);
          }
       }
@@ -106,7 +126,7 @@ instance.interceptors.response.use(
       const skipToast = error.config?.skipErrorToast;
       if (status !== 401 && !skipToast) {
          const data = error.response?.data as { message?: string } | undefined;
-         message.error(data?.message || 'Error from server');
+         toastOnce(data?.message || 'Error from server');
       }
       return Promise.reject(error);
    },

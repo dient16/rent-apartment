@@ -85,7 +85,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       } catch {
          /* corrupted storage - fall through to the query result */
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+       
    }, []);
 
    // axiosConfig handles access-token refresh (single-flight); when refresh
@@ -93,7 +93,8 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
    useEffect(() => {
       const onSessionExpired = () => {
          dispatch(signOut());
-         message.error('Session expired, please login again!');
+         // keyed: if the event ever fires more than once, the toast replaces itself instead of stacking
+         message.error({ content: 'Session expired, please login again!', key: 'session-expired' });
       };
 
       window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, onSessionExpired);
